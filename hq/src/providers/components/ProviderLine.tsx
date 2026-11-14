@@ -7,6 +7,7 @@ import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import { keyWords, sinceWords, usedByWords } from './providerWords'
 import { ProviderCardCore } from './ProviderCardCore'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export type LineAction = 'replace' | 'rename' | 'remove' | 'revoke'
 
@@ -59,7 +60,7 @@ export function ProviderLine({ provider: p, current, onAction }: ProviderLinePro
   const checkNow = async () => {
     setChecking(true)
     setCheckError('')
-    try { await check({ id: p.id }) } catch (err) { setCheckError(err instanceof Error ? err.message : 'Could not check') } finally { setChecking(false) }
+    try { await check({ id: p.id }) } catch (err) { setCheckError(pressFailureWords(err, 'Could not check')) } finally { setChecking(false) }
   }
 
   const items: OverflowItem[] = isCloud ? [] : [

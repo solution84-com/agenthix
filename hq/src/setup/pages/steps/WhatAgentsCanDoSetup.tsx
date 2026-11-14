@@ -11,15 +11,17 @@ import { ModelChoiceRow } from '../../../models-settings/components/ModelChoiceR
 import { ListeningRow } from '../../../models-settings/components/ListeningRow'
 import { VoiceRow } from '../../../models-settings/components/VoiceRow'
 import { useCapabilities } from './useCapabilities'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 type Slot = Exclude<CapabilityId, 'web_search'>
 
 /**
  * Setup's list of what agents can do. The defaults are chosen for the person from what works (`proposeDefaults`);
  * Change opens the same pickers Manage organisation › AI uses under its line, and Add a key and Web search's Change open the key
- * pop-up. A refused key stays in the pop-up: nothing here blocks setup (ADR-0160).
+ * pop-up; Open its provider marks the card of a default's provider that stopped working. A refused key stays in the pop-up:
+ * nothing here blocks setup (ADR-0160).
  */
-export function WhatAgentsCanDoSetup({ providers }: { providers: AiProviderSummary[] }) {
+export function WhatAgentsCanDoSetup({ providers, onOpenProvider }: { providers: AiProviderSummary[]; onOpenProvider: (providerId: string) => void }) {
   const { capabilities, unread, data, defaultsQuery, keyPresent, refetchKey } = useCapabilities(providers)
   const read = useBackgroundRead(defaultsQuery, { what: 'What agents can do' })
   const setDefaults = useAction(setModelDefaults)
@@ -28,7 +30,7 @@ export function WhatAgentsCanDoSetup({ providers }: { providers: AiProviderSumma
   const [keyOpen, setKeyOpen] = useState(false)
   const change = (input: Parameters<typeof setDefaults>[0]) => {
     setDefaults(input).then(() => defaultsQuery.refetch(), (err: unknown) => {
-      attention.show({ title: 'The default was not changed', text: err instanceof Error ? err.message : 'Could not save', retry: () => change(input) })
+      attention.show({ title: 'The default was not changed', text: pressFailureWords(err, 'Could not save'), retry: () => change(input) })
     })
   }
   if (providers.length > 0 && !data) {
@@ -53,6 +55,10 @@ export function WhatAgentsCanDoSetup({ providers }: { providers: AiProviderSumma
         onAction={(id, action) => {
           if (id === 'web_search' && (action === 'add_key' || action === 'change')) setKeyOpen(true)
           else if (id !== 'web_search' && action === 'change') setPicking(id)
+          else if (action === 'open_provider') {
+            const providerId = capabilities.find(c => c.id === id)?.providerId
+            if (providerId) onOpenProvider(providerId)
+          }
         }}
         below={{ thinking: picker('thinking'), hearing: picker('hearing'), speaking: picker('speaking') }} />
       <WebSearchKeyDialog open={keyOpen} stored={keyPresent} onClose={() => { setKeyOpen(false); void refetchKey() }} />

@@ -5,6 +5,7 @@ import { AI_PROVIDER_VENDOR_INFO } from '@agenthix/core'
 import { Button, Modal } from '@agenthix/ui/primitives'
 import { impactLines } from './providerWords'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export type ImpactKind = 'remove' | 'revoke'
 
@@ -37,7 +38,7 @@ export function ImpactDialog({ kind, provider, adminNotice = true, onClose }: Im
       await act({ id: provider.id })
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not do that')
+      setError(pressFailureWords(err, 'Could not do that'))
     } finally {
       setWorking(false)
     }

@@ -1,7 +1,7 @@
 /** What agents can do, from providers, defaults and the key: each row of the spec's mark table, and each wording case. */
 import { describe, it, expect } from 'vitest'
 import { AI_PROVIDER_VENDOR_INFO, type AiProviderCredentialKind, type AiProviderState, type AiProviderVendor } from '@agenthix/core'
-import { capabilityList, type Capability, type CapabilityDefaults } from '../capabilityList'
+import { MARK_WORDS, capabilityList, type Capability, type CapabilityDefaults } from '../capabilityList'
 import { providerRuntimes, runtimesInUse } from '../runtimes'
 import type { ChoiceView } from '../../models-settings/types'
 
@@ -42,10 +42,32 @@ describe('the capability list', () => {
       expect(of(caps, 'speaking').mark).toBe('would_add')
     })
 
-    it('○ with Change when a working provider offers it but no default is chosen, or its provider stopped working', () => {
+    it('○ with Change when a working provider offers it but no default is chosen', () => {
       expect(of(list([provider('openrouter')]), 'thinking')).toMatchObject({ mark: 'would_add', line: 'Not chosen yet.', action: 'change' })
-      const stopped = list([provider('openrouter')], { ...none, conversation: choice('Claude Sonnet 5 · via Anthropic', true) })
-      expect(of(stopped, 'thinking')).toMatchObject({ mark: 'would_add', line: 'Claude Sonnet 5 · via Anthropic: its provider isn’t working.', action: 'change' })
+    })
+
+    it('! "needs attention" with Open its provider, when the default’s provider has stopped working', () => {
+      const stopped: ChoiceView = { providerId: 'anthropic-1', model: 'm', text: 'Claude Sonnet 5 · via Anthropic', notWorking: true }
+      const hears: ChoiceView = { providerId: 'assembly-1', model: 'u', text: 'Universal · via AssemblyAI', notWorking: true }
+      const speaks: ChoiceView = { providerId: 'inworld-1', model: 't', text: 'Inworld TTS · Ashley · via Inworld', notWorking: true }
+      const caps = list([provider('openrouter'), provider('inworld')], { conversation: stopped, stt: hears, tts: speaks })
+      expect(of(caps, 'thinking')).toEqual({
+        id: 'thinking', name: 'Thinking', mark: 'attention', line: 'Claude Sonnet 5 · via Anthropic: its provider isn’t working.',
+        runtimes: [], action: 'open_provider', providerId: 'anthropic-1',
+      })
+      expect(of(caps, 'hearing')).toMatchObject({ mark: 'attention', action: 'open_provider', providerId: 'assembly-1' })
+      expect(of(caps, 'speaking')).toMatchObject({ mark: 'attention', action: 'open_provider', providerId: 'inworld-1' })
+      expect(MARK_WORDS.attention).toBe('Needs attention')
+    })
+
+    it('! also when the stopped provider was the only one of its kind: the fix is that provider', () => {
+      const stopped: ChoiceView = { providerId: 'assembly-1', model: 'u', text: 'Universal · via AssemblyAI', notWorking: true }
+      expect(of(list([provider('assemblyai', 'key_refused')], { ...none, stt: stopped }), 'hearing'))
+        .toMatchObject({ mark: 'attention', action: 'open_provider', providerId: 'assembly-1' })
+    })
+
+    it('a default from a working provider names no provider to open', () => {
+      expect(of(list([provider('openrouter')], { ...none, conversation: choice('DeepSeek V4 · via OpenRouter') }), 'thinking').providerId).toBeUndefined()
     })
   })
 

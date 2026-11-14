@@ -3,6 +3,7 @@ import { useAction, useQuery, getHqCloudConnection, connectHqToCloud, disconnect
 import type { CloudConnectEnded } from '@agenthix/core'
 import { Button, ConfirmDialog, FOCUS_RING } from '@agenthix/ui/primitives'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 const POLL_MS = 3000
 
@@ -50,7 +51,7 @@ export function CloudConnectPanel({ onConnected, allowDisconnect }: CloudConnect
       await work()
       await refetch()
     } catch (err) {
-      setProblem(err instanceof Error ? err.message : 'Could not do that. Try again.')
+      setProblem(pressFailureWords(err, 'Could not do that. Try again.'))
     } finally {
       setBusy(false)
     }

@@ -24,14 +24,16 @@ type Props = {
  */
 export function AiStep({ position, side, providers, onProvidersChanged, onNext, onBack }: Props) {
   const [adding, setAdding] = useState(false)
+  // A default's provider that stopped working, opened from What agents can do: its card is scrolled to and marked.
+  const [opened, setOpened] = useState<string | null>(null)
   const ready = providers.some(p => providerStateWorks(p.state))
   return (
     <AuthLayout setup side={side}>
       <Steps step={position.step} total={position.total} name="AI" />
       <Heading title="Connect AI" lead="Agents think with a model, hear and speak with a voice, and search the web. Add the accounts you have." />
-      <ProviderCards providers={providers} onChanged={onProvidersChanged} />
+      <ProviderCards providers={providers} onChanged={onProvidersChanged} current={opened} />
       <button type="button" onClick={() => setAdding(true)} className={`${SECONDARY} mb-5 w-full`}>＋ Add a provider</button>
-      <WhatAgentsCanDoSetup providers={providers} />
+      <WhatAgentsCanDoSetup providers={providers} onOpenProvider={setOpened} />
       <ActionRow>
         <button type="button" onClick={onBack} className={SECONDARY}>Back</button>
         <button type="button" onClick={onNext} className={`${ready ? PRIMARY : SECONDARY} flex-1`}>{ready ? 'Continue' : 'Skip for now'}</button>

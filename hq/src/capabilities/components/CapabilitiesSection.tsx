@@ -14,13 +14,15 @@ import { AiSectionHeading } from './AiSectionHeading'
 import { KeyUnread } from './KeyUnread'
 import { WebSearchKeyDialog } from './WebSearchKeyDialog'
 import { WhatAgentsCanDo } from './WhatAgentsCanDo'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /**
  * What agents can do, on the AI page: the list setup shows, from the organisation's providers, its defaults and its web
  * search key. Change on Thinking, Hearing and Speaking opens the same pickers as an agent's own models; Add a key and
- * Web search's Change open the Web search for OpenCode pop-up; Add a provider opens the page's own.
+ * Web search's Change open the Web search for OpenCode pop-up; Add a provider opens the page's own; Open its provider
+ * opens the line of a default's provider that stopped working.
  */
-export function CapabilitiesSection({ onAddProvider }: { onAddProvider: () => void }) {
+export function CapabilitiesSection({ onAddProvider, onOpenProvider }: { onAddProvider: () => void; onOpenProvider: (providerId: string) => void }) {
   const providersQuery = useQuery(getAiProviders)
   const settingsQuery = useQuery(getModelsSettings)
   const keyQuery = useQuery(getWebSearchKeyStatus)
@@ -44,15 +46,19 @@ export function CapabilitiesSection({ onAddProvider }: { onAddProvider: () => vo
 
   const change = (input: ModelDefaultsInput) => {
     setDefaults(input).then(() => refetch(), (err: unknown) => {
-      attention.show({ title: 'The default was not changed', text: err instanceof Error ? err.message : 'Could not save', retry: () => change(input) })
+      attention.show({ title: 'The default was not changed', text: pressFailureWords(err, 'Could not save'), retry: () => change(input) })
     })
   }
-  const onAction = (_id: CapabilityId, action: CapabilityAction) => {
+  const ready = providers && settings
+  const capabilities = ready ? capabilityList({ providers, defaults: settings, webSearchKey: stored }) : []
+  const onAction = (id: CapabilityId, action: CapabilityAction) => {
     if (action === 'add_provider') onAddProvider()
-    else setKeyOpen(true)
+    else if (action === 'open_provider') {
+      const providerId = capabilities.find(c => c.id === id)?.providerId
+      if (providerId) onOpenProvider(providerId)
+    } else if (id === 'web_search') setKeyOpen(true)
   }
 
-  const ready = providers && settings
   useScrollToHash(Boolean(ready))
   return (
     <section id={AI_ANCHORS.capabilities} aria-labelledby="ai-capabilities" className="scroll-mt-4">
@@ -61,7 +67,7 @@ export function CapabilitiesSection({ onAddProvider }: { onAddProvider: () => vo
       {ready && (
         <div className="rounded-2xl border border-border-subtle bg-card px-4 py-1.5">
           <WhatAgentsCanDo
-            capabilities={capabilityList({ providers, defaults: settings, webSearchKey: stored })}
+            capabilities={capabilities}
             onAction={onAction}
             offersAddProvider
             unread={keyRead.failedWithoutData ? { web_search: <KeyUnread retry={() => void keyQuery.refetch()} /> } : {}}

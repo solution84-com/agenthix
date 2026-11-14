@@ -16,11 +16,17 @@ import { RUNTIME_WORDS, runtimesInUse, type RuntimeProvider } from './runtimes'
 
 export type CapabilityId = 'thinking' | 'hearing' | 'speaking' | 'web_search'
 
-/** ✓ agents can do it; ○ a provider (or a key) would add it, a note and never a fault; ! only some agents can. */
-export type CapabilityMark = 'can' | 'would_add' | 'some'
+/**
+ * ✓ agents can do it; ○ a provider (or a key) would add it, a note and never a fault; ! only some agents can, either
+ * because one runtime cannot search (`some`) or because the default's provider stopped working (`attention`).
+ */
+export type CapabilityMark = 'can' | 'would_add' | 'some' | 'attention'
 
-/** `add_provider` is drawn only where the place offers it (the AI page); setup has Add a provider in its header. */
-export type CapabilityAction = 'change' | 'add_key' | 'add_provider'
+/**
+ * `add_provider` is drawn only where the place offers it (the AI page); setup has Add a provider in its header.
+ * `open_provider` opens the line of the provider `providerId` names.
+ */
+export type CapabilityAction = 'change' | 'add_key' | 'add_provider' | 'open_provider'
 
 export type RuntimeLine = { runtime: AgentRuntimeName; name: string; text: string; ok: boolean }
 
@@ -32,6 +38,8 @@ export type Capability = {
   /** Web search's line per runtime in use, when more than one is. */
   runtimes: RuntimeLine[]
   action: CapabilityAction | null
+  /** The provider `open_provider` opens: the default's, when it stopped working. */
+  providerId?: string
 }
 
 export type CapabilityDefaults = { conversation: ChoiceView | null; stt: ChoiceView | null; tts: ChoiceView | null }
@@ -48,6 +56,7 @@ export const MARK_WORDS: Record<CapabilityMark, string> = {
   can: 'Agents can do it',
   would_add: 'A provider would add it',
   some: 'Only some agents can do it',
+  attention: 'Needs attention',
 }
 
 export const WEB_SEARCH_HELP =
@@ -63,9 +72,13 @@ const ID: Record<AiProviderType, CapabilityId> = { llm: 'thinking', stt: 'hearin
 
 function fromDefault(type: AiProviderType, covered: boolean, choice: ChoiceView | null): Capability {
   const base = { id: ID[type], name: TYPE_WORDS[type], runtimes: [] }
+  // Agents with a model of their own still can, so it is !, and the line leads to the provider; Change stays beside it.
+  // It comes first: with the default's provider the only one of its kind, the fix is that provider, not another one.
+  if (choice?.notWorking) {
+    return { ...base, mark: 'attention', line: `${choice.text}: its provider isn’t working.`, action: 'open_provider', providerId: choice.providerId }
+  }
   if (!covered) return { ...base, mark: 'would_add', line: MISSING[type], action: 'add_provider' }
   if (!choice) return { ...base, mark: 'would_add', line: 'Not chosen yet.', action: 'change' }
-  if (choice.notWorking) return { ...base, mark: 'would_add', line: `${choice.text}: its provider isn’t working.`, action: 'change' }
   return { ...base, mark: 'can', line: choice.text, action: 'change' }
 }
 

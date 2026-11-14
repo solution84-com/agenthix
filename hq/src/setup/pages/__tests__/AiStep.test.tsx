@@ -190,6 +190,25 @@ describe('the AI step @SC-1184', () => {
     expect(onNext).toHaveBeenCalled()
   })
 
+  it('a default whose provider stopped is marked ! and Open its provider marks that provider’s card', () => {
+    const scrolled: string[] = []
+    const was = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this.id) }
+    try {
+      show([base, { ...assembly, state: 'key_refused' }], { ...DEFAULTS, stt: { ...choice('a', 'Universal · via AssemblyAI'), notWorking: true } })
+      const list = within(screen.getByRole('region', { name: 'What agents can do' }))
+      expect(list.getByText('Needs attention')).toBeTruthy()
+      expect(list.getByText('Universal · via AssemblyAI: its provider isn’t working.')).toBeTruthy()
+      expect(document.getElementById('provider-a')?.getAttribute('aria-current')).toBeNull()
+      fireEvent.click(list.getByRole('button', { name: 'Open its provider: Hearing' }))
+      expect(document.getElementById('provider-a')?.getAttribute('aria-current')).toBe('true')
+      expect(document.getElementById('provider-p')?.getAttribute('aria-current')).toBeNull()
+      expect(scrolled).toEqual(['provider-a'])
+    } finally {
+      Element.prototype.scrollIntoView = was
+    }
+  })
+
   it('web search never changes Continue or Skip for now', () => {
     show([base], DEFAULTS, false)
     expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy()

@@ -52,6 +52,22 @@ describe('What agents can do', () => {
     expect(onAction.mock.calls).toEqual([['thinking', 'change'], ['web_search', 'add_key']])
   })
 
+  it('a default whose provider stopped: ! read out as "needs attention", with Open its provider and Change beside it', () => {
+    const stopped = capabilityList({
+      providers: [provider('openrouter')],
+      defaults: { conversation: { providerId: 'p-anthropic', model: 'm', text: 'Claude Sonnet 5 · via Anthropic', notWorking: true }, stt: null, tts: null },
+      webSearchKey: true,
+    })
+    const onAction = vi.fn()
+    render(<WhatAgentsCanDo capabilities={stopped} onAction={onAction} />)
+    expect(row('Thinking').getByText('Needs attention')).toBeTruthy()
+    expect(row('Thinking').getByText('!')).toBeTruthy()
+    expect(row('Thinking').getByText('Claude Sonnet 5 · via Anthropic: its provider isn’t working.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Open its provider: Thinking' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Change: Thinking' }))
+    expect(onAction.mock.calls).toEqual([['thinking', 'open_provider'], ['thinking', 'change']])
+  })
+
   it('offers Add a provider on a line only where the place asks for it', () => {
     const { unmount } = render(<WhatAgentsCanDo capabilities={mixed} onAction={vi.fn()} />)
     expect(screen.queryByRole('button', { name: 'Add a provider: Hearing' })).toBeNull()

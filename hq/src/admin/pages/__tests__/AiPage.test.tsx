@@ -99,6 +99,14 @@ describe('a link to the AI page @SC-1178', () => {
     expect(document.getElementById('provider-p1')?.getAttribute('aria-current')).toBeNull()
   })
 
+  it('Open its provider, on a default whose provider stopped working, opens that provider\'s line', async () => {
+    h.data = { ...h.data, getModelsSettings: { ...settings, stt: { ...settings.stt, notWorking: true } } }
+    show()
+    expect(line('Hearing').getByText('Needs attention')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Open its provider: Hearing' }))
+    await waitFor(() => expect(document.getElementById('provider-p2')?.getAttribute('aria-current')).toBe('true'))
+  })
+
   it('scrolls to the line a link names once it is drawn', () => {
     const scrolled: string[] = []
     const was = Element.prototype.scrollIntoView

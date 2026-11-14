@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { useQuery, getAiProviders } from 'wasp/client/operations'
 import { Button, Modal } from '@agenthix/ui/primitives'
 import { AppLayout } from '../../shared/layouts/AppLayout'
@@ -10,7 +10,7 @@ import { YourProviders } from '../../providers/components/YourProviders'
 import { CapabilitiesSection } from '../../capabilities/components/CapabilitiesSection'
 import { WhichModelsMayRun } from '../../models-settings/components/WhichModelsMayRun'
 import { ADMIN_CRUMB } from '../adminCrumbs'
-import { AI_ANCHORS } from '../aiPage'
+import { AI_ANCHORS, providerLineUrl } from '../aiPage'
 
 /** The provider a link opened (`#provider-<id>`), or null. */
 const linkedProvider = (hash: string): string | null => {
@@ -24,6 +24,7 @@ const linkedProvider = (hash: string): string | null => {
  */
 export function AiPage() {
   const { hash } = useLocation()
+  const navigate = useNavigate()
   const { data: providers } = useQuery(getAiProviders)
   const [adding, setAdding] = useState(false)
   const cloudOn = useFeature('cloud')
@@ -48,7 +49,7 @@ export function AiPage() {
         </div>
 
         <YourProviders current={linked} />
-        <CapabilitiesSection onAddProvider={() => setAdding(true)} />
+        <CapabilitiesSection onAddProvider={() => setAdding(true)} onOpenProvider={id => navigate(providerLineUrl(id))} />
         <WhichModelsMayRun opened={hash === `#${AI_ANCHORS.models}`} />
       </div>
 

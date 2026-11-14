@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Button, FIELD } from '@agenthix/ui/primitives'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export type ModelAccessOwnerType = 'org' | 'project' | 'user'
 
@@ -23,7 +24,7 @@ export function useCredentialCall() {
       await work()
       return true
     } catch (err) {
-      setProblem(err instanceof Error ? err.message : String(err))
+      setProblem(pressFailureWords(err))
       return false
     } finally {
       setBusy(false)

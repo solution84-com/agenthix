@@ -28,7 +28,7 @@ const down = (data?: unknown, at = Date.now()): Q => ({ data, error: failure, da
 const anthropic = { vendor: 'anthropic', credential: AI_PROVIDER_VENDOR_INFO.anthropic.credential, types: [...AI_PROVIDER_VENDOR_INFO.anthropic.types], state: 'works' }
 const settings = { conversation: null, stt: null, tts: null, choices: { models: [], recent: [] }, stt_options: [], tts_options: [] }
 const use = (providers: Q, defaults: Q, key: Q) => { h.q = { providers, settings: defaults, key } }
-const press = () => render(<CapabilitiesSection onAddProvider={vi.fn()} />)
+const press = () => render(<CapabilitiesSection onAddProvider={vi.fn()} onOpenProvider={vi.fn()} />)
 
 describe('What agents can do, when reads do not come back', () => {
   it('says the providers read did not come back, instead of "Loading…" for ever', () => {
