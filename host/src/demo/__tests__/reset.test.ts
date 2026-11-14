@@ -108,6 +108,9 @@ describe('the demo reset schedule @SC-1996', () => {
     await schedule.tick()
     expect(attempts()).toBe(2)
     expect(log.filter(l => l.includes('failed') && l.includes('tried again at 2026-10-14T12:20:00.000Z'))).toHaveLength(1)
+    expect(log).toContain("Trying the demo's reset again: the reset scheduled for 2026-10-14T12:00:00.000Z failed.")
+    expect(log.some(l => l.startsWith("Trying the demo's reset again failed:"))).toBe(true)
+    expect(log.filter(l => l.startsWith('Resetting the demo, as scheduled for'))).toHaveLength(1)
 
     m.dockerFails.clear()
     await m.ctx.sleep(DEMO_RESET_RETRY_MS)

@@ -150,6 +150,8 @@ export function demoResetSchedule(ctx: Context, log: (line: string) => void): { 
     else if (last.getTime() < due.getTime() - PERIOD_MS) due = ctx.now()
   }
   let busy = false
+  /** The scheduled reset that failed and is being tried again; null while none is. */
+  let failedReset: Date | null = null
   const tick = async () => {
     if (busy || ctx.now() < due) return
     busy = true
@@ -157,13 +159,20 @@ export function demoResetSchedule(ctx: Context, log: (line: string) => void): { 
     due = nextDemoReset(ctx.now())
     try {
       if (!isDemoInstallation(ctx.state) || !installed(ctx).hq) return
-      log(`Resetting the demo, as scheduled for ${at.toISOString()}.`)
+      log(failedReset
+        ? `Trying the demo's reset again: the reset scheduled for ${failedReset.toISOString()} failed.`
+        : `Resetting the demo, as scheduled for ${at.toISOString()}.`)
       await resetDemo(ctx, true, p => { if (p.event === 'step') log(`Demo reset: ${p.step}`) })
+      failedReset = null
       log(`The demo was reset. The next reset is at ${due.toISOString()}.`)
     } catch (err) {
       const retryAt = new Date(Math.min(ctx.now().getTime() + DEMO_RESET_RETRY_MS, nextDemoReset(ctx.now()).getTime()))
       due = retryAt
-      log(`The demo's reset scheduled for ${at.toISOString()} failed: ${err instanceof Error ? err.message : String(err)} It will be tried again at ${retryAt.toISOString()}.`)
+      const why = err instanceof Error ? err.message : String(err)
+      log(failedReset
+        ? `Trying the demo's reset again failed: ${why} It will be tried again at ${retryAt.toISOString()}.`
+        : `The demo's reset scheduled for ${at.toISOString()} failed: ${why} It will be tried again at ${retryAt.toISOString()}.`)
+      failedReset ??= at
     } finally {
       busy = false
     }
