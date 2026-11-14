@@ -18,11 +18,19 @@ const sorted = (xs: readonly string[]) => [...xs].sort()
 
 describe('the publishing workflow @SC-820 @SC-1052 @SC-1270', () => {
   it('runs only for a release’s tag or a pre-release’s, the tag the signer is named by', () => {
-    const tags = [...workflow.match(/on:\n {2}push:\n {4}tags:\n((?: {6}- '[^']+'\n)+)\n/)![1].matchAll(/- '([^']+)'/g)].map(m => m[1])
+    const tags = [...workflow.match(/on:\n {2}push:\n {4}tags:\n((?: {6}- '[^']+'\n)+)/)![1].matchAll(/- '([^']+)'/g)].map(m => m[1])
     expect(tags).toEqual([
       'v[0-9]+.[0-9]+.[0-9]+', 'v[0-9]+.[0-9]+.[0-9]+-alpha.[0-9]+', 'v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+', 'v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+',
     ])
-    expect(workflow).not.toMatch(/workflow_dispatch|pull_request|branches:/)
+    expect(workflow).not.toMatch(/pull_request|branches:|workflow_call/)
+    // Release starts it at the tag by hand, since a tag a workflow pushes starts nothing; its first step refuses any
+    // ref but a tag, so the signer is still this file at the version's tag.
+    const triggers = workflow.match(/\non:\n((?: {2}.*\n|\n)*?)\npermissions:/)![1]
+    expect(triggers).toMatch(/\n {2}workflow_dispatch:\n/)
+    expect(triggers).not.toMatch(/inputs:/)
+    const refusal = workflow.indexOf('if [[ "$GITHUB_REF" != refs/tags/* ]]; then')
+    expect(refusal).toBeGreaterThan(-1)
+    expect(refusal).toBeLessThan(workflow.indexOf('version="${GITHUB_REF_NAME#v}"'))
   })
 
   it('accepts exactly the versions the host service takes as published', () => {

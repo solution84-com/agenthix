@@ -45,6 +45,11 @@ The constraint: what is proved must be what is published, and a version must not
 4. **A release is a tag on a commit of `main`.** The release build passes on that commit first. The tag builds
    nothing: it verifies each image's build attestation and recomputes its content key at the tagged commit, refuses
    unless they match, then signs the per-version index and publishes.
+
+   > ⚠️ **Superseded by adr-0190 — this item's tag pushed by hand only.** *(annotated 2026-11-14)* One workflow,
+   > Release, now pins the guide's screenshots, runs the release build, creates the tag and starts the publish. That the
+   > tag builds nothing, and verifies and signs what it promotes, still stands.
+
 5. **A release branch exists only for a patch** while `main` has moved on, cut from the newest tag of its line and
    merged into `main` with `--no-ff`. `main` never flows into it. Tags are protected from being moved or deleted.
 6. **At most two lines are maintained:** the newest minor of the current major and of the one before it. Before

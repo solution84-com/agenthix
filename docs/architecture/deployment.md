@@ -102,11 +102,19 @@ committed before the release. The rehearsal itself changes no file.
    outside this repository will. Core is written with full `.js` import paths (`NodeNext`), since Node does not fill
    them in as a bundler does; Checks runs the same check on every change.
 
-**The tag** runs *Publish release*, `.github/workflows/publish-images.yml`, which builds nothing and only publishes, in
-one order:
+**Release** (`.github/workflows/release.yml`) is how a release is made: one run, started by hand with the version on
+`main` (or a patch's release branch). It checks the commit and the version, captures the guide's screenshots and pins
+them to the tag (committing and pushing the edit when there is one), runs the release build for that commit as a
+workflow it calls, then creates the tag and starts *Publish release* at it. A dry run on any branch does all of it but
+push, tag and publish. The steps are the [`releasing`](../../.agents/skills/releasing/SKILL.md) skill's.
 
-1. the tagged commit's *All checks passed* must have passed, and so must the latest release build for it, started by
-   hand from `main` or by a push to a release branch (it waits while either runs);
+**The tag** runs *Publish release*, `.github/workflows/publish-images.yml`, which builds nothing and only publishes, in
+one order. Release starts it at the tag, since a tag a workflow pushes starts no workflow; a tag pushed by hand starts it
+too, and it refuses to run anywhere but at a tag:
+
+1. the tagged commit's *All checks passed* must have passed, and so must the latest release build for it: the one a
+   Release run from `main` or a release branch called, or one started by hand from either or by a push to a release
+   branch (it waits while either runs);
 2. **promotion, after a check of origin:** each part's content key is recomputed at the tagged commit and must equal the
    candidate's, and each platform digest must carry the release build's attestation for that part, architecture and
    key (`scripts/release/verify-candidate.mjs`). A digest built from other content is never promoted, whoever pushed
@@ -129,8 +137,8 @@ when no release record names them (`scripts/release/cleanup.mjs`); a release's v
 repository's tag ruleset stops `v*` tags being moved or deleted, with the repository admin's bypass kept for a publish
 that failed part-way.
 
-**If anything fails after the tag is pushed**, the tag and whatever that attempt published (images, the core
-package, the release page with its screenshots) are deleted, the fix is made, and the same version is tagged again on the fixed commit;
+**If anything fails after the tag is made**, the tag and whatever that attempt published (images, the core
+package, the release page with its screenshots) are deleted, the fix is made, and Release runs again for the same version;
 with nothing built at the tag, a retry promotes the same digests. A version that published is never published again:
 a fix takes a new version number.
 

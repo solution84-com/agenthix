@@ -5,7 +5,10 @@
 # exists and carries a build attestation from release-build.yml on main or a release branch (cosign, keyless) whose
 # predicate names this part, architecture and key. Prints the image's digest and exits 0 when it can be reused; exits 1,
 # saying why on stderr, when it cannot. Needs docker (buildx), cosign, jq and, for a private package, a registry login.
-# GITHUB_REPOSITORY (owner/name) names the repository whose workflow must have made the attestation.
+# GITHUB_REPOSITORY (owner/name) names the repository whose workflow must have made the attestation. ATTESTED_REF, when
+# set, is one more ref (refs/heads/<branch>) whose attestation counts: only the release build's check of the image it has
+# just attested sets it, so that a dry run of Release on a fix branch can pass; what is reused and what a tag promotes
+# never count it.
 set -uo pipefail
 
 image="${1:-}" part="${2:-}" arch="${3:-}" key="${4:-}"
@@ -20,7 +23,11 @@ if ! printf '%s' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
 fi
 
 repo="${GITHUB_REPOSITORY//./\\.}"
-identity="^https://github\\.com/$repo/\\.github/workflows/release-build\\.yml@refs/heads/(main|release/.+)\$"
+refs='refs/heads/(main|release/.+)'
+if [ -n "${ATTESTED_REF:-}" ]; then
+  refs="($refs|$(printf '%s' "$ATTESTED_REF" | sed 's/[][\\.^$*+?(){}|]/\\&/g'))"
+fi
+identity="^https://github\\.com/$repo/\\.github/workflows/release-build\\.yml@$refs\$"
 statements="$(cosign verify-attestation --type custom \
   --certificate-identity-regexp "$identity" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \

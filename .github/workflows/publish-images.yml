@@ -2,13 +2,17 @@ name: Publish release
 
 # A version tag's release. It builds no image: it gives a name to what the release build (release-build.yml) built
 # and proved for the tagged commit, in one order. It runs only for a version tag, v<major>.<minor>.<patch> or a
-# pre-release of one, v<major>.<minor>.<patch>-alpha.<n>, -beta.<n> or -rc.<n>, and is never started by hand.
+# pre-release of one, v<major>.<minor>.<patch>-alpha.<n>, -beta.<n> or -rc.<n>: pushed by hand, or started at the tag
+# (workflow_dispatch, at the tag's ref) by Release (release.yml) once it has pushed the tag, since a tag pushed with a
+# workflow's own token starts no workflow. Started at a tag either way, it runs as this file at that tag, the signer a
+# host service checks for; it refuses to run at a branch. It is not a reusable workflow on purpose: called from
+# Release, its signature would name Release's branch, not the tag.
 #
 # 0. The version is the tag's alone: its form is checked, and nothing in the repository carries a version.
 #    No flag released in an earlier minor release may still be listed in core (scripts/release/flags-overdue.mjs).
 # 1. The tagged commit's Checks must have passed ("All checks passed"), and so must the latest release build for it:
-#    a run of release-build.yml started by a push to a release branch, or by hand from main or a release branch
-#    (scripts/release/proven-run.mjs). It waits while either runs. That run's candidate record names each part's two
+#    a run of release-build.yml started by a push to a release branch, or by hand from main or a release branch, or
+#    the release build a run of Release from main or a release branch called (scripts/release/proven-run.mjs). It waits while either runs. That run's candidate record names each part's two
 #    platform images by digest. The guide's screenshots this release carries are taken from the same run's guide set:
 #    exactly those whose links, in the guide's pages and the README at the tagged commit, name this tag (the pin step
 #    put them there; hq/scripts/guide/release-screenshots.mjs). It fails, before anything is published, if the set lacks
@@ -29,8 +33,9 @@ name: Publish release
 #
 # If any of it fails, nothing here deletes the tag or what this run published: the parts publish side by side, so a
 # failed run can leave some signed under :<version>. The maintainer deletes the tag (the tag rule lets only the owner)
-# and those images by hand, as the releasing skill describes, and tags the same version again once the fix is proved.
-# With no build here, a retry promotes the same digests.
+# and those images by hand, as the releasing skill describes, and starts Release again for the same version once the
+# fix is proved; a publish that failed for a passing reason is retried by starting this workflow at the tag again. With
+# no build here, a retry promotes the same digests.
 #
 # A host service checks every image's signature before it fetches it, against exactly one signer: this file, run
 # for the version's own tag (host/src/images/published.ts). This file's path, the tag's form and the registry are
@@ -42,6 +47,8 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+-alpha.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+'
+  # Only at a version tag: the first step refuses any other ref.
+  workflow_dispatch:
 
 permissions: {}
 
@@ -75,6 +82,11 @@ jobs:
       - name: The version, which is the tag's
         id: version
         run: |
+          # Started by hand, the run is at whatever ref it was given; only a tag's is a release.
+          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+            echo "::error::Publish release runs only at a version tag, not $GITHUB_REF: start it at the tag (gh workflow run publish-images.yml --ref v<version>)."
+            exit 1
+          fi
           version="${GITHUB_REF_NAME#v}"
           if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$'; then
             echo "::error::The tag $GITHUB_REF_NAME is not a version: write it as v<major>.<minor>.<patch>, or with -alpha.<n>, -beta.<n> or -rc.<n> after it."
@@ -100,7 +112,7 @@ jobs:
             echo "All checks passed, for $GITHUB_SHA: ${states:-none yet}"
             if [[ " $states " == *" completed:success "* ]]; then exit 0; fi
             if [ -n "$states" ] && [[ "$states" != *queued* ]] && [[ "$states" != *in_progress* ]]; then
-              echo "::error::Checks did not pass for $GITHUB_SHA. Delete the tag, fix it, and tag the same version again once the fix is proved."
+              echo "::error::Checks did not pass for $GITHUB_SHA. Delete the tag, fix it, and start Release again for the same version once the fix is proved."
               exit 1
             fi
             sleep 30

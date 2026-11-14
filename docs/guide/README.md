@@ -140,11 +140,12 @@ sidebar:
 an unchanged screenshot stays in the release that first carried it, and its links keep naming that release. Nothing is
 uploaded by hand and no storage key is needed.
 
-Screenshots are taken by the release build. Every run of the *Release build* workflow (started by hand for a commit of
-`main`, or by a push to a patch branch, `release/<version>`) calls *Guide screenshots*, which captures them, compares
-each with the picture its link names (or, where that release does not hold it yet, with the one the last release's
-pages linked), reports what is new, changed or removed, and keeps them as the set a tag on that commit takes its
-screenshots from. The tag captures nothing.
+Screenshots are taken by the release, never by hand. A release is one run of the *Release* workflow
+(`.github/workflows/release.yml`, the [`releasing`](../../.agents/skills/releasing/SKILL.md) skill), which calls
+*Guide screenshots* twice: once on the commit it starts from, to pin the links, and once in the release build, on the
+commit it proves. Each run captures them, compares each with the picture its link names (or, where that release does
+not hold it yet, with the one the last release's pages linked), and reports what is new, changed or removed; the
+release build's run keeps them as the set the tag takes the release's screenshots from. The tag captures nothing.
 
 **One script takes them everywhere**: `node scripts/guide/capture.mjs` builds hq, starts hq and a site on free ports
 against the guide databases, runs `npm run guide:screenshots` in `hq/` and stops both (`--logs <folder>` keeps their
@@ -157,44 +158,34 @@ fails before a release does. Run it yourself after changing a recipe or a screen
 live site reads GitHub's *latest release*, which is never a pre-release, so nothing a pre-release publishes reaches
 it. A staging copy of the site pins the pre-release's tag to review the guide before launch.
 
-1. **Capture the commit to be released.** The pin step compares a set of captures with the released pictures, which
-   were taken on the release build's runner. A set taken on another operating system can draw text differently and
-   show every screenshot as changed, so use a set from GitHub's runners: run *Guide screenshots* by hand on `main` at
-   that commit (or use a release build's run for it), then download its set into an empty folder:
-
-   ```sh
-   gh run download <run-id> --name guide-release-set --dir <folder>
-   ```
-
-   A local capture (`node scripts/guide/capture.mjs`, or the release rehearsal, both of which leave
-   `hq/e2e/guide/.captures`) serves when no release holds a screenshot yet, since then every one is new.
-2. **Pin the screenshots to the upcoming tag**, in `hq/`:
-
-   ```sh
-   GH_TOKEN="$(gh auth token)" npm run guide:pin -- --tag v0.1.0-alpha.4 --captures <folder>
-   ```
-
-   Leave out `--captures` to use `hq/e2e/guide/.captures`. It points every link to a new or changed screenshot, in the
-   guide's pages and the root `README.md`, at the upcoming tag, moves an unchanged one back to the release that holds
-   it, and writes the comparison's report to `hq/e2e/guide/.report/` (`index.html` shows the old beside the new). It
-   refuses a tag that is not a release tag or is already tagged, links the name check would refuse, and a set that
-   lacks a linked screenshot. It commits nothing: read the edit, and commit it on `main`
-   (`docs(guide): pin the screenshots to v0.1.0-alpha.4`). Run it again if a screen changes before the tag.
-3. **Prove the pinned commit** as the [`releasing`](../../.agents/skills/releasing/SKILL.md) skill says: the release
-   rehearsal and the release build. Read the build's screenshot report on the run's page in the repository's
-   **Actions** tab.
-4. **Tag** that commit and push the tag (`git tag v0.1.0-alpha.4 && git push origin v0.1.0-alpha.4`). The tag runs
-   *Publish release*, which publishes the images and `@agenthix/core` only once the commit's checks, install test,
-   screenshots and release build passed for it (see
+1. **Release** starts it all, with the version (`gh workflow run release.yml --ref main -f version=0.1.0-alpha.4`, or
+   the VS Code task *[release] Release*). It captures the screenshots on GitHub's runners, where the released pictures
+   were taken: a set taken on another operating system can draw text differently and show every screenshot as changed.
+2. **It pins the screenshots to the upcoming tag**, as `npm run guide:pin -- --tag v0.1.0-alpha.4 --captures <folder>`
+   in `hq/` does. That points every link to a new or changed screenshot, in the guide's pages and the root `README.md`,
+   at the upcoming tag, moves an unchanged one back to the release that holds it, and writes the comparison's report
+   to `hq/e2e/guide/.report/` (`index.html` shows the old beside the new). It refuses a tag that is not a release tag
+   or is already tagged, links the name check would refuse, and a set that lacks a linked screenshot. When the pages
+   changed, the workflow commits the edit (`docs(guide): pin the screenshots to v0.1.0-alpha.4`) and pushes it to
+   `main`, and that commit is the one proved and tagged. The pinned pages are on the run's page.
+3. **The release build proves that commit** and captures the screenshots again; read its screenshot report on the
+   run's page in the repository's **Actions** tab.
+4. **The workflow tags that commit** and starts *Publish release* at the tag, which publishes the images and
+   `@agenthix/core` only once the commit's checks, install test, screenshots and release build passed for it (see
    [deployment](../architecture/deployment.md#releases-and-the-images-they-publish)). Before anything is published it
    takes, from that release build's set, exactly the screenshots whose links at the tagged commit name the tag, and
    fails if the set lacks one.
 5. **The GitHub release page** is made by *Publish release* once everything is published, with those screenshots and
    the release record attached: a pre-release for an alpha or a release candidate, with notes from the commits since
    the last release. Edit its notes there if they need it.
-6. **If something fails after the tag is pushed**, delete the tag and whatever that attempt published (its release
-   page and the screenshots on it too), fix it, prove the fixed commit again, and tag the same version again: the links
-   already name it. Once a release is out its screenshots are never replaced: a fix is a new version (`-alpha.2`),
-   pinned again.
+6. **If something fails**, the fix is proved on a branch by a dry run of *Release* (`-f dry_run=true`, which pins and
+   proves but pushes, tags and publishes nothing) and lands on `main`, and *Release* runs again. If the tag was already
+   made, the tag and whatever that attempt published (its release page and the screenshots on it too) are deleted
+   first, and the same version runs again: the links already name it. Once a release is out its screenshots are never
+   replaced: a fix is a new version (`-alpha.2`), pinned again.
+
+To see what a release would pin without one, run the pin step yourself on a local capture
+(`node scripts/guide/capture.mjs`, or the release rehearsal, both of which leave `hq/e2e/guide/.captures`):
+`GH_TOKEN="$(gh auth token)" npm run guide:pin -- --tag v0.1.0-alpha.4` in `hq/`, then discard the edit.
 
 Nothing in this repository starts the website's rebuild; the website's own build picks the tag up.

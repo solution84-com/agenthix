@@ -1,8 +1,9 @@
 name: Release build
 
-# The release's own build, and the release bar's one run. Started by every push to a release branch and by hand for a
-# commit (workflow_dispatch), it builds and proves everything a release ships except publishing it, and publishes
-# nothing a person can reach: nothing built here carries a version, which the tag gives at publish.
+# The release's own build, and the release bar's one run. Called by Release (release.yml) for the commit it releases,
+# and also started by every push to a release branch and by hand for a commit (workflow_dispatch), it builds and proves
+# everything a release ships except publishing it, and publishes nothing a person can reach: nothing built here carries
+# a version, which the tag gives at publish. Called by Release, its jobs and artifacts are that run's.
 #
 # 1. The registry and the image names come from the branding module, the parts and their Dockerfiles from
 #    scripts/images/parts.json, and each part's content key from scripts/images/keys.mjs, computed once here.
@@ -29,10 +30,16 @@ on:
         description: 'The commit to build and prove (the branch it is started from, main or a release branch, must hold it)'
         required: true
         type: string
+  workflow_call:
+    inputs:
+      commit:
+        description: 'The commit to build and prove'
+        required: true
+        type: string
 
 concurrency:
   # A hand-started run is told its commit, and two runs from main for different commits are two builds; a push to a
-  # release branch is told by the branch.
+  # release branch is told by the branch. Called by Release, the event is Release's, started by hand.
   group: release-build-${{ github.event_name == 'workflow_dispatch' && inputs.commit || github.ref }}
   cancel-in-progress: true
 
@@ -220,8 +227,11 @@ jobs:
             '{part: $part, arch: $arch, key: $key, commit: $commit}' > "$RUNNER_TEMP/predicate.json"
           cosign attest --yes --type custom --predicate "$RUNNER_TEMP/predicate.json" "$IMAGE@$DIGEST"
       # The check a later run makes before it reuses this image, made now, so an attestation that would be refused fails here.
+      # The ref this run is on counts too, so that a dry run of Release on a fix branch passes; a run on that branch still
+      # reuses, and a tag still promotes, only what main or a release branch attested.
       - name: Check that it would be reused
         env:
+          ATTESTED_REF: ${{ github.ref }}
           IMAGE: ${{ matrix.image }}
           DIGEST: ${{ steps.push.outputs.digest }}
           PART: ${{ matrix.part }}

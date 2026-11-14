@@ -1,0 +1,323 @@
+name: Release
+
+# A release, from one button (adr-0190). Started by hand with the version, on main for a real release, or on any branch
+# with dry_run for a dry run, which does everything but push, tag and publish:
+#   gh workflow run release.yml --ref main -f version=0.1.0-alpha.4
+#   gh workflow run release.yml --ref <branch> -f version=0.1.0-alpha.4 -f dry_run=true
+# Each stage is a job, and a stage that fails stops the run; the last job names it on the run's page.
+#
+# 1. The commit is the tip of the branch the run is on, and a real run is on main or a release branch (a patch). The
+#    version is a release version and not yet tagged; no released flag outlives its minor release
+#    (scripts/release/flags-overdue.mjs); the Sigstore trust root hq carries is fresh enough to ship
+#    (scripts/release/trust-root.mjs). A real run also needs the commit's Checks passed.
+# 2. The guide's screenshots are captured for that commit (guide-screenshots.yml, its artifacts kept as pin-…).
+# 3. They are pinned to the tag (hq/scripts/guide/pin-screenshots.mjs). When that changes the pages, the change is
+#    committed by github-actions[bot]; a real run pushes it to its branch and starts Checks for it, since a push made with
+#    a workflow's own token starts no workflow; a dry run pushes it only to a ref of its own outside the branches,
+#    refs/release-dry-runs/<run id>, which the jobs that follow fetch it by and the last job deletes. No change: the
+#    same commit goes on.
+# 4. The release build, for that commit (release-build.yml): every image built or reused, started and attested, the
+#    install test, the screenshots again (the set the tag takes) and core packed.
+# 5. A real run, once Checks passed for that commit too, creates the tag v<version> on it and starts Publish release
+#    (publish-images.yml) at the tag, then follows it to the end: a tag pushed with a workflow's own token starts no
+#    workflow, and a publish called from here would be signed as Release's branch, not the tag a host service checks.
+#
+# A run that fails is fixed on a branch, and Release is run there as a dry run until it passes; then the fix lands on
+# main as one commit, and Release runs again (the releasing skill). Pushing the pin commit to main needs GitHub Actions
+# as a bypass actor of main's ruleset; creating a tag does not, the tag ruleset only stops one moving or vanishing.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The version to release, as 0.1.0-alpha.4'
+        required: true
+        type: string
+      dry_run:
+        description: 'Dry run: prove everything; push, tag and publish nothing'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  preflight:
+    name: "1. The commit, the version and the checks"
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    permissions:
+      contents: read
+      # Reads the commit's Checks verdict.
+      checks: read
+    outputs:
+      commit: ${{ github.sha }}
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: The commit is the tip of its branch, and a real run is on main or a release branch
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/* ]]; then
+            echo "::error::Release runs on a branch, not $GITHUB_REF."
+            exit 1
+          fi
+          if [ "$DRY_RUN" != true ] && [ "$GITHUB_REF" != refs/heads/main ] && [[ "$GITHUB_REF" != refs/heads/release/* ]]; then
+            echo "::error::A release is made from main, or a patch from its release branch, not $GITHUB_REF_NAME: run it there, or run this as a dry run."
+            exit 1
+          fi
+          tip="$(git ls-remote origin "$GITHUB_REF" | cut -f1)"
+          if [ "$tip" != "$GITHUB_SHA" ]; then
+            echo "::error::$GITHUB_REF_NAME has moved on to $tip since this run started at $GITHUB_SHA. Start Release again."
+            exit 1
+          fi
+      - name: The version is a release version and not yet tagged
+        id: version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          version="${VERSION#v}"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$'; then
+            echo "::error::$VERSION is not a version: write it as <major>.<minor>.<patch>, or with -alpha.<n>, -beta.<n> or -rc.<n> after it."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "::error::v$version is already tagged. A version that published is never published again: release the next one."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+      # A released flag lives for one minor release (adr-0172); Publish release makes the same check.
+      - name: No released flag outlives its minor release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          (cd core && npm ci --no-audit --no-fund && npm run build)
+          node scripts/release/flags-overdue.mjs "$VERSION"
+      - name: The Sigstore trust root hq carries is fresh enough to ship
+        run: node scripts/release/trust-root.mjs
+      # Checks runs on main and release branches, not on other branches, so a dry run there has none to wait for.
+      - name: The commit's Checks passed
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/release/checks-passed.sh "$GITHUB_SHA" 60
+
+  capture:
+    name: "2. Capture the guide's screenshots"
+    needs: preflight
+    uses: ./.github/workflows/guide-screenshots.yml
+    permissions:
+      contents: read
+    with:
+      commit: ${{ needs.preflight.outputs.commit }}
+      artifact-prefix: pin-
+
+  pin:
+    name: "3. Pin the screenshots to the tag"
+    needs: [preflight, capture]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # Pushes the pin commit: to the branch in a real run, to a ref of its own in a dry run.
+      contents: write
+      # Starts Checks for the pin commit, which a push made with this token does not.
+      actions: write
+    outputs:
+      commit: ${{ steps.commit.outputs.commit }}
+      changed: ${{ steps.commit.outputs.changed }}
+      dry_ref: ${{ steps.commit.outputs.dry_ref }}
+    env:
+      TAG: ${{ needs.preflight.outputs.tag }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          # The pin step finds the last release tag, and the screenshots each release holds, from the history.
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pin-guide-release-set
+          path: ${{ runner.temp }}/guide-set
+      # The pin step reads images with hq's pixelmatch and pngjs, and nothing built.
+      - name: Install what the pin step reads
+        working-directory: hq
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Pin the screenshots
+        working-directory: hq
+        env:
+          # The releases the pages link are read through the API while the repository is private.
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          npm run guide:pin -- --tag "$TAG" --captures "$RUNNER_TEMP/guide-set" | tee "$RUNNER_TEMP/pin.txt"
+          { echo '### The screenshots pinned'; echo; cat "$RUNNER_TEMP/pin.txt"; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit the pin
+        id: commit
+        run: |
+          # The pin step rewrites the guide's pages and the root README only; nothing else is committed.
+          git add -- README.md docs/guide
+          if git diff --cached --quiet; then
+            echo "The pin changed no page: $GITHUB_SHA is released as it is." | tee -a "$GITHUB_STEP_SUMMARY"
+            { echo "commit=$(git rev-parse HEAD)"; echo "changed=false"; } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit --quiet -m "docs(guide): pin the screenshots to $TAG"
+          commit="$(git rev-parse HEAD)"
+          { echo "commit=$commit"; echo "changed=true"; } >> "$GITHUB_OUTPUT"
+          if [ "$DRY_RUN" = true ]; then
+            # On no branch: the jobs that follow fetch the commit by its ID, and the last job deletes the ref.
+            dry_ref="refs/release-dry-runs/$GITHUB_RUN_ID"
+            git push --quiet origin "HEAD:$dry_ref"
+            echo "dry_ref=$dry_ref" >> "$GITHUB_OUTPUT"
+            echo "Dry run: the pin commit $commit is proved on $dry_ref and pushed to no branch." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            # Refused if the branch moved since the run started: start Release again from its new tip.
+            git push --quiet origin "HEAD:$GITHUB_REF"
+            echo "The pin commit $commit is pushed to $GITHUB_REF_NAME." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Start Checks for the pin commit
+        if: steps.commit.outputs.changed == 'true' && inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ steps.commit.outputs.commit }}
+        run: |
+          run_id="$(scripts/release/dispatch.sh checks.yml "$GITHUB_REF_NAME")"
+          sha="$(gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json headSha --jq .headSha)"
+          if [ "$sha" != "$COMMIT" ]; then
+            echo "::error::$GITHUB_REF_NAME moved on past the pin commit $COMMIT before Checks started (it runs $sha). The pin is on $GITHUB_REF_NAME: start Release again from its tip."
+            exit 1
+          fi
+          echo "Checks for the pin commit: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run_id" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: "4. Release build"
+    needs: pin
+    uses: ./.github/workflows/release-build.yml
+    # What the release build's jobs ask for: reading and pushing images, and keyless attestation.
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    with:
+      commit: ${{ needs.pin.outputs.commit }}
+
+  tag:
+    name: "5. Tag the commit"
+    needs: [preflight, pin, build]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    permissions:
+      # Creates the tag.
+      contents: write
+      checks: read
+    env:
+      TAG: ${{ needs.preflight.outputs.tag }}
+      COMMIT: ${{ needs.pin.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.pin.outputs.commit }}
+      # The commit the run started from passed in stage 1; a pin commit's Checks were started in stage 3.
+      - name: Checks passed for the pin commit
+        if: needs.pin.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/release/checks-passed.sh "$COMMIT" 90
+      - name: Create the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$TAG" -f "sha=$COMMIT" > /dev/null
+          echo "Tagged $COMMIT as $TAG." | tee -a "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: "6. Publish"
+    needs: [preflight, tag]
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      # Starts Publish release at the tag and follows it.
+      actions: write
+    env:
+      TAG: ${{ needs.preflight.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Publish release, at the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_id="$(scripts/release/dispatch.sh publish-images.yml "$TAG")"
+          echo "Publish release for $TAG: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run_id" | tee -a "$GITHUB_STEP_SUMMARY"
+          gh run watch "$run_id" --repo "$GITHUB_REPOSITORY" --exit-status --interval 60 > /dev/null \
+            || { echo "::error::Publish release for $TAG did not pass: see its run. The tag stays; the releasing skill says what to do."; exit 1; }
+          echo "Published $TAG." | tee -a "$GITHUB_STEP_SUMMARY"
+
+  cleanup:
+    name: Delete the dry run's commit ref
+    needs: [pin, build]
+    if: ${{ always() && needs.pin.outputs.dry_ref != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Delete it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_REF: ${{ needs.pin.outputs.dry_ref }}
+        run: gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/${DRY_REF}" > /dev/null
+
+  summary:
+    name: Where the release stopped
+    needs: [preflight, capture, pin, build, tag, publish]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Each stage's result
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          VERSION: ${{ inputs.version }}
+          RESULTS: >-
+            1. The commit, the version and the checks=${{ needs.preflight.result }};
+            2. Capture the guide's screenshots=${{ needs.capture.result }};
+            3. Pin the screenshots to the tag=${{ needs.pin.result }};
+            4. Release build=${{ needs.build.result }};
+            5. Tag the commit=${{ needs.tag.result }};
+            6. Publish=${{ needs.publish.result }}
+        run: |
+          stopped=""
+          {
+            if [ "$DRY_RUN" = true ]; then echo "### Release $VERSION: dry run"; else echo "### Release $VERSION"; fi
+            echo
+            echo '| Stage | Result |'
+            echo '|---|---|'
+            IFS=';' read -ra stages <<<"$RESULTS"
+            for entry in "${stages[@]}"; do
+              entry="${entry#"${entry%%[![:space:]]*}"}"
+              stage="${entry%=*}" result="${entry##*=}"
+              if [ "$DRY_RUN" = true ] && [ "$result" = skipped ] && [[ "$stage" == 5.* || "$stage" == 6.* ]]; then result='not in a dry run'; fi
+              if [ -z "$stopped" ] && [ "$result" != success ] && [ "$result" != 'not in a dry run' ]; then stopped="$stage ($result)"; fi
+              echo "| $stage | $result |"
+            done
+            echo
+            if [ -n "$stopped" ]; then echo "**Stopped at $stopped.**"; else echo '**Every stage passed.**'; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$stopped" ]; then echo "::error::The release stopped at $stopped."; exit 1; fi

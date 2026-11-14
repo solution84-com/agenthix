@@ -232,6 +232,34 @@
       "command": "docker compose -f site/compose.yml --env-file site/compose.env up -d --build",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
+    },
+
+    // ─── Release ─────────────────────────────────────────────────────────────
+    // Starts the Release workflow on GitHub (.github/workflows/release.yml) and
+    // follows its run here; nothing runs on this machine but gh. The releasing
+    // skill says when to press which.
+    {
+      "label": "[release] Release",
+      "detail": "Releases main's tip as the version asked for: captures and pins the screenshots, builds, tags and publishes.",
+      "type": "shell",
+      "command": "id=\"$(bash scripts/release/dispatch.sh release.yml main -f version=${input:releaseVersion})\" && gh run watch \"$id\" --exit-status",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "[release] Dry run (this branch)",
+      "detail": "Release as a dry run on the current branch, pushed first: proves everything, pushes, tags and publishes nothing.",
+      "type": "shell",
+      "command": "id=\"$(bash scripts/release/dispatch.sh release.yml \"$(git branch --show-current)\" -f version=${input:releaseVersion} -f dry_run=true)\" && gh run watch \"$id\" --exit-status",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "releaseVersion",
+      "type": "promptString",
+      "description": "The version to release, as 0.1.0-alpha.4 (no v)"
     }
   ]
 }

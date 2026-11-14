@@ -21,7 +21,7 @@ describe('core as a package @SC-1054', () => {
     const others = fs.readdirSync(workflows).filter(f => f !== 'publish-images.yml')
     for (const f of others) expect(fs.readFileSync(path.join(workflows, f), 'utf8'), f).not.toMatch(/npm publish/)
     const workflow = fs.readFileSync(path.join(workflows, 'publish-images.yml'), 'utf8')
-    expect(workflow).not.toMatch(/workflow_dispatch|pull_request|branches:/)
+    expect(workflow).not.toMatch(/pull_request|branches:|workflow_call/)
     expect(workflow).toMatch(/permissions: \{\}/)
     expect(workflow).toMatch(/check-runs\?check_name=All%20checks%20passed/)
     expect(workflow).toMatch(/\n {2}publish:\n(?: {4}.*\n)*? {4}needs: release\n/)

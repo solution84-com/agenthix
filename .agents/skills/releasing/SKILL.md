@@ -1,59 +1,77 @@
 ---
 name: releasing
-description: Use when cutting, proving, tagging or patching a release of Agenthix — the release rehearsal, the release build, the tag that publishes, a patch on a release branch, a failed publish, and which lines are maintained. Maintainers only.
+description: Use when cutting, proving, tagging or patching a release of Agenthix — the Release workflow and its dry run, the release rehearsal, the release build, the tag that publishes, a patch on a release branch, a failed release or publish, and which lines are maintained. Maintainers only.
 ---
 
 # Releasing
 
-**A release is a tag on a proven commit of `main`**
+**A release is one run of the *Release* workflow** (`.github/workflows/release.yml`,
+[ADR-0190](../../../docs/adr/adr-0190-a-release-is-started-by-one-workflow.md)) on a proven commit of `main`
 ([ADR-0146](../../../docs/adr/adr-0146-a-release-is-a-proven-build-given-a-name.md)). Nothing is built at the tag, and no
-commit sets a version: every `package.json` stays at `0.0.0`.
+commit sets a version: every `package.json` stays at `0.0.0`. A push to `main` runs *Checks* only: no release, no
+screenshots, no tag.
 
-1. **The owner picks a commit of `main`, and the guide's screenshots are pinned to the upcoming tag on it**: from a
-   capture of that commit, `npm run guide:pin -- --tag v<version>` in `hq/` points every link to a new or changed
-   screenshot at the tag, and the edit is committed. That commit is the one proved and tagged. How, and which capture
-   to use: [the guide's README](../../../docs/guide/README.md#releasing-the-screenshots).
-2. **The release rehearsal passes on it**, on the dev machine:
-   `RELEASE_VERSION=<version> scripts/release/prove.sh`. It checks:
-   - the Sigstore trust root hq carries is no older than 300 days;
-   - no flag released in an earlier minor release is still listed
-     ([feature flags](../../../docs/architecture/feature-flags.md));
-   - the image keys, the images built and started, the install test and the guide's screenshots, for the dev
-     machine's own architecture.
+1. **Start it** with the version, on `main`, from the repository's **Actions** tab, from the VS Code task
+   *[release] Release*, or:
 
-   The full regression runs with it (`testing-a-change`).
-3. **The release build is started by hand** on that commit (*Release build*, `.github/workflows/release-build.yml`)
-   and passes: every image part with a new key, for amd64 and arm64, built, started and attested; the install test and
-   the screenshots. The screenshots are captured by one script on both machines (`scripts/guide/capture.mjs`), so a
-   capture that passes in the rehearsal passes there.
+   ```sh
+   gh workflow run release.yml --ref main -f version=0.1.0-alpha.4
+   ```
 
-   **A change to a workflow file, or to a script only a workflow runs, is proved by running that workflow on a
-   branch** (`gh workflow run <file> --ref <branch>`) before it lands on `main`: the dev machine cannot prove it.
-4. **The owner tags the commit `v<version>` and pushes the tag. The tag only publishes** what was proved. It refuses
-   unless *Checks* and the release build passed for the commit and no released flag is overdue; it verifies each
-   image's attestation and recomputed key, then makes and signs each version's index, publishes core and makes the
-   release page, with the guide's screenshots linked to the tag attached (only those; it fails before publishing
-   anything if the release build's set lacks one).
-5. **A patch is cut from `main`.** It carries fixes, and any code behind a flag that is off in production
-   (experimental or preview); it never moves a flag forward, which only a minor or major release does
-   ([ADR-0172](../../../docs/adr/adr-0172-a-flag-has-a-stage.md)). **A release branch exists only for a patch while
-   `main` holds a change that may not go out in one**, behaviour not behind a flag, cut from the newest tag of its line
-   (`release/1.0.1` from `v1.0.0`, `release/1.0.2` from `v1.0.1`).
-   - On it: the fix, the pin step, the release rehearsal, the release build (its push starts it), and the tag on its
-     last commit. Then it is merged into `main` with `--no-ff` and deleted.
-   - When `main` has not moved since the release, the fix goes on `main` and is tagged there.
-   - `main` never flows into a patch branch. Where `main` has rewritten the code a fix touches, the fix is ported to
-     `main` by hand with `git cherry-pick -x` instead of merged.
-   - A patch on a release branch holds fixes only.
-6. **If anything fails after the tag is pushed**, the tag and whatever that attempt published are deleted, the fix is
-   made, and the same version is tagged again: the links already name it, and a retry promotes the same images.
+   One run goes at a time. Each stage is a job; the first that fails stops the run, and its last job names that stage
+   on the run's page:
+   1. **The commit and the version**: the run's commit is its branch's tip and *Checks* passed for it; the version is
+      a release version and not yet tagged; no flag released in an earlier minor release is still listed
+      ([feature flags](../../../docs/architecture/feature-flags.md)); the Sigstore trust root hq carries is no older
+      than 300 days (`npm run sigstore:refresh` in `hq/` fetches a new one, committed before the release).
+   2. **The guide's screenshots are captured** for that commit (*Guide screenshots*).
+   3. **They are pinned to the tag** (`npm run guide:pin`, [the guide's README](../../../docs/guide/README.md#releasing-the-screenshots)).
+      When that changes the pages, the workflow commits the edit (`docs(guide): pin the screenshots to v<version>`)
+      and pushes it to `main`, and starts *Checks* for it; that commit is the one proved and tagged. No change: the
+      same commit goes on.
+   4. **The release build** (`release-build.yml`): every image part with a new key, for amd64 and arm64, built,
+      started and attested; the install test; the screenshots again, the set the tag takes; core packed.
+   5. **The tag**: once *Checks* passed for that commit, the workflow creates `v<version>` on it, and starts *Publish
+      release* at the tag and follows it. Publishing verifies each image's attestation and recomputed key, makes and
+      signs each version's index, publishes core and makes the release page, with the guide's screenshots linked to
+      the tag attached (only those; it fails before publishing anything if the release build's set lacks one).
+2. **A dry run** does everything but push, tag and publish: on any branch, pushed first, with the VS Code task
+   *[release] Dry run (this branch)*, or `gh workflow run release.yml --ref <branch> -f version=<version> -f dry_run=true`.
+   A dry run does not wait for *Checks*, which do not run on such a branch. A pin commit it makes is pushed to no
+   branch, only to a ref of the run's own that the run deletes at its end.
+3. **The release rehearsal is an optional local dry run**, on the dev machine, for its own architecture:
+   `RELEASE_VERSION=<version> scripts/release/prove.sh` (the image keys, the images built and started, the install test
+   and the guide's screenshots, and the flags and trust root checks). The full regression runs with it
+   (`testing-a-change`).
+4. **If a release run fails**, the fix is worked on a branch, and *Release* is run there as a dry run
+   (`--ref <branch> -f dry_run=true`) until it passes. Then the fix lands on `main` as one commit, and *Release* runs
+   again. A change to a workflow file, or to a script only a workflow runs, is proved the same way: the dev machine
+   cannot prove it.
+   - **If it fails after the tag was created**, the tag and whatever that attempt published (images, the core package,
+     the release page with its screenshots) are deleted by the admin, the fix is made as above, and *Release* runs for
+     the same version: the links already name it, and a retry promotes the same images. A publish that failed for a
+     passing reason (a registry outage) is retried without a new tag:
+     `gh workflow run publish-images.yml --ref v<version>`.
    - **A version that published is never published again**, even when it turns out not to work: someone may already
      have it. Its fix takes the next number: `0.1.0-alpha.3` after `0.1.0-alpha.2`, `1.0.2` after `1.0.1`.
    - Any release may go out first as a release candidate (`1.0.1-rc.1`, then `rc.2`) and become final once it is
      proved, with nothing but fixes between them; a release candidate and an alpha are both optional. `0.1.0` has no
      release candidate: its alphas run until it is called right, then `v0.1.0`.
-7. **Tags are permanent.** A repository ruleset stops `v*` tags being moved or deleted; the admin's bypass is for a
-   publish that failed part-way.
+5. **A patch is cut from `main`.** It carries fixes, and any code behind a flag that is off in production
+   (experimental or preview); it never moves a flag forward, which only a minor or major release does
+   ([ADR-0172](../../../docs/adr/adr-0172-a-flag-has-a-stage.md)). **A release branch exists only for a patch while
+   `main` holds a change that may not go out in one**, behaviour not behind a flag, cut from the newest tag of its line
+   (`release/1.0.1` from `v1.0.0`, `release/1.0.2` from `v1.0.1`).
+   - On it: the fix, then *Release* run on the release branch (`--ref release/1.0.1`), which pins, proves and tags its
+     last commit there. Then it is merged into `main` with `--no-ff` and deleted.
+   - When `main` has not moved since the release, the fix goes on `main` and is released from there.
+   - `main` never flows into a patch branch. Where `main` has rewritten the code a fix touches, the fix is ported to
+     `main` by hand with `git cherry-pick -x` instead of merged.
+   - A patch on a release branch holds fixes only.
+6. **Tags are permanent.** A repository ruleset stops `v*` tags being moved or deleted; the admin's bypass is for a
+   publish that failed part-way. A tag pushed by hand still publishes, but a release is not made that way.
+7. **What the workflow needs of the repository:** GitHub Actions is a bypass actor of `main`'s ruleset, so the pin
+   commit can be pushed without a pull request. Creating a tag needs no bypass.
 
 **At most two lines are maintained**: the newest minor of the current major and of the one before. Before `1.0.0`,
 only the newest release ([versioning.md](../../../docs/architecture/versioning.md#the-product-version)).

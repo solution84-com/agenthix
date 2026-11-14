@@ -41,3 +41,26 @@ test('a commit no trusted run built finds none @SC-1268', () => {
   // The run from another branch would name the commit, and is still not counted.
   assert.equal(chooseRun({ runs, commit: 'c1', repository: repo, commitOf: () => 'c1' }).state, 'none')
 })
+
+test('a Release run proves its commit by its release bar job, not the run, which goes on to tag and publish @SC-1268', () => {
+  const release = run({ workflow: 'release.yml', event: 'workflow_dispatch', head_branch: 'main', head_sha: 'tip', status: 'in_progress', conclusion: null })
+  const commitOf = r => (r.id === release.id ? 'c0' : null)
+  const pass = chooseRun({ runs: [release], commit: 'c0', repository: repo, commitOf, barOf: () => ({ status: 'completed', conclusion: 'success' }) })
+  assert.equal(pass.state, 'pass')
+  assert.equal(pass.run.id, release.id)
+  assert.equal(chooseRun({ runs: [release], commit: 'c0', repository: repo, commitOf, barOf: () => ({ status: 'completed', conclusion: 'failure' }) }).state, 'fail')
+  assert.equal(chooseRun({ runs: [release], commit: 'c0', repository: repo, commitOf, barOf: () => ({ status: 'in_progress', conclusion: null }) }).state, 'wait')
+  assert.equal(chooseRun({ runs: [release], commit: 'c0', repository: repo, commitOf, barOf: () => null }).state, 'wait')
+  // A dry run from a branch other than main or a release branch proves nothing.
+  const dry = { ...release, id: 999, head_branch: 'fix/x' }
+  assert.equal(chooseRun({ runs: [dry], commit: 'c0', repository: repo, commitOf: () => 'c0', barOf: () => ({ status: 'completed', conclusion: 'success' }) }).state, 'none')
+})
+
+test('a Release run that has not yet built is passed over, not waited for: it may be queued behind the one publishing @SC-1268', () => {
+  const publishing = run({ workflow: 'release.yml', event: 'workflow_dispatch', head_branch: 'main', status: 'in_progress', conclusion: null })
+  const queued = run({ workflow: 'release.yml', event: 'workflow_dispatch', head_branch: 'main', status: 'queued', conclusion: null })
+  const commitOf = r => (r.id === publishing.id ? 'c0' : null)
+  const verdict = chooseRun({ runs: [queued, publishing], commit: 'c0', repository: repo, commitOf, barOf: () => ({ status: 'completed', conclusion: 'success' }) })
+  assert.equal(verdict.state, 'pass')
+  assert.equal(verdict.run.id, publishing.id)
+})
