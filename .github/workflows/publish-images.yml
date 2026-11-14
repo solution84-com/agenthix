@@ -136,19 +136,19 @@ jobs:
           echo "count=$count" >> "$GITHUB_OUTPUT"
           echo "The release carries $count of the guide's screenshots." >> "$GITHUB_STEP_SUMMARY"
       - if: steps.screenshots.outputs.count != '0'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: guide-screenshots
           path: ${{ runner.temp }}/guide-screenshots/*.png
           if-no-files-found: error
           retention-days: 7
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         with:
           cosign-release: ${{ env.COSIGN_VERSION }}
       - name: Where each image came from, and its key at the tagged commit
@@ -188,12 +188,12 @@ jobs:
       VERSION: ${{ needs.release.outputs.version }}
     steps:
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         with:
           cosign-release: ${{ env.COSIGN_VERSION }}
       - name: Make the multi-platform image
@@ -243,7 +243,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/published"
           jq -n -c --arg part "$PART" --arg image "$IMAGE" --arg key "$KEY" --arg index "$DIGEST" --arg amd64 "$AMD64" --arg arm64 "$ARM64" \
             '{part: $part, image: $image, key: $key, index: $index, amd64: $amd64, arm64: $arm64}' > "$RUNNER_TEMP/published/$PART.json"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: published-${{ matrix.part }}
           path: ${{ runner.temp }}/published/*.json
@@ -293,7 +293,7 @@ jobs:
           if [[ "$VERSION" == *-* ]]; then channel=next; else channel=latest; fi
           npm publish "${packed[0]}" --tag "$channel"
       # The file the registry received, for the release record's integrity hash.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: core-published
           path: ${{ runner.temp }}/core-package/*.tgz
@@ -315,17 +315,17 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: published-*
           path: ${{ runner.temp }}/published
           merge-multiple: true
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: core-published
           path: ${{ runner.temp }}/core
       - if: needs.release.outputs.screenshots != '0'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: guide-screenshots
           path: ${{ runner.temp }}/guide-screenshots
