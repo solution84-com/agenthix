@@ -11,13 +11,14 @@
  *   the others.
  */
 import { prisma } from 'wasp/server'
-import { providerStateWorks, providerTypesOf, type AiProviderType, type ProviderRecordAction } from '@agenthix/core'
+import { providerStateWorks, providerTypesOf, type ProviderRecordAction } from '@agenthix/core'
 import { PROVIDER_NOTIFICATION_TYPES as T } from '../notifications/notificationKinds'
 import { syncPersistentNotifications, type PersistentNotice } from '../notifications/persistent'
 import { nameList } from '../notifications/adminNotices'
 import { notificationsChanged } from '../server/personEvents'
 import { nextOfType, type DefaultSlot } from './impact'
 import { providerStore, type ProviderRow } from './store'
+import { TYPE_WORDS } from './components/providerWords'
 
 export const PROVIDERS_PAGE_URL = '/admin/providers'
 export const providerLineUrl = (id: string) => `${PROVIDERS_PAGE_URL}?provider=${encodeURIComponent(id)}`
@@ -32,7 +33,6 @@ const STATE_TITLE: Partial<Record<ProviderRow['state'], (name: string) => string
 const SLOT_WORDS: Record<DefaultSlot, string> = {
   conversation: 'the default model', stt: 'the default speech to text', tts: 'the default text to speech',
 }
-const TYPE_WORDS: Record<AiProviderType, string> = { llm: 'Models', stt: 'Speech to text', tts: 'Text to speech' }
 
 const sentence = (s: string) => (s ? `${s[0].toUpperCase()}${s.slice(1)}` : s)
 

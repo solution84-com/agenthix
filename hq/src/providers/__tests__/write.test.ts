@@ -238,7 +238,7 @@ describe('remove and revoke', () => {
     const removed = await removeProvider(ADMIN, { id: tts.id })
     expect(await store.byId(tts.id)).toBeNull()
     expect(removed.impact.goesDown).toEqual(['stt', 'tts'])
-    expect(told.announced.at(-1)!.lines.join(' ')).toContain('Nothing else provides speech-to-text')
+    expect(told.announced.at(-1)!.lines.join(' ')).toContain('Nothing else provides Hearing')
   })
 
   it('a revoke is never refused either @SC-1174', async () => {

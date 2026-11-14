@@ -92,7 +92,7 @@ describe('the AI step @SC-1184', () => {
   it('C: one provider that works shows its card with chips, its state and Remove, the defaults with Change, and Continue @SC-1842 @SC-1844 @SC-1845', () => {
     show([base])
     const card = within(screen.getByText('Inworld', { selector: 'span' }).closest('li')!)
-    for (const chip of ['Models', 'Hearing', 'Speaking']) expect(card.getByText(chip)).toBeTruthy()
+    for (const chip of ['Thinking', 'Hearing', 'Speaking']) expect(card.getByText(chip)).toBeTruthy()
     expect(card.getByText(/Works\. Added by you\./)).toBeTruthy()
     expect(card.getByRole('button', { name: 'Remove Inworld' })).toBeTruthy()
     expect(screen.getByText('Claude Sonnet 5.5 · via Inworld')).toBeTruthy()
@@ -110,7 +110,7 @@ describe('the AI step @SC-1184', () => {
     expect(screen.getByText('Not set. Add a provider that speaks.')).toBeTruthy()
     expect(screen.queryByText(/outage|down/i)).toBeNull()
     expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy()
-    expect(within(screen.getByText('AssemblyAI', { selector: 'span' }).closest('li')!).queryByText('Models')).toBeNull()
+    expect(within(screen.getByText('AssemblyAI', { selector: 'span' }).closest('li')!).queryByText('Thinking')).toBeNull()
   })
 
   it('keeps Skip for now while the only provider does not work, and says why in words @SC-1845', () => {

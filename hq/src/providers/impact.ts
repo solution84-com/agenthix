@@ -13,6 +13,7 @@ import {
   type AiProviderType, type AiProviderUse,
 } from '@agenthix/core'
 import type { ProviderRow } from './store'
+import { TYPE_WORDS } from './components/providerWords'
 
 export type DefaultSlot = AiProviderUse['defaults'][number]
 
@@ -27,8 +28,6 @@ export type ProviderImpact = {
 }
 
 const SLOT_TYPE: Record<DefaultSlot, AiProviderType> = { conversation: 'llm', stt: 'stt', tts: 'tts' }
-
-const TYPE_WORDS: Record<AiProviderType, string> = { llm: 'model', stt: 'speech-to-text', tts: 'text-to-speech' }
 
 function covers(p: ProviderRow, type: AiProviderType): boolean {
   return providerTypesOf(p.vendor).includes(type)
@@ -62,7 +61,7 @@ const SLOT_WORDS: Record<DefaultSlot, string> = {
 export function impactSentences(i: ProviderImpact): string[] {
   const lines = i.defaults.map(d => `${SLOT_WORDS[d.slot]} falls to ${d.to ? `the next allowed via ${d.to.name}` : 'nothing: no other provider of its type works'}.`)
   if (i.agents.length) lines.push(`${i.agents.map(a => a.name).join(', ')} ${i.agents.length === 1 ? 'falls' : 'fall'} to the organisation's defaults.`)
-  for (const t of i.goesDown) lines.push(`Nothing else provides ${TYPE_WORDS[t] === 'model' ? 'models' : TYPE_WORDS[t]}: it is down until a provider is added.`)
+  for (const t of i.goesDown) lines.push(`Nothing else provides ${TYPE_WORDS[t]}: it is down until a provider is added.`)
   return lines
 }
 

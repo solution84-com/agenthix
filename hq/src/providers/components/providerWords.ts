@@ -20,10 +20,18 @@ export const STATE_TONE: Record<AiProviderState, PillTone> = {
   disconnected: 'warning',
 }
 
-export const TYPE_WORDS: Record<AiProviderType, string> = { llm: 'LLM', stt: 'STT', tts: 'TTS' }
+/** What each type is called wherever it shows: what a provider lets agents do. */
+export const TYPE_WORDS: Record<AiProviderType, string> = { llm: 'Thinking', stt: 'Hearing', tts: 'Speaking' }
 
-/** What each type is called on a chip: what the provider covers. */
-export const TYPE_CHIP_WORDS: Record<AiProviderType, string> = { llm: 'Models', stt: 'Hearing', tts: 'Speaking' }
+/** A provider's state as a sentence, on its card. */
+export const STATE_SENTENCES: Record<AiProviderState, string> = {
+  works: 'Works.',
+  key_refused: 'The key was refused.',
+  out_of_credit: 'Out of credit.',
+  unreachable: 'Cannot be reached.',
+  not_available: 'Not available yet.',
+  disconnected: 'Disconnected.',
+}
 
 /** The order the add-provider pop-up lists vendors in. Agenthix Cloud is last, and is not keyed. */
 export const VENDOR_ORDER: readonly AiProviderVendor[] = ['anthropic', 'openai', 'google', 'openrouter', 'inworld', 'assemblyai', 'openai_compatible']
