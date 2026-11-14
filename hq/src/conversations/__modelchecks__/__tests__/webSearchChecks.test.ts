@@ -3,7 +3,7 @@
  * called. The check itself runs on the baseline model with `npm run test:models` (README.md beside the checks).
  */
 import { describe, expect, it } from 'vitest'
-import { NO_WEB_SEARCH_INSTRUCTIONS } from '@agenthix/core'
+import { NO_WEB_SEARCH_INSTRUCTIONS, WEB_SEARCH_NOT_ALLOWED_WORDS, webSearchWithheldInstructions } from '@agenthix/core'
 import { WEB_SEARCH_CHECKS } from '../taskRun/webSearchChecks'
 import { taskRunContext, taskRunTools } from '../taskRun/setup'
 import type { RunRecord } from '../run'
@@ -38,5 +38,30 @@ describe('the no-search-key check', () => {
     expect(check.grade(run(['Node.js 24 is the newest release; it adds a few things.'])).passed).toBe(false)
     expect(check.grade(run(['I work in OpenCode and the organisation has no search key. I can answer from what I know.'])).passed).toBe(false)
     expect(check.grade(run(['I work in OpenCode and the organisation has no search key. An admin adds it in Manage organisation › AI.'])).passed).toBe(false)
+  })
+})
+
+describe("the check of a run whose agent's tools withhold web search (W2)", () => {
+  const notAllowed = WEB_SEARCH_CHECKS.find(c => c.id === 'taskrun-search-not-allowed')!
+
+  it("sends the run the site's words for it and web_fetch, and no web_search", () => {
+    const sent = JSON.stringify(taskRunContext(notAllowed.taskRun!).system)
+    expect(sent).toContain(JSON.stringify(webSearchWithheldInstructions('never')).slice(1, -1))
+    expect(sent).not.toContain(JSON.stringify(NO_WEB_SEARCH_INSTRUCTIONS).slice(1, -1))
+    const tools = taskRunTools(notAllowed.taskRun!).map(t => t.name)
+    expect(tools).toContain('web_fetch')
+    expect(tools).not.toContain('web_search')
+  })
+
+  it('passes a run that says its tools do not allow it, where an admin allows it, and offers what it knows', () => {
+    expect(notAllowed.grade(run([WEB_SEARCH_NOT_ALLOWED_WORDS]))).toEqual({ passed: true })
+    expect(notAllowed.grade(run([`This isn't about a key. ${WEB_SEARCH_NOT_ALLOWED_WORDS}`]))).toEqual({ passed: true })
+  })
+
+  it('fails a run that blames a missing key, searches anyway, or leaves out why or where', () => {
+    expect(notAllowed.grade(run([EXPLAINED])).passed).toBe(false)
+    expect(notAllowed.grade(run([WEB_SEARCH_NOT_ALLOWED_WORDS], ['web_search', { query: 'node' }])).passed).toBe(false)
+    expect(notAllowed.grade(run(['I cannot search the web here. I can answer from what I know.'])).passed).toBe(false)
+    expect(notAllowed.grade(run(["My tools don't allow me to search the web. I can answer from what I know."])).passed).toBe(false)
   })
 })

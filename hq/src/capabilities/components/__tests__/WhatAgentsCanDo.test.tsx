@@ -42,6 +42,9 @@ describe('What agents can do', () => {
     expect(help.getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(help)
     expect(screen.getByText(/A runtime is the program an agent works in\. Claude Code searches the web on its own\./)).toBeTruthy()
+    // Whether an agent may search is its own permissions' (walkthrough finding W2), and the line stays about runtimes.
+    expect(screen.getByText(/Each agent’s own permissions decide whether it may search: Search the web is Ask by default, so a person approves the search in a conversation/)).toBeTruthy()
+    expect(screen.getByText(/in the agent’s Permissions, from Agents › Manage agents\./)).toBeTruthy()
   })
 
   it('calls back with the capability and its action: Change and Add a key', () => {

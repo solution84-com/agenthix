@@ -40,6 +40,17 @@ When an agent may use the web without asking and may also change files, run comm
 administrative tools without asking, a note warns that a page it reads could steer it into doing so. Set the web
 tools, or the others, to **Ask** or **Never**.
 
+### Fetching pages and searching the web
+
+**Fetch a page** and **Search the web**, under **Web**, are **Ask** for an agent until an administrator changes them.
+In a conversation, the agent goes on with a search in the background and tells you it will ask: you approve it on its
+card in the conversation, or in **Notifications**. In a task's or a routine's run, the search waits with the run's other requests, and is asked
+for at the end under **Deferred** or at once under **Immediate**, of the people who answer that run's approvals. Set
+**Search the web** to **Always** for an agent that should search without asking, or **Never** for one that shouldn't
+search at all: an agent set to **Never** says its permissions don't allow it, and where an administrator changes that,
+rather than trying. Whether it can search at all also depends on what it runs on: see
+[Web search](../your-tools/providers.md#web-search).
+
 ## Permissions in a project
 
 A project's administrators can make an agent stricter inside that project only.

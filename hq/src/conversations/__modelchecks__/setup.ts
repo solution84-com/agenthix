@@ -19,6 +19,7 @@ import { CREATE_TASK, CREATE_TASK_DESCRIPTION } from '../work/tasks/createTaskTo
 import { RUN_TASK, describeRunTask } from '../work/tasks/runTaskTool'
 import { describeWorkerWorkspaces, describeWorkspaces } from '../../branches/leadWorkspaces'
 import type { ConversationBranch } from '../lead/placesBlock'
+import type { BackgroundSearch } from '../lead/webSearchBlock'
 import { OFFER_LIVE_PREVIEW_TOOL } from '../../livePreviews/offer'
 import { KEEP_LISTENING } from '../coordinator/keepListening'
 import { memoryTurnBlock } from '../memory/turnBlock'
@@ -45,6 +46,8 @@ export interface CheckSetup {
   features?: readonly FeatureFlag[]
   /** What the probe found before the turn; nothing when none. */
   memory?: CheckMemory
+  /** What the turn is told of web search in the background; told nothing when none, as a turn whose model can't run. */
+  webSearch?: BackgroundSearch
 }
 
 const CONVERSATION_ID = 'conversation-check'
@@ -97,6 +100,7 @@ export function contextOf(setup: CheckSetup, now = new Date()): { system: Prompt
     turn: { trigger: 'MESSAGE', inputIds: [input.id] },
     memory: memoryBlockOf(setup.memory),
     places: { own: inProject(setup.home) ? PROJECT_PLACE : YOUR_SPACE_PLACE, added: [], ...(setup.branches ? { branches: [...setup.branches] } : {}) },
+    ...(setup.webSearch ? { webSearch: setup.webSearch } : {}),
     listening: null,
   })
   // As a turn adds the time when it knows the person's: here with no timezone.

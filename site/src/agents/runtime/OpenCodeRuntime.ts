@@ -29,11 +29,11 @@ import { openCodeSessionExists, openCodeSessionForTurn, prismaHarnessSessionStor
 import { runOpenCodeTurn } from './opencode/openCodeTurn'
 import { ReadableRunError } from './readableRunError'
 import { turnPrompt } from './pickedSkill'
+import { webSearchInstructions } from './webSearchInstructions'
 import { openCodeSkillsDirs, stageOpenCodeSkills } from './opencode/openCodeSkills'
 import { setOpenCodeSkillsDir } from './opencode/openCodeGate'
 import { issueRelayToken, pointRelayToken, revokeRelayToken, turnModelCredentials } from '../../server/modelRelay/relayTokens'
 import { RELAY_TOKEN_HEADER } from '../../server/modelRelay/relayProviders'
-import { NO_WEB_SEARCH_INSTRUCTIONS } from '@agenthix/core'
 
 const NEEDS_CONTAINER = 'The OpenCode runtime runs only in an agent container (AGENT_CONTAINER_ISOLATION), where its commands can be contained.'
 
@@ -129,8 +129,8 @@ export class OpenCodeRuntime implements AgentRuntime {
         connectionName,
         model,
         context: { ...context, prompt: turnPrompt(context, staged.invocable) },
-        // A turn with no search key is not shown web_search (openCodeHiddenPlatformTools), and is told why.
-        system: [context.agent.systemPrompt, staged.systemSection, context.webSearchKey ? null : NO_WEB_SEARCH_INSTRUCTIONS]
+        // A turn not shown web_search — withheld by its tools or no search key (openCodeHiddenPlatformTools) — is told why.
+        system: [context.agent.systemPrompt, staged.systemSection, webSearchInstructions(context, 'opencode')]
           .filter(Boolean).join('\n\n') || undefined,
       })
     } finally {

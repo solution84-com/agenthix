@@ -6,8 +6,8 @@
  * 2. the compaction block, once the conversation has been compacted — a breakpoint after it;
  * 3. the window: every message since the last compaction, verbatim, up to the last one this turn answers — a
  *    breakpoint at the last message before this turn's input;
- * 4. the turn block (the conversation's places, memory, voice, what to do with cards), appended to the turn's own
- *    message.
+ * 4. the turn block (the conversation's places, whether background work can search the web, memory, voice, what to
+ *    do with cards), appended to the turn's own message.
  * Assembled once at the start of a turn: nothing in the first three parts changes within it.
  *
  * A run also gets its boundary's instructions override and the place's AGENTS.md, which live on the site's
@@ -36,6 +36,7 @@ import { answerForLead, approvalForLead, resultForLead, wasCapped } from './card
 import { madeForLead } from './startedWords'
 import { pickedSkillNote } from '../work/pickedSkill'
 import { placesForLead, placesTurnBlock, type PlacesForLead } from '../lead/placesBlock'
+import { backgroundSearchFor, webSearchTurnBlock, type BackgroundSearch } from '../lead/webSearchBlock'
 import { outcomeForLead } from '../../assets/proposals/types'
 import { featuresOn } from '../../features/switches'
 import { usernames } from '../../projects/onBehalfOfOperations'
@@ -344,6 +345,8 @@ export interface ContextParts {
   /** The memory block the probe found, or none. */
   memory: string | null
   places: PlacesForLead | null
+  /** What background work started from this turn could do with web search; none for a turn that starts no work. */
+  webSearch?: BackgroundSearch | null
   /**
    * The person listening to this turn (voice), or none. `wentOnAfterHold`: they went on after a turn held open;
    * `adaptiveVoice`: their own setting (on unless they turned it off), read while the voice turn block is on.
@@ -354,7 +357,7 @@ export interface ContextParts {
 }
 
 export function contextFrom(parts: ContextParts): LeadContext {
-  const { instructions, segments, history, awaiting, turn, memory, places, listening, speakers } = parts
+  const { instructions, segments, history, awaiting, turn, memory, places, webSearch, listening, speakers } = parts
   const system = systemWithBlock(instructions, segments)
   const messages = leadMessages(windowOf(history, segments), turn.inputIds, awaiting, instructions.agentName, speakers)
   const voiceBlock = instructions.featuresOn?.includes('voiceBridge')
@@ -365,9 +368,10 @@ export function contextFrom(parts: ContextParts): LeadContext {
   )
   // The places, re-checked every turn (P6), go after the cached prefix like memory does.
   const withPlaces = places ? appendBlock(withTurn, placesTurnBlock(places)) : withTurn
+  const withSearch = webSearch ? appendBlock(withPlaces, webSearchTurnBlock(webSearch)) : withPlaces
   return {
     system,
-    messages: withMemoryBlock(withPlaces, memory),
+    messages: withMemoryBlock(withSearch, memory),
     cacheAfterMessage: messages.cacheAfter,
     ...(voiceBlock && listening && answersSpokenMessage(history, turn) ? { spokenMessage: true } : {}),
   }
@@ -387,10 +391,15 @@ export async function assembleContext(conversation: TurnConversation, agentId: s
   ])
   const instructions = await instructionsFor(conversation, agentId)
   // What memory the probe found goes with the turn's own message, after the cached prefix.
-  const [memory, places] = await Promise.all([memoryForTurn({ conversation, agentId, turn, history }), placesForLead(conversation.id)])
+  // A report turn presents results and starts no work, so it is not told of web search.
+  const [memory, places, webSearch] = await Promise.all([
+    memoryForTurn({ conversation, agentId, turn, history }),
+    placesForLead(conversation.id),
+    turn.trigger === 'REPORT' ? null : backgroundSearchFor(conversation, agentId, turn.actingUserId),
+  ])
   const session = listeningSession(conversation.id, turn)
   const listening = session && instructions.featuresOn?.includes('voiceBridge')
     ? { trailedOff: session.trailedOff, wentOnAfter: session.wentOnAfter, wentOnAfterHold: session.wentOnAfterHold, adaptiveVoice: await adaptiveVoiceOf(session.holderId) }
     : session
-  return contextFrom({ instructions, segments, history, awaiting, turn, memory, places, listening, speakers: await speakersOf(history) })
+  return contextFrom({ instructions, segments, history, awaiting, turn, memory, places, webSearch, listening, speakers: await speakersOf(history) })
 }

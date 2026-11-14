@@ -119,12 +119,16 @@ How an agent searches the web depends on what it runs on, not on which provider 
   checked, and **Save without checking** saves it anyway. **Remove key** takes it away. The key stays in HQ and never
   reaches an agent. **Not now** closes the pop-up and nothing is blocked.
 - An OpenCode agent with no key says it can't search, and why, rather than trying.
+- Either kind searches only as far as its own permissions allow: **Search the web** is **Ask** for every agent until
+  an administrator changes it, so a person approves each search. An agent set to **Never** says so rather than
+  trying. See [Fetching pages and searching the web](../agents/permissions.md#fetching-pages-and-searching-the-web).
 
 ![The Web search for OpenCode pop-up, asking for an Exa key](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/web-search-key.png)
 
 When both kinds of agent are in use, the line says **Every agent can search** or **Some agents can search** and lists
 each kind: **✓ on its own** for Claude Code, **✓ Exa** or **needs a search key** for OpenCode. The **?** beside **Web
-search** says what a runtime is: the program an agent works in.
+search** says what a runtime is, the program an agent works in, and that each agent's own permissions decide whether it
+may search.
 
 ## From a terminal
 

@@ -79,7 +79,7 @@ const ALL_USEFUL_SDK_TOOLS = [
  * The SDK built-in tools an agent can see (the SDK `tools` whitelist).
  * - **bypassed**: the complete built-in set. neverTools must NOT prune it — for an
  *   bypassed agent neverTools comes from DEFAULT_TOOL_PERMISSIONS (allowedTools is null),
- *   which defaults bash/web to 'never'; subtracting that silently stripped Bash from the
+ *   which defaults bash to 'never'; subtracting that silently stripped Bash from the
  *   kernel (the smoke-test Finding 2 regression). neverTools still governs the MCP
  *   disallowedTools path separately.
  * - **restricted**: allowed always/ask-state built-ins, minus never-state, the to-do list and Skill.

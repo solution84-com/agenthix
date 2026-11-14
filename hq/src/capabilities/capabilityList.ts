@@ -60,7 +60,8 @@ export const MARK_WORDS: Record<CapabilityMark, string> = {
 }
 
 export const WEB_SEARCH_HELP =
-  'A runtime is the program an agent works in. Claude Code searches the web on its own. OpenCode searches through Exa, with your organisation’s key.'
+  'A runtime is the program an agent works in. Claude Code searches the web on its own. OpenCode searches through Exa, with your organisation’s key. ' +
+  'Each agent’s own permissions decide whether it may search: Search the web is Ask by default, so a person approves the search in a conversation, and an organisation admin changes it in the agent’s Permissions, from Agents › Manage agents.'
 
 const MISSING: Record<AiProviderType, string> = {
   llm: 'Add a provider that offers models.',

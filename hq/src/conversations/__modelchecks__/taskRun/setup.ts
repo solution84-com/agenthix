@@ -5,7 +5,10 @@
  * identity and filesystem sections are the site's own, which hq cannot import: a short frame stands for them here.
  */
 import { z, type ZodRawShape } from 'zod'
-import { NO_WEB_SEARCH_INSTRUCTIONS, PLATFORM_TOOLS_INSTRUCTIONS, codeWorkPromptText, type RunOpenLivePreview } from '@agenthix/core'
+import {
+  NO_WEB_SEARCH_INSTRUCTIONS, PLATFORM_TOOLS_INSTRUCTIONS, codeWorkPromptText, webSearchWithheldInstructions,
+  type RunOpenLivePreview, type WebSearchWithheld,
+} from '@agenthix/core'
 import type { LeadMessage, LeadToolDefinition, PromptPart } from '../../contract'
 import { ALL_CONTROL_PLANE_TOOLS } from '../../../server/controlplane/toolSchemas'
 import { withBrief } from '../../taskThread/brief'
@@ -24,6 +27,11 @@ export interface TaskRunSetup {
    * own web_fetch and no web_search, as such a turn is.
    */
   noWebSearchKey?: true
+  /**
+   * A run whose agent's tools withhold web search (walkthrough finding W2): told so in the words the site sends, and
+   * offered web_fetch, at Ask by default, and no web_search.
+   */
+  webSearchWithheld?: WebSearchWithheld
 }
 
 const FIRST_MESSAGE = 'Execute your assigned task.'
@@ -53,6 +61,7 @@ export function taskRunContext(setup: TaskRunSetup): { system: PromptPart[]; mes
       { text: PLATFORM_TOOLS_INSTRUCTIONS },
       { text: codeWorkPromptText(codeWork(setup.openLivePreview, setup.behindMain ?? 0), { livePreview: true }) },
       ...(setup.noWebSearchKey ? [{ text: NO_WEB_SEARCH_INSTRUCTIONS }] : []),
+      ...(setup.webSearchWithheld ? [{ text: webSearchWithheldInstructions(setup.webSearchWithheld) }] : []),
     ],
     messages: [{ role: 'user', content: withBrief(FIRST_MESSAGE, setup.brief ?? null) }],
   }
@@ -84,5 +93,5 @@ const WEB_FETCH: LeadToolDefinition = {
 
 export function taskRunTools(setup?: TaskRunSetup): LeadToolDefinition[] {
   const platform = ALL_CONTROL_PLANE_TOOLS.map(t => ({ name: t.name, description: t.description ?? t.name, input: shown(t.schema) }))
-  return [...BUILT_INS, ...(setup?.noWebSearchKey ? [WEB_FETCH] : []), ...platform]
+  return [...BUILT_INS, ...(setup?.noWebSearchKey || setup?.webSearchWithheld ? [WEB_FETCH] : []), ...platform]
 }

@@ -4,7 +4,7 @@
  * instructions say web search isn't set up. A turn with the key is shown the tool and told nothing.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { NO_WEB_SEARCH_INSTRUCTIONS } from '@agenthix/core'
+import { NO_WEB_SEARCH_INSTRUCTIONS, webSearchWithheldInstructions, type ApprovedManifest } from '@agenthix/core'
 
 vi.mock('#db', () => ({ prisma: {} }))
 vi.mock('../../../server/siteConfig', () => ({ getAgentFacingSiteUrl: () => 'http://site' }))
@@ -70,5 +70,28 @@ describe('an OpenCode turn and the organisation\'s search key', () => {
 
     expect(relays[0].calls.filter(c => c.method === 'PATCH')).toHaveLength(2)
     expect(systems(relays[0].calls)).toEqual([WITHOUT_KEY, 'You are Ada.', WITHOUT_KEY])
+  })
+})
+
+describe("an OpenCode turn whose agent's tools withhold web search (W2)", () => {
+  const tools = (state: 'never' | 'ask') => ({ allowedTools: [{ name: 'web_search', state }] })
+
+  it("at Never, with the key, is told its tools don't allow it, not that a key is missing", async () => {
+    const { servers, relays } = scripted(replyAndIdle)
+    await collect(new OpenCodeRuntime({ servers, store: memoryStore(), stageSkills: noSkills }).run(context(tools('never'))))
+    expect(systems(relays[0].calls)).toEqual([`You are Ada.\n\n${webSearchWithheldInstructions('never')}`])
+  })
+
+  it('at Never, with no key, is told of its tools first', async () => {
+    const { servers, relays } = scripted(replyAndIdle)
+    await collect(new OpenCodeRuntime({ servers, store: memoryStore(), stageSkills: noSkills }).run(context({ ...tools('never'), webSearchKey: undefined })))
+    expect(systems(relays[0].calls)).toEqual([`You are Ada.\n\n${webSearchWithheldInstructions('never')}`])
+  })
+
+  it('at Ask, in a run a person can approve, is told nothing', async () => {
+    const { servers, relays } = scripted(replyAndIdle)
+    const approvedManifest = { tools: [], bashPatterns: [] } as unknown as ApprovedManifest
+    await collect(new OpenCodeRuntime({ servers, store: memoryStore(), stageSkills: noSkills }).run(context({ ...tools('ask'), approvedManifest })))
+    expect(systems(relays[0].calls)).toEqual(['You are Ada.'])
   })
 })
