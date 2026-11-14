@@ -41,7 +41,7 @@ describe('the vendor list @SC-1843 @SC-1935', () => {
     }
     // Agenthix Cloud is offered only while its flag is on (adr-0189).
     expect(screen.queryByRole('button', { name: /^Agenthix Cloud/ })).toBeNull()
-    expect(screen.getByText('Models, hearing and speaking: one key for all three')).toBeTruthy()
+    expect(screen.getByText('Thinking, hearing and speaking: one key for all three')).toBeTruthy()
     expect(screen.getByText('Hearing people')).toBeTruthy()
   })
 
@@ -66,7 +66,7 @@ describe('the vendor list @SC-1843 @SC-1935', () => {
   it('says Inworld offers models too, with no switch @SC-1851', () => {
     h.cloud = CLOUD_OFF
     show()
-    expect(screen.getByText('Models, hearing and speaking: one key for all three')).toBeTruthy()
+    expect(screen.getByText('Thinking, hearing and speaking: one key for all three')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Inworld/ }))
     expect(screen.getByText(/This one key covers models, hearing people and speaking/)).toBeTruthy()
   })

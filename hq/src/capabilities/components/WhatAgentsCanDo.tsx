@@ -36,16 +36,22 @@ export interface WhatAgentsCanDoProps {
   offersAddProvider?: boolean
   /** What the place draws under a line, such as the picker Change opens. */
   below?: Partial<Record<CapabilityId, ReactNode>>
+  /** The place's own Change, drawn in place of the button: the AI page's model picker and its hearing and speaking pop-ups. */
+  changeControls?: Partial<Record<CapabilityId, ReactNode>>
 }
 
+/** Each line's element id, which a link to it (`#web-search`) scrolls to. */
+export const CAPABILITY_ANCHORS: Record<CapabilityId, string> = { thinking: 'thinking', hearing: 'hearing', speaking: 'speaking', web_search: 'web-search' }
+
 /** Thinking, Hearing, Speaking and Web search, each with its mark, what agents use, and its action. */
-export function WhatAgentsCanDo({ capabilities, onAction, offersAddProvider = false, below = {} }: WhatAgentsCanDoProps) {
+export function WhatAgentsCanDo({ capabilities, onAction, offersAddProvider = false, below = {}, changeControls = {} }: WhatAgentsCanDoProps) {
   return (
     <ul className="divide-y divide-border-subtle">
       {capabilities.map(c => {
         const action = c.action === 'add_provider' && !offersAddProvider ? null : c.action
+        const control = action === 'change' ? changeControls[c.id] : undefined
         return (
-          <li key={c.id} aria-label={c.name} className="py-2.5">
+          <li key={c.id} id={CAPABILITY_ANCHORS[c.id]} aria-label={c.name} className="scroll-mt-4 py-2.5">
             <div className="flex items-start gap-3">
               <Mark mark={c.mark} />
               <div className="min-w-0 flex-1">
@@ -64,11 +70,11 @@ export function WhatAgentsCanDo({ capabilities, onAction, offersAddProvider = fa
                   </ul>
                 )}
               </div>
-              {action && (
+              {control ?? (action && (
                 <button type="button" onClick={() => onAction(c.id, action)} aria-label={`${ACTION_WORDS[action]}: ${c.name}`} className={LINK}>
                   {ACTION_WORDS[action]}
                 </button>
-              )}
+              ))}
             </div>
             {below[c.id]}
           </li>

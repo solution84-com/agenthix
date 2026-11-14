@@ -16,22 +16,17 @@ import { PROVIDER_NOTIFICATION_TYPES as T } from '../notifications/notificationK
 import { syncPersistentNotifications, type PersistentNotice } from '../notifications/persistent'
 import { nameList } from '../notifications/adminNotices'
 import { notificationsChanged } from '../server/personEvents'
-import { nextOfType, type DefaultSlot } from './impact'
+import { nextOfType } from './impact'
 import { providerStore, type ProviderRow } from './store'
-import { TYPE_WORDS } from './components/providerWords'
+import { SLOT_WORDS, TYPE_WORDS } from './components/providerWords'
+import { PROVIDERS_URL, providerLineUrl } from '../admin/aiPage'
 
-export const PROVIDERS_PAGE_URL = '/admin/providers'
-export const providerLineUrl = (id: string) => `${PROVIDERS_PAGE_URL}?provider=${encodeURIComponent(id)}`
 
 const STATE_TITLE: Partial<Record<ProviderRow['state'], (name: string) => string>> = {
   key_refused: name => `${name} refused its key`,
   out_of_credit: name => `${name} is out of credit`,
   unreachable: name => `${name} is not answering`,
   disconnected: name => `${name} is disconnected`,
-}
-
-const SLOT_WORDS: Record<DefaultSlot, string> = {
-  conversation: 'the default model', stt: 'the default speech to text', tts: 'the default text to speech',
 }
 
 const sentence = (s: string) => (s ? `${s[0].toUpperCase()}${s.slice(1)}` : s)
@@ -86,8 +81,8 @@ export function changeNotice(c: ProviderChange): { title: string; body: string; 
   const what = c.action === 'renamed' ? `a provider to ${c.provider.name}` : c.provider.name
   return {
     title: `${c.by} ${did} ${what}`,
-    body: c.lines.join(' ') || 'Recorded on the Providers page.',
-    actionUrl: c.action === 'removed' || c.action === 'revoked' ? PROVIDERS_PAGE_URL : providerLineUrl(c.provider.id),
+    body: c.lines.join(' ') || 'Recorded on the AI page.',
+    actionUrl: c.action === 'removed' || c.action === 'revoked' ? PROVIDERS_URL : providerLineUrl(c.provider.id),
   }
 }
 

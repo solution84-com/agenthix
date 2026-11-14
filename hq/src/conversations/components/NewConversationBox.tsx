@@ -19,6 +19,7 @@ import { SkillBackdrop } from './atPicker/SkillBackdrop'
 import { useStartSkillPicker } from './atPicker/useStartSkillPicker'
 import { SuggestedPrompts } from '../../demo/lead/SuggestedPrompts'
 import { useSuggestedPrompts } from '../../demo/lead/useSuggestedPrompts'
+import { PROVIDERS_URL } from '../../admin/aiPage'
 
 /**
  * The message box that starts a conversation — on Home, in Chat and in a project. Typing and sending creates it
@@ -91,7 +92,7 @@ export function NewConversationBox({ home, projectId, basePath, placeholder, noA
         title: "Agents can't answer you yet",
         detail: <>
           {access.added.model ? 'No model is working' : 'No model provider has been added'}.{' '}
-          {access.isAdmin ? <Link to="/admin/providers" className="text-link hover:underline">Manage organisation › Providers</Link> : 'An organisation admin can set one up.'}
+          {access.isAdmin ? <Link to={PROVIDERS_URL} className="text-link hover:underline">Manage organisation › AI</Link> : 'An organisation admin can set one up.'}
         </>,
       }
     : undefined

@@ -15,7 +15,7 @@ export type Advice = { kind: string; title: string; advice: string }
 type RunRule = { kind: string; test: (raw: string, plain: string) => boolean; title: string; advice: string }
 
 const LOGINS = 'Settings › Your model logins'
-const MODEL_ACCESS = 'Manage organisation › Providers'
+const MODEL_ACCESS = 'Manage organisation › AI, under Your providers'
 const RUN_SETTINGS = 'Manage organisation › Settings › Runs'
 
 const RUN_RULES: RunRule[] = [

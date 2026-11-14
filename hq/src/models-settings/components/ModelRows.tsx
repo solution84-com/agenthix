@@ -9,10 +9,9 @@ import { VoiceRow } from './VoiceRow'
 type Three = { conversation: ChoiceView | null; stt: ChoiceView | null; tts: ChoiceView | null }
 
 /**
- * The three settings, as one short list: Thinking (the one default model, for a conversation and the work it hands
- * off) and Voice (Voice, then Listening). On the
- * organisation's page `own` is what is set and nothing is inherited; on an agent's page `inherited` is the
- * organisation's, shown until the agent has its own, and `agent`/`org` say whose each row is.
+ * The three settings, as one short list in the capability words: Thinking (the one default model, for a conversation and
+ * the work it hands off), then Hearing and Speaking. In setup `own` is what is set and nothing is inherited; on an agent's
+ * page `inherited` is the organisation's, shown until the agent has its own, and `agent`/`org` say whose each row is.
  */
 export function ModelRows({ own, inherited, choices, sttOptions, ttsOptions, who, labels, unset, showPrice, onChange }: {
   own: Three
@@ -21,7 +20,7 @@ export function ModelRows({ own, inherited, choices, sttOptions, ttsOptions, who
   sttOptions: VoiceProviderOption[]
   ttsOptions: VoiceProviderOption[]
   who?: { org: string; agent: string }
-  /** Other names for the voice and listening rows (setup says Speaking and Hearing). */
+  /** Other names for the hearing and speaking rows. */
   labels?: { tts?: string; stt?: string }
   /** A setting nothing can serve: shown as this line, without a way to change it. */
   unset?: Partial<Record<keyof Three, string>>
@@ -39,10 +38,10 @@ export function ModelRows({ own, inherited, choices, sttOptions, ttsOptions, who
         {unset?.conversation ? none('Model', unset.conversation) : <ModelChoiceRow label="Model" hint={who ? `A new conversation with ${who.agent} and the work it hands off` : 'A new conversation and the work it hands off'}
           choices={choices} own={own.conversation} shown={shown('conversation')} whom={whom('conversation')} onChange={v => onChange({ conversation: v })} />}
       </section>
-      <section aria-label="Voice">
-        <RowsHeading>Voice</RowsHeading>
-        {unset?.tts ? none(labels?.tts ?? 'Voice', unset.tts) : <VoiceRow label={labels?.tts} options={ttsOptions} own={own.tts} shown={shown('tts')} whom={whom('tts')} onChange={v => onChange({ tts: v })} />}
-        {unset?.stt ? none(labels?.stt ?? 'Listening', unset.stt) : <ListeningRow label={labels?.stt} showPrice={showPrice} options={sttOptions} own={own.stt} shown={shown('stt')} whom={whom('stt')} onChange={v => onChange({ stt: v })} />}
+      <section aria-label="Hearing and speaking">
+        <RowsHeading>Hearing and speaking</RowsHeading>
+        {unset?.stt ? none(labels?.stt ?? 'Hearing', unset.stt) : <ListeningRow label={labels?.stt} showPrice={showPrice} options={sttOptions} own={own.stt} shown={shown('stt')} whom={whom('stt')} onChange={v => onChange({ stt: v })} />}
+        {unset?.tts ? none(labels?.tts ?? 'Speaking', unset.tts) : <VoiceRow label={labels?.tts} options={ttsOptions} own={own.tts} shown={shown('tts')} whom={whom('tts')} onChange={v => onChange({ tts: v })} />}
       </section>
     </div>
   )

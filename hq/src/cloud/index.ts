@@ -37,7 +37,7 @@ export function runByCloud(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.HQ_RUN_BY_CLOUD === 'true'
 }
 
-const CONNECT_IN_HQ = "Agenthix Cloud is connected and disconnected in HQ, under Manage › Providers, by an organisation admin."
+const CONNECT_IN_HQ = "Agenthix Cloud is connected and disconnected in HQ, under Manage organisation › AI, under Your providers, by an organisation admin."
 const BAD_URL = 'CLOUD_URL is not an https address, so HQ does not know where Agenthix Cloud is.'
 
 let instance: CloudConnection | null = null

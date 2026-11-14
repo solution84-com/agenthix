@@ -28,7 +28,7 @@ const ERROR_ID = 'provider-key-error'
 
 /**
  * The add-a-provider flow: the vendors (with Agenthix Cloud), then the key or address, checked with the vendor before
- * it is saved. It is the whole of the pop-up, shared by setup's AI step and Manage › Providers.
+ * it is saved. It is the whole of the pop-up, shared by setup's AI step and the AI page.
  */
 export function AddProviderForm({ existingVendors, onAdded, onCancel, onTitle, adminNotice = true }: AddProviderFormProps) {
   const add = useAction(addAiProvider)

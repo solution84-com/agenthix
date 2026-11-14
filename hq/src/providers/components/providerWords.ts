@@ -1,24 +1,5 @@
 import type { AiProviderState, AiProviderSummary, AiProviderType, AiProviderUse, AiProviderVendor } from '@agenthix/core'
-import type { PillTone } from '@agenthix/ui/primitives'
 import type { ProviderImpact } from '../impact'
-
-export const STATE_WORDS: Record<AiProviderState, string> = {
-  works: 'Works',
-  key_refused: 'Key refused',
-  out_of_credit: 'Out of credit',
-  unreachable: 'Unreachable',
-  not_available: 'Not available yet',
-  disconnected: 'Disconnected',
-}
-
-export const STATE_TONE: Record<AiProviderState, PillTone> = {
-  works: 'healthy',
-  key_refused: 'danger',
-  out_of_credit: 'danger',
-  unreachable: 'danger',
-  not_available: 'neutral',
-  disconnected: 'warning',
-}
 
 /** What each type is called wherever it shows: what a provider lets agents do. */
 export const TYPE_WORDS: Record<AiProviderType, string> = { llm: 'Thinking', stt: 'Hearing', tts: 'Speaking' }
@@ -43,15 +24,16 @@ export const VENDOR_LINES: Record<AiProviderVendor, string> = {
   openrouter: 'Many models, free ones included',
   openai_compatible: 'Any OpenAI-compatible server',
   assemblyai: 'Hearing people',
-  inworld: 'Models, hearing and speaking: one key for all three',
-  cloud: 'Models and voice, no keys. Billed by Agenthix. You approve it with a short code.',
+  inworld: 'Thinking, hearing and speaking: one key for all three',
+  cloud: 'Thinking, hearing and speaking, no keys. Billed by Agenthix. You approve it with a short code.',
 }
 
-const SLOT_WORDS = {
+/** A default a provider serves, in the capability words: Thinking's default is a model. */
+export const SLOT_WORDS: Record<AiProviderUse['defaults'][number], string> = {
   conversation: 'the default model',
-  stt: 'the default speech to text',
-  tts: 'the default text to speech',
-} as const
+  stt: 'the default for Hearing',
+  tts: 'the default for Speaking',
+}
 
 /** "12 Oct", or "just now" for a minute or less ago. */
 export function sinceWords(iso: string, now = new Date()): string {

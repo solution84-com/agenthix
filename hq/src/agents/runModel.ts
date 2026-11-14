@@ -80,6 +80,6 @@ export async function chooseKeptSessionRun(input: {
     model: input.session.model,
     runtime: input.session.runtime === OPENCODE_RUNTIME ? OPENCODE_RUNTIME : CLAUDE_SDK_RUNTIME,
     resolution: null,
-    problem: `This run carries on in a session on ${input.session.model}, and no working provider here serves that model on the runtime the session began on. An organisation admin can add one under Manage organisation › Providers.`,
+    problem: `This run carries on in a session on ${input.session.model}, and no working provider here serves that model on the runtime the session began on. An organisation admin can add one under Manage organisation › AI, under Your providers.`,
   }
 }

@@ -29,7 +29,7 @@ describe('the admin area menu @SC-1189', () => {
     const menu = screen.getByTestId('admin-menu')
     const links = within(menu).getAllByRole('link').map(a => a.textContent)
     expect(links).toEqual([
-      'Back to Fernhill', 'Overview', 'People and invitations', 'Teams', 'Agents', 'Providers', 'Models', 'Billing profiles', 'Usage',
+      'Back to Fernhill', 'Overview', 'People and invitations', 'Teams', 'Agents', 'AI', 'Billing profiles', 'Usage',
       'General', 'GitHub', 'Automation', 'Runs', 'Memory', 'Library and skills', 'Tool risk rules', 'Sites', 'Sites for projects', 'Infrastructure',
     ])
   })
@@ -53,5 +53,17 @@ describe('the admin area menu @SC-1189', () => {
     show('/admin')
     expect(screen.getByText('main navigation')).toBeTruthy()
     expect(screen.queryByTestId('admin-menu')).toBeNull()
+  })
+})
+
+describe('Models and billing in the admin menu', () => {
+  it('reads AI, Billing profiles and Usage, with AI marked on the AI page', () => {
+    ops.role = 'ADMIN'
+    show('/admin/ai')
+    const current = screen.getAllByRole('link').filter(a => a.getAttribute('aria-current') === 'page')
+    expect(current.map(a => a.textContent)).toEqual(['AI'])
+    expect(current[0].getAttribute('href')).toBe('/admin/ai')
+    expect(screen.queryByRole('link', { name: 'Providers' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Models' })).toBeNull()
   })
 })

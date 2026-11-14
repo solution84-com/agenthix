@@ -88,7 +88,7 @@ export function ReviewStep({ timeZone, position, providers, me, orgName, avatarU
       </Section>
       <Section title="AI" editLabel="Edit AI" onEdit={() => onEdit('ai')}>
         <AiSummary providers={providers} />
-        <div className="mt-1 text-small text-text-muted">Change providers and what agents can do any time under Manage › AI.</div>
+        <div className="mt-1 text-small text-text-muted">Change providers and what agents can do any time under Manage organisation › AI.</div>
       </Section>
       <Section title="Your first agent">
         <KernelLine speaks={covered.tts} />

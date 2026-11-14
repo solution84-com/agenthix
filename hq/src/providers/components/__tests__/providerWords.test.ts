@@ -23,7 +23,7 @@ describe('providerWords @SC-1174 @SC-1178', () => {
   })
 
   it('writes what uses a provider, and nothing when nothing does', () => {
-    expect(usedByWords({ defaults: ['conversation', 'stt'], agents: [{ id: 'a', name: 'Kernel' }] })).toBe('Used by the default model, the default speech to text, the agent Kernel')
+    expect(usedByWords({ defaults: ['conversation', 'stt'], agents: [{ id: 'a', name: 'Kernel' }] })).toBe('Used by the default model, the default for Hearing, the agent Kernel')
     expect(usedByWords({ defaults: [], agents: [] })).toBe('')
   })
 

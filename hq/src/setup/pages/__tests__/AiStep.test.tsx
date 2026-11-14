@@ -134,7 +134,7 @@ describe('the AI step @SC-1184', () => {
     expect(h.refetchDefaults).toHaveBeenCalledTimes(1)
   })
 
-  it('confirms a removal as Manage › Providers does, then reads the list again @SC-1842', async () => {
+  it('confirms a removal as Manage organisation › AI does, then reads the list again @SC-1842', async () => {
     h.queries = { getSetupDefaults: DEFAULTS, getHqCloudConnection: CLOUD_OFF, getAiProviderImpact: { provider: { id: 'p', name: 'Inworld' }, defaults: [], agents: [], goesDown: ['llm'] } }
     render(
       <MemoryRouter>

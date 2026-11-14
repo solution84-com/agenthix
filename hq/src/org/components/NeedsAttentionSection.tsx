@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, useAction, getNeedsAttention, getMyModelAccess, acknowledgeBypassedAgents, dismissNotification } from 'wasp/client/operations'
 import { OrgGroupHeading } from './orgCardParts'
+import { PROVIDERS_URL } from '../../admin/aiPage'
 import { ReadFailedLine } from '../../shared/siteRead'
 import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
@@ -11,7 +12,7 @@ import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
  * clears the moment it is set. A voice provider that was added and stopped working has its own notice.
  */
 const ACCESS_ITEM = {
-  area: 'infrastructure', actionLabel: 'Open Providers', actionUrl: '/admin/providers', notificationIds: [] as string[],
+  area: 'infrastructure', actionLabel: 'Open AI', actionUrl: PROVIDERS_URL, notificationIds: [] as string[],
   dismissible: false, acknowledgeable: false,
 }
 const MODEL_ACCESS_ITEM = { ...ACCESS_ITEM, key: 'model-access', type: 'model_access', title: "Agents can't answer yet" }

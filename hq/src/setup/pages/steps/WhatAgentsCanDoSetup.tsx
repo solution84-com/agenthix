@@ -16,7 +16,7 @@ type Slot = Exclude<CapabilityId, 'web_search'>
 
 /**
  * Setup's list of what agents can do. The defaults are chosen for the person from what works (`proposeDefaults`);
- * Change opens the same pickers Manage › AI uses under its line, and Add a key and Web search's Change open the key
+ * Change opens the same pickers Manage organisation › AI uses under its line, and Add a key and Web search's Change open the key
  * pop-up. A refused key stays in the pop-up: nothing here blocks setup (ADR-0160).
  */
 export function WhatAgentsCanDoSetup({ providers }: { providers: AiProviderSummary[] }) {

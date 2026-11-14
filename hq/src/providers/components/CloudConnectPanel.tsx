@@ -17,7 +17,7 @@ export const CLOUD_NOT_AVAILABLE_WORDS = "Agenthix Cloud's models and voice aren
 export interface CloudConnectPanelProps {
   /** Called once when the connection is seen to be made (not when it was already there). */
   onConnected?: () => void
-  /** Offer *Disconnect* when connected: on Providers, not in setup. */
+  /** Offer *Disconnect* when connected: on the AI page, not in setup. */
   allowDisconnect?: boolean
 }
 

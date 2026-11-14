@@ -25,7 +25,7 @@ export function problemFor(
   const base = { code, ...(p ? { providerId: p.id } : {}) }
   switch (code) {
     case 'no_provider':
-      return { ...base, fixedBy: ['organisation_admin'], message: `No ${kind} provider is working. An organisation admin can add one, or fix the one there is, under Manage organisation › Providers.` }
+      return { ...base, fixedBy: ['organisation_admin'], message: `No ${kind} provider is working. An organisation admin can add one, or fix the one there is, under Manage organisation › AI, under Your providers.` }
     case 'provider_not_working':
       return {
         ...base, fixedBy: ['organisation_admin', 'person'],
@@ -38,7 +38,7 @@ export function problemFor(
     case 'model_not_reached':
       return { ...base, fixedBy: ['person', 'organisation_admin'], message: `${p ? `${name} no longer reaches that model` : 'The provider of that model is gone'}. Choose another model.` }
     case 'no_default':
-      return { ...base, fixedBy: ['organisation_admin'], message: `No ${kind} is chosen for ${who}, and none is reached to fall back on. An organisation admin can choose the defaults under Manage organisation › Models.` }
+      return { ...base, fixedBy: ['organisation_admin'], message: `No ${kind} is chosen for ${who}, and none is reached to fall back on. An organisation admin can choose the defaults under Manage organisation › AI, on the What agents can do list.` }
     case 'subscription_outside_own_place':
       return { ...base, fixedBy: ['person'], message: 'Your own Claude subscription is used only for work in your own place: your space and your personal projects. Choose a model via one of the organisation\'s providers.' }
     case 'cap_reached':

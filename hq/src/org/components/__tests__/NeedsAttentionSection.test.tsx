@@ -36,7 +36,7 @@ describe('Needs attention @SC-666 @SC-1932', () => {
     show()
     expect(screen.getByText("Agents can't answer yet")).toBeTruthy()
     expect(screen.getByText('No model provider is working: add one, or fix the one there is')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Open Providers' }).getAttribute('href')).toBe('/admin/providers')
+    expect(screen.getByRole('link', { name: 'Open AI' }).getAttribute('href')).toBe('/admin/ai#providers')
     expect(screen.getByText('Needs attention · 1')).toBeTruthy()
     expect(screen.queryByText('Nothing needs you.')).toBeNull()
   })
@@ -51,7 +51,7 @@ describe('Needs attention @SC-666 @SC-1932', () => {
     ops.access = { canTalk: true, fix: null, isAdmin: true, added: { model: true, voice: false } }
     show()
     expect(screen.getByText("Voice isn't set up")).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Open Providers' }).getAttribute('href')).toBe('/admin/providers')
+    expect(screen.getByRole('link', { name: 'Open AI' }).getAttribute('href')).toBe('/admin/ai#providers')
     expect(screen.getByText('Needs attention · 1')).toBeTruthy()
   })
 

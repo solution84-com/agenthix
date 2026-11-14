@@ -76,7 +76,7 @@ withFeature('cloud', () => {
     it('a fleet admin may read the state, and connecting and disconnecting are refused with where to do them', async () => {
       const sam = await createUserWithRole('ADMIN', { fleetAdmin: true })
       expect(await services['cloud.state']({ byUserId: sam.id })).toEqual({ connection: null, connecting: null, lastAttempt: null, runByCloud: false, problem: null })
-      await expect(services['cloud.connect']({ byUserId: sam.id })).rejects.toMatchObject({ code: 'not_allowed', message: expect.stringContaining('Manage › Providers') })
+      await expect(services['cloud.connect']({ byUserId: sam.id })).rejects.toMatchObject({ code: 'not_allowed', message: expect.stringContaining('Manage organisation › AI') })
       await expect(services['cloud.disconnect']({ byUserId: sam.id })).rejects.toMatchObject({ code: 'not_allowed' })
       expect(await cloudKeyStore.read()).toBeNull()
       expect(cloud.requests).toEqual([])

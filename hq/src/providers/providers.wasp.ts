@@ -4,7 +4,7 @@ import {
     addAiProvider, replaceAiProviderKey, renameAiProvider, removeAiProvider, revokeAiProvider, checkAiProviderNow,
 } from "./operations" with { type: "ref" };
 
-// The organisation's providers, for organisation admins on Providers in the admin area (models from one place, part 1).
+// The organisation's providers, for organisation admins on the AI page in the admin area (models from one place, part 1).
 // Every write goes through providers/write.ts; no read returns a key.
 export const providersSpec: Spec = [
     query(getAiProviders, { entities: ["AiProvider"] }),

@@ -359,7 +359,7 @@ describe('the message box that starts a conversation @SC-1007 @SC-1929', () => {
     renderBox()
     const form = screen.getByRole('button', { hidden: true, name: 'Start voice' }).closest('form')!
     fireEvent.click(form)
-    expect(screen.getByRole('link', { name: 'Manage organisation › Providers' }).getAttribute('href')).toBe('/admin/providers')
+    expect(screen.getByRole('link', { name: 'Manage organisation › AI' }).getAttribute('href')).toBe('/admin/ai#providers')
   })
 
   it('becomes Send once there is text', () => {

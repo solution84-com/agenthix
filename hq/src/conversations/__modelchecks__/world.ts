@@ -83,7 +83,7 @@ export const PAGES: readonly Page[] = [
       '---',
       '',
       'Voice needs two providers: AssemblyAI hears you and Inworld speaks the answer. An organisation admin adds them',
-      'under Manage, Providers. Under Manage › Models, Voice and Listening choose the organisation\'s voice.',
+      'under Manage organisation › AI. On the same page, Hearing and Speaking choose the organisation\'s voice.',
       'In a conversation, leave the message box empty and select the voice button at its right end.',
     ].join('\n'),
   },

@@ -33,21 +33,21 @@ function reasonFor(kind: ModelErrorKind, provider: ModelProvider, status: number
   const name = PROVIDER_NAME[provider]
   switch (kind) {
     case 'auth':
-      return `${name} refused the key HQ uses. An organisation admin can check it under Manage organisation › Providers.`
+      return `${name} refused the key HQ uses. An organisation admin can check it under Manage organisation › AI, under Your providers.`
     case 'rate-limit':
       return `${name} is limiting how fast this can run. Wait a moment and send it again.`
     case 'quota':
-      return `${name} says the account behind this key is out of credit or over its limit. An organisation admin can check the account, or choose other access under Manage organisation › Providers.`
+      return `${name} says the account behind this key is out of credit or over its limit. An organisation admin can check the account, or choose other access under Manage organisation › AI, under Your providers.`
     case 'unavailable':
       return `${name} could not be reached${status ? ` (it answered with an error, ${status})` : ''}. Try again in a moment.`
     case 'invalid':
-      return `${name} did not accept the request${status ? ` (${status})` : ''}. An organisation admin can choose another model under Manage organisation › Providers.`
+      return `${name} did not accept the request${status ? ` (${status})` : ''}. An organisation admin can choose another model under Manage organisation › AI, under Your providers.`
     case 'request':
       return 'HQ could not build this request, so nothing was sent to the model provider. Try again, and if it keeps happening, tell an organisation admin.'
     case 'cancelled':
       return 'The reply was stopped.'
     case 'other':
-      return `${name} could not answer. Try again. An organisation admin can check it under Manage organisation › Providers.`
+      return `${name} could not answer. Try again. An organisation admin can check it under Manage organisation › AI, under Your providers.`
   }
 }
 
