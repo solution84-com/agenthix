@@ -143,6 +143,26 @@ jobs:
       - name: No direct use of a secure-page-only feature
         run: node scripts/check-secure-page.mjs
 
+  dependencies:
+    # Every package stays within what the others require of it: versions are ranges, TypeScript, esbuild and Prisma
+    # resolve to one version everywhere, @types/node follows Node, and no install ignores a peer dependency.
+    name: "Dependencies follow the rules"
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'dependencies')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: The check's own tests
+        run: node --test scripts/__tests__/deps-check.test.mjs
+      - name: The rules hold
+        run: node scripts/deps/check.mjs
+
   core:
     name: "Core: typecheck, unit tests and build"
     needs: changes
@@ -553,7 +573,7 @@ jobs:
     # one entry here, its result the legs' together: success only if every leg succeeded.
     name: "All checks passed"
     if: always()
-    needs: [changes, secure-page, core, ui, hq, host, console, console-web, relay, site, site-integration, hq-integration]
+    needs: [changes, secure-page, dependencies, core, ui, hq, host, console, console-web, relay, site, site-integration, hq-integration]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

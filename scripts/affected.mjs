@@ -12,6 +12,9 @@ const EXTRA_JOBS = { hq: ['hq-integration'], site: ['site-integration'] }
 const GUIDE_MODULES = ['hq', 'console']
 // What `checks.yml` has always treated as documentation: docs/ (the guide excepted), and the Markdown notes at the top
 // of the repository, of each module and in .github/.
+// What the dependency rules read: a package.json or lockfile, an .npmrc, a tsconfig, a Dockerfile, the Node version, a
+// workflow, and the check itself.
+const DEPENDENCY_FILES = /(^|\/)(package\.json|package-lock\.json|\.npmrc|tsconfig[^/]*\.json|Dockerfile[^/]*|[^/]+\.Dockerfile|\.nvmrc)$|^\.github\/workflows\/|^scripts\/deps\//
 const DOCUMENTATION = /^([^/]+\.md|[^/]+\/[^/]+\.md|\.github\/[^/]+\.md|docs\/.*)$/
 
 /** { module: [modules it depends on] }, from each top-level package.json's `file:../<module>` dependencies. */
@@ -52,7 +55,7 @@ function dependents(deps, module) {
 /** The selection for a list of changed paths. `all` forces everything (a manual run, or a base that is not known). */
 export function select({ deps, paths, all = false, allReason = 'a full run was asked for' }) {
   const modules = Object.keys(deps)
-  const jobNames = ['secure-page', ...modules.flatMap(jobsOf)]
+  const jobNames = ['secure-page', 'dependencies', ...modules.flatMap(jobsOf)]
   const reasons = Object.fromEntries(jobNames.map(j => [j, []]))
   reasons['secure-page'].push('it always runs: it is cheap and reads the whole repository')
 
@@ -67,6 +70,7 @@ export function select({ deps, paths, all = false, allReason = 'a full run was a
   for (const p of paths.filter(Boolean)) {
     if (everything) break
     const top = p.split('/')[0]
+    if (DEPENDENCY_FILES.test(p)) reasons.dependencies.push(`${p}: the dependency rules read it`)
     if (p.startsWith('docs/guide/')) {
       for (const m of GUIDE_MODULES.filter(m => modules.includes(m))) reachModule(m, `${p}: the guide is checked by ${m}`)
     } else if (DOCUMENTATION.test(p)) {

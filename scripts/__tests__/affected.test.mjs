@@ -75,6 +75,7 @@ test('any other path selects everything: the root files, .github, scripts, tests
   for (const p of ['package.json', '.github/workflows/checks.yml', 'scripts/affected.mjs', 'tests/cross-app/a.test.ts', 'brand-new/file.ts', '.nvmrc']) {
     const r = run(p)
     assert.ok(r.everything, p)
+    assert.ok(r.jobs.dependencies.selected, p)
     assert.deepEqual(NO_MODULE_JOBS.filter(j => !r.jobs[j].selected), [], p)
     assert.match(r.jobs.core.reasons[0], new RegExp(p.replace(/[.]/g, '\\.')))
   }
@@ -88,12 +89,21 @@ test('a module path that is a bare file at the root of a module is code, not a n
 test('secure-page always runs, and --all selects everything @SC-1260', () => {
   assert.ok(run().jobs['secure-page'].selected)
   const all = select({ deps, paths: [], all: true })
-  assert.ok(all.selected.length === NO_MODULE_JOBS.length + 1)
+  assert.ok(all.selected.length === NO_MODULE_JOBS.length + 2)
 })
 
 test('the readable lines give a reason for each job, selected or not @SC-1260', () => {
   const lines = describe(run('host/src/a.ts'))
-  assert.equal(lines.length, NO_MODULE_JOBS.length + 1)
+  assert.equal(lines.length, NO_MODULE_JOBS.length + 2)
   assert.ok(lines.some(l => l.startsWith('run   host: host/src/a.ts: under host')))
   assert.ok(lines.some(l => l.startsWith('skip  hq: no changed path reaches it')))
+})
+
+test('a file the dependency rules read selects that job, and a source file or note does not @SC-1260', () => {
+  for (const p of ['hq/package.json', 'site/package-lock.json', 'hq/.npmrc', 'ui/tsconfig.json', 'hq/docker/Dockerfile', 'site/Dockerfile.test', '.github/workflows/checks.yml', 'scripts/deps/check.mjs', 'core/package.json']) {
+    assert.ok(run(p).jobs.dependencies.selected, p)
+  }
+  for (const p of ['hq/src/a.ts', 'docs/architecture/x.md', 'ui/README.md']) assert.ok(!run(p).jobs.dependencies.selected, p)
+  assert.match(run('hq/package.json').jobs.dependencies.reasons[0], /hq\/package\.json: the dependency rules read it/)
+  assert.ok(run('.nvmrc').jobs.dependencies.selected)
 })
