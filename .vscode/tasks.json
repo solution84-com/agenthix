@@ -120,9 +120,9 @@
     // ─── site ────────────────────────────────────────────────────────────────
     {
       "label": "[dev:site] Start",
-      "detail": "Execution site on 4201, restarting on save. First pairs with hq (scripts/dev/pair.sh).",
+      "detail": "Execution site on 4201, restarting on save. First checks the branch and lockfiles (scripts/dev/fresh.sh), then pairs with hq (scripts/dev/pair.sh).",
       "type": "shell",
-      "command": "bash ../scripts/dev/pair.sh && npm run dev",
+      "command": "bash ../scripts/dev/fresh.sh && bash ../scripts/dev/pair.sh && npm run dev",
       "options": { "cwd": "${workspaceFolder}/site" },
       "dependsOn": ["[dev:db] Up"],
       "isBackground": true,
