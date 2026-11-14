@@ -25,7 +25,7 @@ Home also offers three ways to begin with Kernel: **What can you do?**, **Set up
 team**. Select one to start that conversation in the conversation beside the page; Home stays where it is.
 
 If Home says **Agents can't answer you yet: no model is working**, an organisation admin needs to add or fix a
-provider. For an admin it links to **Manage organisation › Providers**: see [Providers](../your-tools/providers.md).
+provider. For an admin it links to **Manage organisation › AI**: see [the AI page](../your-tools/providers.md).
 
 ## The conversation
 
@@ -49,7 +49,7 @@ its reply, marked as waiting, with **Send now**, which stops the reply to answer
   what the answer used: the model, how long it took and the tokens it read and wrote. Each is an icon named when you
   point at it.
 - **When something goes wrong:** a reply that did not finish says what happened in plain words and names the provider,
-  in the reply itself. If only an administrator can fix it, an administrator sees **Open Providers** and anyone else is
+  in the reply itself. If only an administrator can fix it, an administrator sees **Open AI** and anyone else is
   told an administrator has been told. Words the agent had already written stay, marked **The answer stopped here.**
   **Try again** under the newest failed or stopped reply sends your message again. Where a conversation cannot be
   answered at all, one line in place of the message box says why, and, when there is one, offers **Switch to** the other

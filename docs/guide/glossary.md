@@ -22,6 +22,11 @@ A worker defined once for the organisation, with its own instructions, permissio
 conversations and tasks. Where: **Agents** in the main navigation (`/agents`); organisation admins also manage them under **Manage › Agents** (`/admin/agents`).
 Also said: bot, assistant, worker, AI.
 
+## AI
+
+The page where an organisation admin sees where the organisation's AI comes from and what agents can do with it: **Your providers**, **What agents can do** and **Which models may run**. Where: **Manage › Models and billing › AI** (`/admin/ai`). See [The AI page](your-tools/providers.md).
+Also said: Providers, Models, AI settings, model settings.
+
 ## Approval
 
 A question a run asks a person when it wants to do something its permissions do not allow on their own. The run waits until someone answers **Approve** or **Deny**. Where: as a card in the conversation or on the task that asked, **Notifications** under **Needs you**, the project's **Workroom** under **Needs you**, and the **Runs** screen (`/runs`).
@@ -202,7 +207,7 @@ Also said: @, attach, reference a file, tag a file, link a file.
 
 ## Models
 
-The AI models agents think with, and which ones may run. Where: **Manage › Models and billing › Models** (`/admin/models`), and your own list under **Settings**.
+The AI models agents think with, and which ones may run. Where: **Manage › Models and billing › AI**, under **Which models may run** (`/admin/ai#which-models-may-run`), and your own list under **Settings**.
 Also said: LLM, AI model, which model, Claude, GPT.
 
 ## Notifications
@@ -267,7 +272,7 @@ Also said: suggested skill, request to add a skill, submission.
 
 ## Provider
 
-A company or service that supplies models or voices to the organisation, such as Anthropic or OpenAI, with its key. Where: setup's AI step, and **Manage › Models and billing › Providers** (`/admin/providers`). See [Get an API key](your-tools/get-an-api-key.md).
+A company or service that supplies models or voices to the organisation, such as Anthropic or OpenAI, with its key. Where: setup's AI step, and **Manage › Models and billing › AI**, under **Your providers** (`/admin/ai#providers`). See [Get an API key](your-tools/get-an-api-key.md).
 Also said: API key, vendor, LLM provider, model account, STT, TTS, AI step.
 
 ## Rank
@@ -387,8 +392,18 @@ Also said: commit on main, release.
 
 ## Voice
 
-Speaking with an agent aloud, and agents speaking back. Where: the call button in a conversation; its providers under **Manage › Models and billing › Providers** (`/admin/providers`).
+Speaking with an agent aloud, and agents speaking back. Where: the call button in a conversation; its providers under **Manage › Models and billing › AI** (`/admin/ai`).
 Also said: voice call, talk, speech, dictation, text to speech, speech to text.
+
+## Web search
+
+An agent searching the web. Claude Code agents search on their own with Anthropic's search; OpenCode agents search through Exa, with the organisation's key, added with **Add a key**. Where: the **Web search** line of **What agents can do** (`/admin/ai#web-search`). See [Web search](your-tools/providers.md#web-search).
+Also said: search, Exa key, internet search.
+
+## What agents can do
+
+The list of **Thinking**, **Hearing**, **Speaking** and **Web search**, each with what agents use for it and whether agents can do it. Where: setup's AI step, and **Manage › Models and billing › AI** (`/admin/ai#what-agents-can-do`). See [The AI page](your-tools/providers.md#what-agents-can-do).
+Also said: capabilities, defaults, default models, LLM, STT, TTS, voice and listening.
 
 ## Workflow
 

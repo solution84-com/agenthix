@@ -7,7 +7,7 @@ sidebar:
 
 To add a [provider](providers.md) to **HQ**, your organisation's home in Agenthix, you paste an *API key*: a long
 secret string that lets HQ use your account at that provider. You create it on the provider's own website, not in
-Agenthix. The key form, in [setup](../getting-started/setup-hq.md#add-a-provider) and under **Manage › Providers**,
+Agenthix. The key form, in [setup](../getting-started/setup-hq.md#add-a-provider) and under **Manage › AI**,
 shows a short guide with a button to the provider's key page. This page has the same steps with a little more on each
 provider.
 

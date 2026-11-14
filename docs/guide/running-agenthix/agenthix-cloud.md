@@ -35,7 +35,7 @@ other organisations a person belongs to.
 Only an organisation admin can connect or disconnect HQ, because the connection belongs to the organisation. It is
 made in HQ, not in the Fleet Console, which only shows it.
 
-1. In HQ, open the menu behind your name and select **Manage**, then **Providers**.
+1. In HQ, open the menu behind your name and select **Manage**, then **AI**.
 2. Select **Connect Agenthix Cloud**. HQ shows a short code. If Cloud is not offering AI to your organisation yet, the
    line reads **Not available yet**.
 3. Select **Approve on Agenthix Cloud**. Cloud's page asks you to sign in and shows the same code. Check that the

@@ -8,6 +8,7 @@ test('setup-review', async ({ page }) => {
     ready: async (p) => {
       await expect(p.getByRole('heading', { name: 'Check everything before you start' })).toBeVisible()
       await expect(p.getByText('Inworld', { exact: true })).toBeVisible()
+      await expect(p.getByText('Web search')).toBeVisible()
     },
   })
 })

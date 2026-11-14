@@ -1,13 +1,13 @@
 ---
-title: Models and the voice agents use
-description: Choose the models and the voice agents use by default, give an agent its own, and say which models may run.
+title: Models, hearing and speaking
+description: Choose what agents think, hear and speak with by default, give an agent its own, and say which models may run.
 sidebar:
   order: 2
 ---
 
-Every time an agent thinks, speaks or listens, **HQ**, your organisation's home in Agenthix, picks the model or voice
+Every time an agent thinks, hears or speaks, **HQ**, your organisation's home in Agenthix, picks the model or voice
 from one place. This page is how an organisation admin steers that choice, and how everyone else can narrow it for
-themselves. The [providers](providers.md) it draws on are added separately.
+themselves. The providers it draws on are added on [the AI page](providers.md), in **Your providers**.
 
 ## How a choice is made
 
@@ -46,27 +46,25 @@ model for that run; run from its board or at a start time, it uses the agent's d
 
 ## The organisation's defaults
 
-An organisation admin opens **Manage**, then **Models** under **Models and billing**.
+An organisation admin opens **Manage**, then **AI** under **Models and billing**, and finds **What agents can do**, the first section of the page.
 
-![Models, with the three defaults and which models may run](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/models.png)
-
-Three settings say what every agent uses unless it has its own. Each row shows the choice in one line, such as a model
+Three lines say what every agent uses unless it has its own. Each shows the choice in one line, such as a model
 **via Anthropic**, and **Change**.
 
-| Setting | What it chooses |
+| Line | What it chooses |
 |---|---|
-| **Model** | The model a new conversation starts on, and the work it hands off runs on |
-| **Voice** | The voice agents speak with |
-| **Listening** | The model that hears people |
+| **Thinking** | The model a new conversation starts on, and the work it hands off runs on |
+| **Speaking** | The voice agents speak with |
+| **Hearing** | The model that hears people |
 
-**Model** opens the model list every place a model is chosen uses: a search box, **Maker**,
+**Thinking** opens the model list every place a model is chosen uses: a search box, **Maker**,
 **Provider** and **Price** filters, and the models grouped by maker. A provider that is not working is greyed out, and a
 chosen model whose provider has stopped is marked **not working**. On an agent's page the list starts with **Default**,
 the organisation's choice; choosing it follows the organisation again.
 
-Voice is **Inworld TTS 2**, the only speech model voice supports. **Voice** opens a list of the provider's voices to
+Speaking is **Inworld TTS 2**, the only speech model it supports. **Speaking**'s **Change** opens a list of the provider's voices to
 choose by ear: filter by language, accent, gender, age, use or tag, tap a voice to hear it, then **Use** it. The
-organisation always has a voice, so it can be changed and not cleared. **Listening** is one of the live models of a
+organisation always has a voice, so it can be changed and not cleared. **Hearing** is one of the live models of a
 provider that works, each shown with its languages and price per hour of audio: AssemblyAI's **Universal-3 Pro** (32 languages, the
 most accurate), **Universal-Streaming** (English only) and **Universal-Streaming Multilingual** (6 languages), or
 Inworld's **Inworld STT 1** (30 languages), which uses the same key that speaks. Choosing a model chooses the provider
@@ -75,14 +73,15 @@ hears about as well in our tests of clear English speech, can write spoken times
 recommended for quality. Inworld is the default when both work, because it needs no second key.
 
 Setup chooses the ones your providers can fill, from what you connected, as soon as a provider that can serve one
-works, and shows them under **What agents use** on its AI step (see
-[Set up your HQ](../getting-started/setup-hq.md#what-agents-use)). You can change any of them there or here. A choice
-you made is never replaced, and the rest are chosen when a provider is added later.
+works, and shows them under **What agents can do** on its AI step (see
+[Set up your HQ](../getting-started/setup-hq.md#what-agents-can-do)). You can change any of them there or here. A choice
+you made is never replaced, and the rest are chosen when a provider is added later. The fourth line, **Web search**,
+is [described with the providers](providers.md#web-search).
 
-## An agent's own models and voice
+## An agent's own models, hearing and speaking
 
 Any default can be set differently for one agent. An organisation admin opens **Manage**, then **Agents**, selects
-**Manage** beside the agent and finds **Models and voice**. It shows the same three rows, each marked as the
+**Manage** beside the agent and finds **Thinking, hearing and speaking**. It shows the same three rows, each marked as the
 organisation's or the agent's own.
 
 - **Give *agent* its own** on a row opens the picker, and the choice is the agent's from then on.
@@ -97,14 +96,16 @@ A list says which models may run. Four places can hold one:
 
 | List | Who sets it | Where |
 |---|---|---|
-| The organisation's | An organisation admin | **Manage › Models**, under **Which models may run** |
-| An agent's | An organisation admin | The agent's page in **Manage › Agents**, under **Models and voice** |
+| The organisation's | An organisation admin | **Manage › AI**, under **Which models may run** |
+| An agent's | An organisation admin | The agent's page in **Manage › Agents**, under **Thinking, hearing and speaking** |
 | A project's | A project admin, in a shared project | The project's **Settings**, under **Models** |
 | A person's | That person | **Settings**, under **Which models may run for you** |
 
 Every list that applies narrows the set, and none widens it: a model runs only when each of them lets it. A personal
-project has no list of its own; its owner's applies. Most organisations never open the organisation's list: it reads
-**Any model your providers reach**. Select **Edit** to open the editor, where every change is saved at once.
+project has no list of its own; its owner's applies. Most organisations never open the organisation's list: the section is folded, and its line reads
+**Any model your providers reach**. Select **Edit the list** to open the editor, where every change is saved at once.
+
+![Which models may run, open on the AI page](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/models.png)
 
 A list is in one of two modes:
 
@@ -145,15 +146,9 @@ own runtime. See Anthropic's [Consumer Terms of Service](https://www.anthropic.c
 Code's [legal and compliance page](https://code.claude.com/docs/en/legal-and-compliance). Runs on it cost nothing per
 call, and the [usage report](billing-and-usage.md) lists them as **Included in subscriptions**.
 
-## Web search for OpenCode agents
-
-An organisation admin opens **Manage**, then **Settings**, and under **Access to models and tools** selects **Web
-search**. **Web search (Exa)** takes the organisation's Exa key, for agents that run on OpenCode. Paste it and select
-**Save key**; **Remove key** takes it away. Claude models search on Anthropic's own service and do not use it.
-
 ## If agents say they can't answer
 
 **Home** shows **Agents can't answer you yet: no model is working** when nothing works for you. For an organisation
-admin its link goes to **Manage organisation › Providers**; anyone else is told an organisation admin can set one up.
+admin its link goes to **Manage organisation › AI**; anyone else is told an organisation admin can set one up.
 When one call cannot run, the conversation names what is missing and who adds it: usually a provider to add or fix, a
-default to choose under **Models**, or a list that leaves no model.
+default to choose under **What agents can do**, or a list that leaves no model.
