@@ -5,7 +5,7 @@
  * identity and filesystem sections are the site's own, which hq cannot import: a short frame stands for them here.
  */
 import { z, type ZodRawShape } from 'zod'
-import { PLATFORM_TOOLS_INSTRUCTIONS, codeWorkPromptText, type RunOpenLivePreview } from '@agenthix/core'
+import { NO_WEB_SEARCH_INSTRUCTIONS, PLATFORM_TOOLS_INSTRUCTIONS, codeWorkPromptText, type RunOpenLivePreview } from '@agenthix/core'
 import type { LeadMessage, LeadToolDefinition, PromptPart } from '../../contract'
 import { ALL_CONTROL_PLANE_TOOLS } from '../../../server/controlplane/toolSchemas'
 import { withBrief } from '../../taskThread/brief'
@@ -19,6 +19,11 @@ export interface TaskRunSetup {
   brief?: string
   /** Comments written on the task since the last run, newest last: who wrote each and what. */
   newComments?: readonly { author: string; text: string }[]
+  /**
+   * An OpenCode run of an organisation with no search key: told so in the words the site sends, and offered OpenCode's
+   * own web_fetch and no web_search, as such a turn is.
+   */
+  noWebSearchKey?: true
 }
 
 const FIRST_MESSAGE = 'Execute your assigned task.'
@@ -47,6 +52,7 @@ export function taskRunContext(setup: TaskRunSetup): { system: PromptPart[]; mes
       { text: frame(setup) },
       { text: PLATFORM_TOOLS_INSTRUCTIONS },
       { text: codeWorkPromptText(codeWork(setup.openLivePreview, setup.behindMain ?? 0), { livePreview: true }) },
+      ...(setup.noWebSearchKey ? [{ text: NO_WEB_SEARCH_INSTRUCTIONS }] : []),
     ],
     messages: [{ role: 'user', content: withBrief(FIRST_MESSAGE, setup.brief ?? null) }],
   }
@@ -71,7 +77,12 @@ function shown(schema: ZodRawShape): z.ZodType {
   return z.object(rest)
 }
 
-export function taskRunTools(): LeadToolDefinition[] {
+/** OpenCode's own page fetch, which a run has with or without a search key. */
+const WEB_FETCH: LeadToolDefinition = {
+  name: 'web_fetch', description: 'Fetch the content of a web page by its address.', input: z.object({ url: z.string() }),
+}
+
+export function taskRunTools(setup?: TaskRunSetup): LeadToolDefinition[] {
   const platform = ALL_CONTROL_PLANE_TOOLS.map(t => ({ name: t.name, description: t.description ?? t.name, input: shown(t.schema) }))
-  return [...BUILT_INS, ...platform]
+  return [...BUILT_INS, ...(setup?.noWebSearchKey ? [WEB_FETCH] : []), ...platform]
 }

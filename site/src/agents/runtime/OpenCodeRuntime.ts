@@ -33,6 +33,7 @@ import { openCodeSkillsDirs, stageOpenCodeSkills } from './opencode/openCodeSkil
 import { setOpenCodeSkillsDir } from './opencode/openCodeGate'
 import { issueRelayToken, pointRelayToken, revokeRelayToken, turnModelCredentials } from '../../server/modelRelay/relayTokens'
 import { RELAY_TOKEN_HEADER } from '../../server/modelRelay/relayProviders'
+import { NO_WEB_SEARCH_INSTRUCTIONS } from '@agenthix/core'
 
 const NEEDS_CONTAINER = 'The OpenCode runtime runs only in an agent container (AGENT_CONTAINER_ISOLATION), where its commands can be contained.'
 
@@ -128,7 +129,9 @@ export class OpenCodeRuntime implements AgentRuntime {
         connectionName,
         model,
         context: { ...context, prompt: turnPrompt(context, staged.invocable) },
-        system: [context.agent.systemPrompt, staged.systemSection].filter(Boolean).join('\n\n') || undefined,
+        // A turn with no search key is not shown web_search (openCodeHiddenPlatformTools), and is told why.
+        system: [context.agent.systemPrompt, staged.systemSection, context.webSearchKey ? null : NO_WEB_SEARCH_INSTRUCTIONS]
+          .filter(Boolean).join('\n\n') || undefined,
       })
     } finally {
       if (openCodeSessionId) clearOpenCodeTurn(openCodeSessionId, token)

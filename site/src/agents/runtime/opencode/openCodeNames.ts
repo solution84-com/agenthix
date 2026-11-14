@@ -46,7 +46,7 @@ const OPENCODE_RUNTIME_TOOLS: Readonly<Record<string, string>> = {
  */
 const OPENCODE_PERMISSION_FREE_TOOLS: ReadonlySet<string> = new Set(['todowrite', 'skill', 'invalid'])
 
-type HidingContext = Pick<RunContext, 'bypassed' | 'allowedTools' | 'allowedBashPatterns' | 'approvedManifest'>
+type HidingContext = Pick<RunContext, 'bypassed' | 'allowedTools' | 'allowedBashPatterns' | 'approvedManifest' | 'webSearchKey'>
 
 /**
  * The OpenCode permission keys a session denies so the model is not shown a
@@ -77,9 +77,16 @@ const OPENCODE_PLATFORM_TOOLS: readonly string[] = [...ALL_SYSTEM_MCP_TOOL_NAMES
  * The OpenCode tool ids a session denies so the model is not shown a restricted
  * agent's `ask` platform tools in a run with no manifest, where nobody can
  * approve them. `never` ones the platform server already leaves out of its list.
+ *
+ * `web_search` is denied too on a turn of an organisation with no search key,
+ * for every agent: the connection keeps listing it for the conversation's later
+ * turns, so the turn's rules, not the listing, decide whether a key saved or
+ * removed mid-conversation shows it (what agents can do, spec section 4).
  */
 export function openCodeHiddenPlatformTools(context: HidingContext, connectionName: string): string[] {
-  return unattendedAskTools(context, OPENCODE_PLATFORM_TOOLS).map(tool => `${connectionName}_${tool}`).sort()
+  const hidden = new Set(unattendedAskTools(context, OPENCODE_PLATFORM_TOOLS))
+  if (!context.webSearchKey) hidden.add(RUNTIME_TOOLS.WEB.WEB_SEARCH)
+  return [...hidden].map(tool => `${connectionName}_${tool}`).sort()
 }
 
 const PATCH_HEADERS = ['*** Add File:', '*** Delete File:', '*** Update File:', '*** Move to:'] as const

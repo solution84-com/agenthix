@@ -12,7 +12,7 @@ export const TASK_RUN_MAX_ROUNDS = 20
 
 export async function runTaskRunCheck(model: ModelAdapter, access: ResolvedAccess, setup: TaskRunSetup, signal = AbortSignal.timeout(RUN_TIME_LIMIT_MS)): Promise<RunRecord> {
   const { system, messages: start } = taskRunContext(setup)
-  const tools = taskRunTools()
+  const tools = taskRunTools(setup)
   const messages: LeadMessage[] = [...start]
   const state = startState(setup.openLivePreview !== null)
   const record: RunRecord = { calls: [], texts: [], answer: null }

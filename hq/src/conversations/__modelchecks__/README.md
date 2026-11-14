@@ -86,6 +86,7 @@ frame stands in for them. The tools answer from `taskRun/script.ts`, with hq's r
 | `taskrun-start-asked` | none | a brief: the person asked to start SHOP-8 now | `run_task` on SHOP-8; never on SHOP-7 (its own task); no `create_task` |
 | `taskrun-routine-weekdays` | none | a brief: every weekday at 9:00, Kernel checks the banner | `create_routine` in SHOP with `cron` `0 9 * * 1-5`, Kernel's id and instructions naming the banner; no task made or started |
 | `taskrun-routine-off` | none | a brief: switch off the routine *Morning review* | `update_routine` on it with `enabled` false and nothing else; nothing started |
+| `taskrun-no-search-key` | none; an OpenCode run of an organisation with no search key, sent the site's words for it (core's `NO_WEB_SEARCH_INSTRUCTIONS`) and offered `web_fetch`, not `web_search` | a brief: search the web for the newest Node.js release | says it works in OpenCode and the organisation hasn't added the search key, that an admin adds it in *Manage organisation › AI*, and offers to answer from what it knows; no `web_search`, no search engine fetched with `web_fetch` |
 
 A run of a lead's check takes up to 5 model calls (the memory checks, usually 1 to 3); a task run's, up to 20. A check passes for a model only when every run of it passes.
 

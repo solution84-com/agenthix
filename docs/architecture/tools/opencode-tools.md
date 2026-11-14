@@ -92,7 +92,8 @@ site's machine (`site/src/server/mcp/siteTools.ts`):
   with the org's Exa key, which hq sends with each turn and which never enters the container. It is
   offered only on a connection that says it is OpenCode's: the connection the OpenCode runtime adds sends
   the header `x-agenthix-harness: opencode` beside its token. The header is not a credential; the token
-  decides everything else.
+  decides everything else. A turn of an organisation with no key is not shown it
+  ([below](#what-an-agents-permissions-hide)).
 
 ### What an agent's permissions hide
 
@@ -115,6 +116,17 @@ and a resumed one is brought up to them before the message is sent (`syncOpenCod
 already end with the turn's set). If either call fails, the turn fails before any message is sent.
 
 A platform tool set to `never` is removed from the list by the site's MCP server, as on Claude.
+
+On a turn of an organisation with no search key, the rules also deny `<connection>_web_search`, for every
+agent, bypassed ones included (`openCodeHiddenPlatformTools`): the turn's context carries no `webSearchKey`, so
+the tool would have nothing to search with. The site's MCP server still lists `web_search` on every OpenCode
+connection, and OpenCode keeps a connection's list for the conversation's later turns, so it is the turn's
+rules, re-synced at every turn, that show the tool at the next turn once a key is added and hide it at the
+next turn once the key is removed. A call that still arrives without a key — the key removed while a turn
+runs — is refused by the tool itself (`siteTools.ts`). The same turn's instructions say web search isn't set
+up, why, and where an organisation admin adds the key (core's `NO_WEB_SEARCH_INSTRUCTIONS`, added by
+`OpenCodeRuntime.ts`); a turn with the key is told nothing. Claude Code runs are unchanged: Claude searches
+on Anthropic's own service, and hq never sends their runs the key.
 
 ---
 
