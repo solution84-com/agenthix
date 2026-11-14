@@ -69,10 +69,13 @@ function fromDefault(type: AiProviderType, covered: boolean, choice: ChoiceView 
   return { ...base, mark: 'can', line: choice.text, action: 'change' }
 }
 
-function webSearch(runtimes: readonly AgentRuntimeName[], key: boolean): Capability {
+function webSearch(runtimes: readonly AgentRuntimeName[], key: boolean, modelProviderStopped: boolean): Capability {
   const base = { id: 'web_search' as const, name: 'Web search' }
   const keyAction: CapabilityAction = key ? 'change' : 'add_key'
-  if (runtimes.length === 0) return { ...base, mark: 'would_add', line: 'Comes with your first model provider.', runtimes: [], action: null }
+  if (runtimes.length === 0) {
+    const line = modelProviderStopped ? 'Comes back when a model provider works again.' : 'Comes with your first model provider.'
+    return { ...base, mark: 'would_add', line, runtimes: [], action: null }
+  }
   if (runtimes.length === 1) {
     if (runtimes[0] === CLAUDE_SDK_RUNTIME) {
       // A key kept from an earlier OpenCode provider can still be replaced or removed from here.
@@ -98,6 +101,6 @@ export function capabilityList({ providers, defaults, webSearchKey }: Capability
     fromDefault('llm', covered.llm, defaults.conversation),
     fromDefault('stt', covered.stt, defaults.stt),
     fromDefault('tts', covered.tts, defaults.tts),
-    webSearch(runtimesInUse(providers), webSearchKey),
+    webSearch(runtimesInUse(providers), webSearchKey, providers.some(p => p.types.includes('llm'))),
   ]
 }

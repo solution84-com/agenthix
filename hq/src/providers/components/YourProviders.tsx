@@ -27,8 +27,8 @@ export function YourProviders({ current }: { current: string | null }) {
 
   return (
     <section id={AI_ANCHORS.providers} aria-labelledby="ai-providers" className="scroll-mt-4">
-      <AiSectionHeading id="ai-providers">Your providers</AiSectionHeading>
-      {read.nudge}
+      <AiSectionHeading id="ai-providers" meta={providers ? read.nudge : null}>Your providers</AiSectionHeading>
+      {!providers && read.failedWithoutData && read.nudge}
       {!providers && !read.failedWithoutData && <p className="text-small text-text-muted">Loading…</p>}
       {providers && providers.length === 0 && (
         <p className="rounded-2xl border border-dashed border-border p-6 text-body text-text-secondary">No providers yet. Add one so agents can think, hear and speak.</p>

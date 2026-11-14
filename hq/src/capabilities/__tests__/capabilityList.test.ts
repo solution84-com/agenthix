@@ -50,10 +50,15 @@ describe('the capability list', () => {
   })
 
   describe('Web search', () => {
-    it('○ "Comes with your first model provider." before any model provider works', () => {
-      for (const providers of [[], [provider('assemblyai')], [provider('openrouter', 'unreachable')]]) {
+    it('○ "Comes with your first model provider." before any model provider exists', () => {
+      for (const providers of [[], [provider('assemblyai')]]) {
         expect(of(list(providers), 'web_search')).toMatchObject({ mark: 'would_add', line: 'Comes with your first model provider.', runtimes: [], action: null })
       }
+    })
+
+    it('○ "Comes back when a model provider works again." when model providers exist but none works', () => {
+      const stopped = list([provider('openrouter', 'unreachable'), provider('assemblyai')])
+      expect(of(stopped, 'web_search')).toMatchObject({ mark: 'would_add', line: 'Comes back when a model provider works again.', runtimes: [], action: null })
     })
 
     it('✓ "Built into Claude Code." when Claude Code is the only runtime, with no sub-lines', () => {

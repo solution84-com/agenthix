@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAction, setWebSearchKey, deleteWebSearchKey } from 'wasp/client/operations'
-import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
+import { Button, ConfirmDialog, FormField, Input, Modal } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
 import { splitFailure } from '../../settings/fieldFailure'
 
@@ -24,8 +24,9 @@ export function WebSearchKeyDialog({ open, stored, onClose }: WebSearchKeyDialog
   const [key, setKey] = useState('')
   const [error, setError] = useState('')
   const [press, setPress] = useState<{ words: string; title: string } | null>(null)
+  const [asking, setAsking] = useState(false)
   const [busy, setBusy] = useState<'save' | 'remove' | null>(null)
-  useEffect(() => { if (open) { setKey(''); setError(''); setPress(null) } }, [open])
+  useEffect(() => { if (open) { setKey(''); setError(''); setPress(null); setAsking(false) } }, [open])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,6 +45,7 @@ export function WebSearchKeyDialog({ open, stored, onClose }: WebSearchKeyDialog
   }
 
   const removeKey = async () => {
+    setAsking(false)
     setBusy('remove'); setError(''); setPress(null)
     try {
       await remove(undefined)
@@ -56,30 +58,41 @@ export function WebSearchKeyDialog({ open, stored, onClose }: WebSearchKeyDialog
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Web search for OpenCode">
-      <form onSubmit={e => void submit(e)} className="space-y-4">
-        <p className="text-small text-text-secondary">
-          Agents working in OpenCode search the web through Exa, with your organisation’s key. The key stays in HQ and
-          never reaches an agent. Runtimes that search on their own, like Claude Code, don’t need it.
-        </p>
-        {stored && <p className="text-small text-text-secondary">A key is saved. It is never shown again: enter a new one to replace it.</p>}
-        <FormField label={stored ? 'New Exa API key' : 'Exa API key'} htmlFor="web-search-key" error={error}>
-          <Input id="web-search-key" type="password" autoComplete="off" value={key} onChange={e => setKey(e.target.value)} />
-        </FormField>
-        <p className="text-small text-text-muted">
-          No key yet? <a href={EXA_KEY_PAGE} target="_blank" rel="noopener noreferrer" className="font-medium text-link hover:underline">Get one from Exa ↗</a>: sign up, then copy the key from its dashboard.
-        </p>
-        <ShowAttention kind="alert" text={press?.words ?? ''} title={press?.title ?? ''} onClose={() => setPress(null)} />
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {stored && (
-            <Button type="button" variant="ghost" disabled={busy !== null} onClick={() => void removeKey()} className="mr-auto text-danger not-disabled:hover:text-danger">
-              {busy === 'remove' ? 'Removing…' : 'Remove key'}
-            </Button>
-          )}
-          <Button type="button" variant="secondary" onClick={onClose}>Not now</Button>
-          <Button type="submit" disabled={busy !== null || !key.trim()}>{busy === 'save' ? 'Saving…' : 'Save key'}</Button>
-        </div>
-      </form>
-    </Modal>
+    <>
+      <Modal open={open} onClose={onClose} title="Web search for OpenCode">
+        <form onSubmit={e => void submit(e)} className="space-y-4">
+          <p className="text-small text-text-secondary">
+            Agents working in OpenCode search the web through Exa, with your organisation’s key. The key stays in HQ and
+            never reaches an agent. Runtimes that search on their own, like Claude Code, don’t need it.
+          </p>
+          {stored && <p className="text-small text-text-secondary">A key is saved. It is never shown again: enter a new one to replace it.</p>}
+          <FormField label={stored ? 'New Exa API key' : 'Exa API key'} htmlFor="web-search-key" error={error}>
+            <Input id="web-search-key" type="password" autoComplete="off" value={key} onChange={e => setKey(e.target.value)} />
+          </FormField>
+          <p className="text-small text-text-muted">
+            No key yet? <a href={EXA_KEY_PAGE} target="_blank" rel="noopener noreferrer" className="font-medium text-link hover:underline">Get one from Exa ↗</a>: sign up, then copy the key from its dashboard.
+          </p>
+          <ShowAttention kind="alert" text={press?.words ?? ''} title={press?.title ?? ''} onClose={() => setPress(null)} />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {stored && (
+              <Button type="button" variant="ghost" disabled={busy !== null} onClick={() => setAsking(true)} className="mr-auto text-danger not-disabled:hover:text-danger">
+                {busy === 'remove' ? 'Removing…' : 'Remove key'}
+              </Button>
+            )}
+            <Button type="button" variant="secondary" onClick={onClose}>Not now</Button>
+            <Button type="submit" disabled={busy !== null || !key.trim()}>{busy === 'save' ? 'Saving…' : 'Save key'}</Button>
+          </div>
+        </form>
+      </Modal>
+      <ConfirmDialog
+        open={asking}
+        title="Remove the search key?"
+        description="Agents working in OpenCode stop searching the web until a key is added again."
+        confirmLabel="Remove the key"
+        destructive
+        onConfirm={() => void removeKey()}
+        onCancel={() => setAsking(false)}
+      />
+    </>
   )
 }

@@ -27,17 +27,19 @@ export function WhichModelsMayRun({ opened = false }: { opened?: boolean }) {
 
   return (
     <section id={AI_ANCHORS.models} aria-label={TITLE} className="scroll-mt-4">
-      <h2 className="mb-2 text-h3 font-medium text-text-primary">
-        <button type="button" aria-expanded={open} aria-controls="ai-models-list" onClick={() => setOpen(o => !o)}
-          className={`inline-flex items-center gap-1 rounded ${FOCUS_RING}`}>
-          {TITLE}
-          <ChevronRight size={16} aria-hidden className={`text-text-muted transition-transform ${open ? 'rotate-90' : ''}`} />
-        </button>
-      </h2>
+      <div className="mb-2 flex flex-wrap items-baseline gap-x-3">
+        <h2 className="text-h3 font-medium text-text-primary">
+          <button type="button" aria-expanded={open} aria-controls="ai-models-list" onClick={() => setOpen(o => !o)}
+            className={`inline-flex items-center gap-1 rounded ${FOCUS_RING}`}>
+            {TITLE}
+            <ChevronRight size={16} aria-hidden className={`text-text-muted transition-transform ${open ? 'rotate-90' : ''}`} />
+          </button>
+        </h2>
+        {data && read.nudge}
+      </div>
       {!data && (read.failedWithoutData ? read.nudge : <p className="text-small text-text-muted">Loading…</p>)}
       {data && (
         <>
-          {read.nudge}
           <p className="text-small text-text-secondary">
             {listLine(data.list)}. Agents, projects and people can narrow it further, never widen it.
             {!open && <>{' '}<button type="button" className={LINK} onClick={() => setOpen(true)}>Edit the list</button></>}

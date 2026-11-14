@@ -38,28 +38,31 @@ export interface WhatAgentsCanDoProps {
   below?: Partial<Record<CapabilityId, ReactNode>>
   /** The place's own Change, drawn in place of the button: the AI page's model picker and its hearing and speaking pop-ups. */
   changeControls?: Partial<Record<CapabilityId, ReactNode>>
+  /** A line whose read did not come back: its nudge is drawn in place of the line, with no action. */
+  unread?: Partial<Record<CapabilityId, ReactNode>>
 }
 
 /** Each line's element id, which a link to it (`#web-search`) scrolls to. */
 export const CAPABILITY_ANCHORS: Record<CapabilityId, string> = { thinking: 'thinking', hearing: 'hearing', speaking: 'speaking', web_search: 'web-search' }
 
 /** Thinking, Hearing, Speaking and Web search, each with its mark, what agents use, and its action. */
-export function WhatAgentsCanDo({ capabilities, onAction, offersAddProvider = false, below = {}, changeControls = {} }: WhatAgentsCanDoProps) {
+export function WhatAgentsCanDo({ capabilities, onAction, offersAddProvider = false, below = {}, changeControls = {}, unread = {} }: WhatAgentsCanDoProps) {
   return (
     <ul className="divide-y divide-border-subtle">
       {capabilities.map(c => {
-        const action = c.action === 'add_provider' && !offersAddProvider ? null : c.action
+        const notRead = unread[c.id]
+        const action = notRead || (c.action === 'add_provider' && !offersAddProvider) ? null : c.action
         const control = action === 'change' ? changeControls[c.id] : undefined
         return (
           <li key={c.id} id={CAPABILITY_ANCHORS[c.id]} aria-label={c.name} className="scroll-mt-4 py-2.5">
             <div className="flex items-start gap-3">
-              <Mark mark={c.mark} />
+              <Mark mark={notRead ? 'would_add' : c.mark} />
               <div className="min-w-0 flex-1">
                 <div className="text-body font-medium text-text-primary">
                   {c.name}{c.id === 'web_search' && <Help />}
                 </div>
-                <p className="text-small text-text-secondary">{c.line}</p>
-                {c.runtimes.length > 0 && (
+                {notRead ?? <p className="text-small text-text-secondary">{c.line}</p>}
+                {!notRead && c.runtimes.length > 0 && (
                   <ul className="mt-1 space-y-0.5">
                     {c.runtimes.map(r => (
                       <li key={r.runtime} className="flex justify-between gap-3 text-small">
@@ -85,12 +88,12 @@ export function WhatAgentsCanDo({ capabilities, onAction, offersAddProvider = fa
 }
 
 /** The short form, for setup's review step: each capability and its mark. */
-export function WhatAgentsCanDoShort({ capabilities }: { capabilities: readonly Capability[] }) {
+export function WhatAgentsCanDoShort({ capabilities, unread = {} }: { capabilities: readonly Capability[]; unread?: Partial<Record<CapabilityId, ReactNode>> }) {
   return (
     <ul className="flex flex-wrap gap-x-4 gap-y-1">
       {capabilities.map(c => (
         <li key={c.id} className="inline-flex items-center gap-1.5 text-small text-text-secondary">
-          <Mark mark={c.mark} />{c.name}
+          <Mark mark={unread[c.id] ? 'would_add' : c.mark} />{c.name}{unread[c.id]}
         </li>
       ))}
     </ul>

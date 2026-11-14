@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useQuery, getSetupDefaults, getWebSearchKeyStatus } from 'wasp/client/operations'
 import type { AiProviderSummary } from '@agenthix/core'
+import { useBackgroundRead } from '@agenthix/ui/attention'
+import { KeyUnread } from '../../../capabilities/components/KeyUnread'
 import { capabilityList } from '../../../capabilities/capabilityList'
 
 /**
@@ -18,7 +20,10 @@ export function useCapabilities(providers: AiProviderSummary[]) {
     if (seen.current !== null && seen.current !== signature) { void refetch(); void refetchKey() }
     seen.current = signature
   }, [signature, refetch, refetchKey])
+  const keyRead = useBackgroundRead(keyQuery, { what: 'Whether there is a search key' })
+  // An unanswered key read is never "no key": the Web search line says it could not be read.
+  const unread = keyRead.failedWithoutData ? { web_search: <KeyUnread retry={() => void refetchKey()} /> } : {}
   const defaults = data ?? { conversation: null, stt: null, tts: null }
   const capabilities = capabilityList({ providers, defaults, webSearchKey: keyQuery.data?.present ?? false })
-  return { capabilities, data, defaultsQuery, keyPresent: keyQuery.data?.present ?? false, refetchKey }
+  return { capabilities, unread, data, defaultsQuery, keyPresent: keyQuery.data?.present ?? false, refetchKey }
 }

@@ -53,7 +53,7 @@ function Thumb({ label, src, wide }: { label: string; src: string | null; wide?:
 
 /** What works, then what agents can do, each with its mark (ADR-0160): what nothing covers yet is a plain ○, not a fault. */
 function AiSummary({ providers }: { providers: AiProviderSummary[] }) {
-  const { capabilities } = useCapabilities(providers)
+  const { capabilities, unread } = useCapabilities(providers)
   return (
     <>
       {providers.length === 0 && <StateLine tone="warn"><b className="font-medium text-text-primary">Not set up.</b> Agents can&rsquo;t think or talk until you add a provider.</StateLine>}
@@ -62,7 +62,7 @@ function AiSummary({ providers }: { providers: AiProviderSummary[] }) {
           <b className="font-medium text-text-primary">{p.name}</b> {providerStateWorks(p.state) ? 'works.' : 'is not working.'}
         </StateLine>
       ))}
-      <div className="mt-2"><WhatAgentsCanDoShort capabilities={capabilities} /></div>
+      <div className="mt-2"><WhatAgentsCanDoShort capabilities={capabilities} unread={unread} /></div>
     </>
   )
 }

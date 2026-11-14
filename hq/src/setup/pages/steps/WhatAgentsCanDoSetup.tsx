@@ -20,7 +20,7 @@ type Slot = Exclude<CapabilityId, 'web_search'>
  * pop-up. A refused key stays in the pop-up: nothing here blocks setup (ADR-0160).
  */
 export function WhatAgentsCanDoSetup({ providers }: { providers: AiProviderSummary[] }) {
-  const { capabilities, data, defaultsQuery, keyPresent, refetchKey } = useCapabilities(providers)
+  const { capabilities, unread, data, defaultsQuery, keyPresent, refetchKey } = useCapabilities(providers)
   const read = useBackgroundRead(defaultsQuery, { what: 'What agents can do' })
   const setDefaults = useAction(setModelDefaults)
   const attention = useAttention()
@@ -49,7 +49,7 @@ export function WhatAgentsCanDoSetup({ providers }: { providers: AiProviderSumma
   return (
     <section aria-label="What agents can do" className="mb-4">
       <h2 className="mb-1 text-small font-medium text-text-muted">What agents can do</h2>
-      <WhatAgentsCanDo capabilities={capabilities}
+      <WhatAgentsCanDo capabilities={capabilities} unread={unread}
         onAction={(id, action) => {
           if (id === 'web_search' && (action === 'add_key' || action === 'change')) setKeyOpen(true)
           else if (id !== 'web_search' && action === 'change') setPicking(id)

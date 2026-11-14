@@ -24,7 +24,7 @@ vi.mock('wasp/client/operations', async () => {
   const names = ['getFeatures', 'getAiProviders', 'getAiProviderRecords', 'getAiProviderImpact', 'addAiProvider', 'replaceAiProviderKey', 'renameAiProvider', 'removeAiProvider', 'revokeAiProvider', 'checkAiProviderNow', 'getHqCloudConnection', 'connectHqToCloud', 'disconnectHqFromCloud', 'getModelsSettings', 'getWebSearchKeyStatus', 'setModelDefaults', 'setModelList', 'setWebSearchKey', 'deleteWebSearchKey']
   return {
     ...Object.fromEntries(names.map(n => [n, n])),
-    useQuery: (op: string) => ({ data: op === 'getFeatures' ? featuresAnswer() : h.data[op], error: undefined }),
+    useQuery: (op: string) => ({ data: op === 'getFeatures' ? featuresAnswer() : h.data[op], error: undefined, refetch: async () => undefined }),
     useAction: (op: string) => (h.actions[op] ??= vi.fn().mockResolvedValue({})),
   }
 })

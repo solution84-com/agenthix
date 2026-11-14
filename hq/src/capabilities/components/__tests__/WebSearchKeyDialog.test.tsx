@@ -75,14 +75,26 @@ describe('the Web search for OpenCode pop-up', () => {
     expect(screen.getByText(/A key is saved. It is never shown again/)).toBeTruthy()
     expect((screen.getByLabelText('New Exa API key') as HTMLInputElement).value).toBe('')
     fireEvent.click(screen.getByRole('button', { name: 'Remove key' }))
+    expect(h.remove).not.toHaveBeenCalled()
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove the key' }))
     await waitFor(() => expect(onClose).toHaveBeenCalled())
     expect(h.remove).toHaveBeenCalled()
+  })
+
+  it('asks before removing the key, and Cancel keeps it', async () => {
+    render(<WebSearchKeyDialog open stored onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Remove key' }))
+    expect(await screen.findByText('Remove the search key?')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(h.remove).not.toHaveBeenCalled()
+    expect(screen.queryByText('Remove the search key?')).toBeNull()
   })
 
   it('says a removal that failed in the attention dialog', async () => {
     h.remove.mockRejectedValue(new Error('HQ did not answer'))
     render(<WebSearchKeyDialog open stored onClose={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Remove key' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove the key' }))
     expect(await screen.findByText('The key was not removed')).toBeTruthy()
   })
 })
