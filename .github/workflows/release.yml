@@ -23,8 +23,10 @@ name: Release
 #    workflow, and a publish called from here would be signed as Release's branch, not the tag a host service checks.
 #
 # A run that fails is fixed on a branch, and Release is run there as a dry run until it passes; then the fix lands on
-# main as one commit, and Release runs again (the releasing skill). Pushing the pin commit to main needs GitHub Actions
-# as a bypass actor of main's ruleset; creating a tag does not, the tag ruleset only stops one moving or vanishing.
+# main as one commit, and Release runs again (the releasing skill). The pin commit is pushed with a deploy key that may
+# bypass main's ruleset (GitHub allows no workflow token as a bypass actor), held as RELEASE_PIN_DEPLOY_KEY in the
+# release-pin environment, which only main and release/* may use; creating a tag needs no bypass, the tag ruleset only
+# stops one moving or vanishing.
 on:
   workflow_dispatch:
     inputs:
@@ -126,11 +128,12 @@ jobs:
     needs: [preflight, capture]
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The deploy key that pushes the pin commit is in this environment, which only main and release/* may use. A dry
+    # run elsewhere uses none, and pushes its ref with the workflow token.
+    environment: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && 'release-pin' || '' }}
     permissions:
-      # Pushes the pin commit: to the branch in a real run, to a ref of its own in a dry run.
+      # A dry run on another branch pushes its own ref with this token.
       contents: write
-      # Starts Checks for the pin commit, which a push made with this token does not.
-      actions: write
     outputs:
       commit: ${{ steps.commit.outputs.commit }}
       changed: ${{ steps.commit.outputs.changed }}
@@ -144,6 +147,8 @@ jobs:
           ref: ${{ needs.preflight.outputs.commit }}
           # The pin step finds the last release tag, and the screenshots each release holds, from the history.
           fetch-depth: 0
+          # Pushes go over SSH with the deploy key where the environment gives it; elsewhere, the workflow token.
+          ssh-key: ${{ secrets.RELEASE_PIN_DEPLOY_KEY }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
@@ -189,19 +194,7 @@ jobs:
             git push --quiet origin "HEAD:$GITHUB_REF"
             echo "The pin commit $commit is pushed to $GITHUB_REF_NAME." | tee -a "$GITHUB_STEP_SUMMARY"
           fi
-      - name: Start Checks for the pin commit
-        if: steps.commit.outputs.changed == 'true' && inputs.dry_run != true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          COMMIT: ${{ steps.commit.outputs.commit }}
-        run: |
-          run_id="$(scripts/release/dispatch.sh checks.yml "$GITHUB_REF_NAME")"
-          sha="$(gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json headSha --jq .headSha)"
-          if [ "$sha" != "$COMMIT" ]; then
-            echo "::error::$GITHUB_REF_NAME moved on past the pin commit $COMMIT before Checks started (it runs $sha). The pin is on $GITHUB_REF_NAME: start Release again from its tip."
-            exit 1
-          fi
-          echo "Checks for the pin commit: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$run_id" | tee -a "$GITHUB_STEP_SUMMARY"
+
 
   build:
     name: "4. Release build"
@@ -232,7 +225,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.pin.outputs.commit }}
-      # The commit the run started from passed in stage 1; a pin commit's Checks were started in stage 3.
+      # The commit the run started from passed in stage 1; a pin commit's push started its own Checks in stage 3.
       - name: Checks passed for the pin commit
         if: needs.pin.outputs.changed == 'true'
         env:

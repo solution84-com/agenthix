@@ -2,7 +2,7 @@
 # Starts a workflow by hand (workflow_dispatch) at a branch or tag, and prints the new run's ID:
 #   scripts/release/dispatch.sh <workflow file> <branch or tag> [-f <input>=<value> ...]
 # The run is the one gh reports when it starts it, or else the newest run of that workflow, started by hand at that
-# ref, created after this script began. Release (release.yml) starts Checks and Publish release with it, and the VS Code
+# ref, created after this script began. Release (release.yml) starts Publish release with it, and the VS Code
 # tasks start Release with it. Needs gh (with GH_TOKEN on a runner); GITHUB_REPOSITORY (owner/name) names the
 # repository when set, as on a runner, and otherwise gh takes the checkout's.
 set -uo pipefail

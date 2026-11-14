@@ -72,8 +72,10 @@ screenshots, no tag.
    - A patch on a release branch holds fixes only.
 6. **Tags are permanent.** A repository ruleset stops `v*` tags being moved or deleted; the admin's bypass is for a
    publish that failed part-way. A tag pushed by hand still publishes, but a release is not made that way.
-7. **What the workflow needs of the repository:** GitHub Actions is a bypass actor of `main`'s ruleset, so the pin
-   commit can be pushed without a pull request. Creating a tag needs no bypass.
+7. **What the workflow needs of the repository:** the pin commit is pushed with a deploy key that may bypass `main`'s
+   ruleset (GitHub allows no workflow token as a bypass actor). The key's private half is `RELEASE_PIN_DEPLOY_KEY` in
+   the `release-pin` environment, which only `main` and `release/*` may use, so only the pin job on those branches can
+   read it. Revoking it is deleting the deploy key. Creating a tag needs no bypass.
 
 **At most two lines are maintained**: the newest minor of the current major and of the one before. Before `1.0.0`,
 only the newest release ([versioning.md](../../../docs/architecture/versioning.md#the-product-version)).
