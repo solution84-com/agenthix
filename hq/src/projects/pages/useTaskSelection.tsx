@@ -4,6 +4,7 @@ import { TasksPickDialog, type TaskListOption, type TaskListRowData } from '@age
 import { useProjectAgents } from '../hooks/useProjectAgents'
 import { bulkOutcome, NO_SPRINT_YET, sprintPickChoices } from './taskSelectionWords'
 import type { ProjectSprints } from '../projectSprintView'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export type SelectionAction = { label: string; onSelect: () => void; danger?: boolean; disabledWhy?: string }
 
@@ -59,7 +60,7 @@ export function useTaskSelection({ projectId, rows, epics, enabled, onFailure }:
     const firstReason = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')?.reason
     setSelected(new Set(failed))
     const keys = failed.map(id => rows.find(r => r.id === id)?.key ?? 'a task')
-    const text = bulkOutcome(what, keys, ids.length, firstReason instanceof Error ? firstReason.message : null)
+    const text = bulkOutcome(what, keys, ids.length, firstReason === undefined ? null : pressFailureWords(firstReason))
     if (text) onFailure(text)
   }
 

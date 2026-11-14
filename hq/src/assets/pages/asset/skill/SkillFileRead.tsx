@@ -6,6 +6,7 @@ import { bytesOfBase64, bytesOfText, SKILL_FILE_NAME, textOf } from '../../edito
 import { skillMdParts } from '../../editor/skillMdParts'
 import { ViewFile } from '../../editor/ViewFile'
 import type { AssetFileView } from '../pageTypes'
+import { pressFailureWords } from '../../../../shared/failureWords'
 
 /** A version's file list and one file's bytes: the version in use unless `versionId` names another. */
 export function useSkillFile(assetId: string, versionId: string | null, path: string | null) {
@@ -13,7 +14,7 @@ export function useSkillFile(assetId: string, versionId: string | null, path: st
   const { data, error, isLoading, refetch } = query
   const read = useBackgroundRead(query, { what: 'The file' })
   const opened = useMemo(() => (data?.opened ? { path: data.opened.path, bytes: bytesOfBase64(data.opened.base64) } : null), [data])
-  return { files: (data?.files ?? []) as AssetFileView[], opened, error: error ? error.message : null, read, loading: isLoading && !data, retry: () => void refetch() }
+  return { files: (data?.files ?? []) as AssetFileView[], opened, error: error ? pressFailureWords(error) : null, read, loading: isLoading && !data, retry: () => void refetch() }
 }
 
 /**

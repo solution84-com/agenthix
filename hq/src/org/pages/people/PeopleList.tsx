@@ -9,6 +9,7 @@ import { ROW_BUTTON } from '@agenthix/ui/people'
 import type { OrgPersonRow } from '../../../settings/orgPeopleQueries'
 import { PersonFace } from './PersonFace'
 import { FLEET_ADMIN_GIVEN_IN_FLEET_CONSOLE, ORG_ROLE_CHOICES, monthYear, projectCountText, shortDate, shownHandle, type OrgRole } from './peopleFormat'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 /** One row's columns on a desktop; on a phone each cell stacks under the name. */
 export const ROW_GRID = 'grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 md:grid-cols-[auto_minmax(0,1fr)_120px_130px_minmax(96px,auto)] md:gap-x-4'
@@ -19,7 +20,7 @@ export function OrgRoleSelect({ userId, role, label }: { userId: string; role: O
   const [error, setError] = useState<string | null>(null)
   const [next, setNext] = useState<OrgRole>(role)
   const errorDialog = useAttentionWhen(error, { kind: 'alert', title: 'The role was not changed', retry: () => change(next) })
-  const change = (r: OrgRole) => { setError(null); setNext(r); void update({ userId, role: r }).catch(err => setError(err instanceof Error ? err.message : String(err))) }
+  const change = (r: OrgRole) => { setError(null); setNext(r); void update({ userId, role: r }).catch(err => setError(pressFailureWords(err))) }
   return (
     <>
     <NativeSelect

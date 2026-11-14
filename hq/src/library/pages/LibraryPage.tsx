@@ -15,6 +15,7 @@ import { LIBRARY_MARKETPLACE_PATH, LIBRARY_SETTINGS_PATH } from '../components/l
 import type { LibraryAssetRow } from '../assetList/types'
 import { ConfirmDialog, ROW_ITEM, FOCUS_RING } from '@agenthix/ui/primitives'
 import { useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 // The header's quiet buttons, as ui's Button draws them (they are links here).
 const QUIET = `whitespace-nowrap rounded-button px-3 py-2 text-body font-button ${ROW_ITEM}`
@@ -56,7 +57,7 @@ export function LibraryPage() {
       if (!result.removed) { setConfirming({ row, words: result.confirm }); return }
       void refetch()
     } catch (err) {
-      attention.show({ title: `${row.title} was not removed`, text: err instanceof Error ? err.message : 'It could not be removed. Nothing was changed.', retry: () => void removeRow(row) })
+      attention.show({ title: `${row.title} was not removed`, text: pressFailureWords(err, 'It could not be removed. Nothing was changed.'), retry: () => void removeRow(row) })
     }
   }
 
@@ -66,7 +67,7 @@ export function LibraryPage() {
       await remove({ assetId: row.assetId!, confirmed: true })
       void refetch()
     } catch (err) {
-      attention.show({ title: `${row.title} was not removed`, text: err instanceof Error ? err.message : 'It could not be removed. Nothing was changed.', retry: () => void removeConfirmed(row) })
+      attention.show({ title: `${row.title} was not removed`, text: pressFailureWords(err, 'It could not be removed. Nothing was changed.'), retry: () => void removeConfirmed(row) })
     }
   }
 

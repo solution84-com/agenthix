@@ -4,6 +4,7 @@ import { getPins, pinItem, unpinItem, useAction, useQuery } from 'wasp/client/op
 import { Tooltip, FOCUS_RING, DISABLED } from '@agenthix/ui/primitives'
 import { useAttention } from '../../shared/components/AttentionDialog'
 import type { PinKindName, PinnedItem } from '../pinTypes'
+import { pressFailureWords } from '../../shared/failureWords'
 
 type PinButtonProps = {
   kind: PinKindName
@@ -29,7 +30,7 @@ export function PinButton({ kind, itemId, className = '', says }: PinButtonProps
     try {
       await (pinned ? unpin({ kind, itemId }) : pin({ kind, itemId }))
     } catch (err) {
-      show({ title: pinned ? 'It was not unpinned' : 'It was not pinned', text: err instanceof Error ? err.message : 'Nothing was changed.', retry: () => void toggle() })
+      show({ title: pinned ? 'It was not unpinned' : 'It was not pinned', text: pressFailureWords(err, 'Nothing was changed.'), retry: () => void toggle() })
     } finally {
       setBusy(false)
     }

@@ -6,6 +6,7 @@ import {
   type ConnectionGroup, type ConnectionView,
 } from '../../shared/connections'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 interface Props {
   /** The projects the person can reach — the only ones a connection can be limited to. */
@@ -45,7 +46,7 @@ export function CreateConnectionForm({ projects, onCreated, onCancel }: Props) {
       })
       onCreated(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create the connection')
+      setError(pressFailureWords(err, 'Could not create the connection'))
     } finally {
       setBusy(false)
     }

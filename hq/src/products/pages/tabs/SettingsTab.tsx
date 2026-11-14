@@ -6,6 +6,7 @@ import { deriveSlug } from '@agenthix/core'
 import { FormField } from '../../../shared/components/ui/FormField'
 import { FIELD, Button, NativeSelect, ConfirmDialog } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 const INPUT = `w-full rounded-lg ${FIELD} px-3 py-2 text-body`
 
@@ -65,7 +66,7 @@ export function SettingsTab({ productId, prod }: Props) {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save')
+      setError(pressFailureWords(err, 'Failed to save'))
     } finally {
       setSaving(false)
     }
@@ -78,7 +79,7 @@ export function SettingsTab({ productId, prod }: Props) {
       await deleteProductAction({ productId })
       navigate('/products')
     } catch (err: unknown) {
-      setDeleteError(err instanceof Error ? err.message : 'Failed to delete')
+      setDeleteError(pressFailureWords(err, 'Failed to delete'))
       setDeleting(false)
     }
   }

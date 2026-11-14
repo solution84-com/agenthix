@@ -9,6 +9,7 @@ import type { BranchLineView, MergeBranchResult } from '../../branches/views'
 import { mergeRefusal } from '../words'
 import { markerStatus } from './changeMarks'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 type Merged = Extract<MergeBranchResult, { outcome: 'merged' }>
 
@@ -46,7 +47,7 @@ export function MergeDialog({ line, mainHead, mainVersion, changes, summary, onS
       else if (result.outcome === 'clash') { setClash(result.clashes); onClash() }
       else setRefusal(mergeRefusal(result))
     } catch (e) {
-      setRefusal(e instanceof Error ? `${e.message} Nothing was merged.` : 'The merge did not go through. Nothing was merged.')
+      setRefusal(`${pressFailureWords(e, 'The merge did not go through.')} Nothing was merged.`)
     } finally {
       setBusy(false)
     }

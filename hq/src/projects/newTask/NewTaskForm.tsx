@@ -9,6 +9,7 @@ import { NewTaskDetails, startsInText, type NewTaskDetailsProps } from './NewTas
 import {
   canCreate, emptyNewTask, freshAfterCreate, withChange, type NewTaskDefaults, type NewTaskValues,
 } from './newTaskState'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export const NEW_TASK_FORM_ID = 'new-task-form'
 
@@ -79,7 +80,7 @@ export function NewTaskForm({ defaults, types, agents, epics, sprints, fields, r
         onCreated(created)
       }
     } catch (e) {
-      setFailure(e instanceof Error && e.message ? e.message : 'The task wasn’t created. HQ didn’t answer. What you typed is kept.')
+      setFailure(pressFailureWords(e, 'The task wasn’t created. HQ didn’t answer. What you typed is kept.'))
     } finally {
       setBusy(false)
     }

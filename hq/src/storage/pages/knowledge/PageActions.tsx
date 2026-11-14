@@ -5,6 +5,7 @@ import { deleteKnowledge, moveKnowledge } from './knowledgeData'
 import type { KnowledgeChangeResult, KnowledgeOwner } from './knowledgeTypes'
 import { FIELD as FIELD_LOOK } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 export type PageAction = 'move' | 'delete'
 
@@ -43,7 +44,7 @@ export function PageActions({ owner, page, version, action, sections, onClose, o
       if (result.outcome === 'done') onGone(action === 'move' ? target : null)
       else setError(refusalWords(result))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nothing was changed.')
+      setError(pressFailureWords(e, 'Nothing was changed.'))
     } finally {
       setWorking(false)
     }

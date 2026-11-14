@@ -5,6 +5,7 @@ import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
 import type { BillingProfileListItem } from '../reads'
 import { BASIS_ORDER, BASIS_WORDS, moneyOf } from './costWords'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /** This month as `$41.20 actual · $6.10 estimated`; a basis with no amount (included, unpriced) is left out. */
 export function thisMonthWords(p: BillingProfileListItem): string {
@@ -28,7 +29,7 @@ export function ProfileLine({ profile: p, onRename, onArchive }: { profile: Bill
   const choose = async () => {
     setBusy(true)
     setError('')
-    try { await makeDefault({ id: p.id }) } catch (err) { setError(err instanceof Error ? err.message : 'Could not change the default') } finally { setBusy(false) }
+    try { await makeDefault({ id: p.id }) } catch (err) { setError(pressFailureWords(err, 'Could not change the default')) } finally { setBusy(false) }
   }
   const items: OverflowItem[] = [
     { label: 'Rename', onSelect: onRename },

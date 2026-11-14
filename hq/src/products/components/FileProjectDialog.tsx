@@ -3,6 +3,7 @@ import { useQuery, useAction, getProjects, updateProject } from 'wasp/client/ope
 import { Button, FormField, Modal, NativeSelect } from '@agenthix/ui/primitives'
 import { WORDS, type Group, type GroupKind } from './groupKinds'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 type ProjectRow = { id: string; name: string; productId: string | null; programId: string | null; personalOwnerId: string | null }
 
@@ -21,7 +22,7 @@ export function FileProjectDialog({ kind, group, open, onClose }: { kind: GroupK
     e.preventDefault()
     setBusy(true)
     setError('')
-    try { await file({ projectId, [field]: group.id }); setProjectId(''); onClose() } catch (err) { setError(err instanceof Error ? err.message : 'Could not file the project') } finally { setBusy(false) }
+    try { await file({ projectId, [field]: group.id }); setProjectId(''); onClose() } catch (err) { setError(pressFailureWords(err, 'Could not file the project')) } finally { setBusy(false) }
   }
 
   return (

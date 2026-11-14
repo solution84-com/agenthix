@@ -6,6 +6,7 @@ import type { AgentUsageView } from '../../agentUsageQueries'
 import { costLabel } from '../place/usageView'
 import { approvalLabel } from '../approvalLabel'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 const HEADING = 'text-micro font-medium uppercase tracking-wide text-text-muted'
 
@@ -32,7 +33,7 @@ export function ManageProjects({ agentId, usage }: { agentId: string; usage: Age
       setPicking(false)
       setSearch('')
     } catch (e) {
-      setFailure(e instanceof Error ? e.message : 'Could not assign')
+      setFailure(pressFailureWords(e, 'Could not assign'))
     }
   }
 

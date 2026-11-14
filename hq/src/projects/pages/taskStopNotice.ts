@@ -1,3 +1,5 @@
+import { pressFailureWords } from '../../shared/failureWords'
+
 export type StopNotice = { kind: 'stopped' | 'error'; text: string }
 
 type StopTaskAction = (args: { taskId: string }) => Promise<{ cancelled: number }>
@@ -14,7 +16,7 @@ export async function stopTaskWithNotice(stopTask: StopTaskAction, taskId: strin
     const { cancelled } = await stopTask({ taskId })
     return { kind: 'stopped', text: stoppedText(cancelled) }
   } catch (err) {
-    const reason = err instanceof Error && err.message ? err.message : 'Something went wrong.'
+    const reason = pressFailureWords(err, 'Something went wrong.')
     return { kind: 'error', text: `Could not stop the task. ${reason}` }
   }
 }

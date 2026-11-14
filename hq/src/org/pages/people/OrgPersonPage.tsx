@@ -18,6 +18,7 @@ import { ResetPasswordDialog } from './ResetPasswordDialog'
 import { fleetAdminRole, localTimeText, shortDate, shownHandle, type OrgRole } from './peopleFormat'
 import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
 import { useDemo } from '../../../demo/useDemo'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 function LeftNotice({ userId, name, leftAt, leftBy, erased, onErase }: { userId: string; name: string; leftAt: Date | null; leftBy: string | null; erased: boolean; onErase: () => void }) {
   const reactivate = useAction(reactivatePerson)
@@ -33,7 +34,7 @@ function LeftNotice({ userId, name, leftAt, leftBy, erased, onErase }: { userId:
       </p>
       {!erased && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => void reactivate({ userId }).catch(e => setError(e instanceof Error ? e.message : String(e)))}>Reactivate</Button>
+          <Button size="sm" onClick={() => void reactivate({ userId }).catch(e => setError(pressFailureWords(e)))}>Reactivate</Button>
           <Button size="sm" variant="secondary" onClick={onErase}>Erase their data…</Button>
         </div>
       )}
@@ -70,7 +71,7 @@ function OrgPerson({ userId }: { userId: string }) {
   const changeRole = async (role: OrgRole) => {
     setRoleError(null)
     setRoleRetry(() => () => void changeRole(role))
-    try { await updateRole({ userId: person.userId, role }) } catch (e) { setRoleError(e instanceof Error ? e.message : String(e)) }
+    try { await updateRole({ userId: person.userId, role }) } catch (e) { setRoleError(pressFailureWords(e)) }
   }
   const active = person.state === 'active'
   const editable = person.state !== 'erased'

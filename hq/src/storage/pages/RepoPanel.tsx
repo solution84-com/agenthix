@@ -7,6 +7,7 @@ import { ConnectRepoFlow } from '../../github/connect/ConnectRepoFlow'
 import type { Target as ExplorerTarget } from './filesToolData'
 import { ShowAttention } from '@agenthix/ui/attention'
 import { ReadNudge, siteReadRetry, useSiteRead } from '../../shared/siteRead'
+import { pressFailureWords } from '../../shared/failureWords'
 
 // Reusable GitHub panel over any storage target (a workspace or an owner's files): the connect flow (G2) when nothing
 // is connected, and the repository with Disconnect when it is.
@@ -46,7 +47,7 @@ export function RepoPanel({ target, repoName }: { target: ExplorerTarget; repoNa
         <Heading />
         <div className="flex items-center justify-between">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-micro font-medium bg-success/15 text-success">Connected</span>
-          {mayAdminister && <button onClick={async () => { setBusy(true); setError(null); try { await disconnect({ target }) } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed') } finally { setBusy(false) } }} disabled={busy} className="flex items-center gap-1.5 px-2.5 py-1 text-micro font-medium text-text-muted not-disabled:hover:text-danger border border-border not-disabled:hover:border-danger/30 rounded-lg transition-all">
+          {mayAdminister && <button onClick={async () => { setBusy(true); setError(null); try { await disconnect({ target }) } catch (e: unknown) { setError(pressFailureWords(e, 'Failed')) } finally { setBusy(false) } }} disabled={busy} className="flex items-center gap-1.5 px-2.5 py-1 text-micro font-medium text-text-muted not-disabled:hover:text-danger border border-border not-disabled:hover:border-danger/30 rounded-lg transition-all">
             {busy ? <Loader2 size={11} className="animate-spin" /> : <Unlink size={11} />} Disconnect
           </button>}
         </div>

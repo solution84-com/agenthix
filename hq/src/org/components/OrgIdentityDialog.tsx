@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAction, updateOrgIdentity } from 'wasp/client/operations'
 import { Button, FormField, Input, Modal, Textarea } from '@agenthix/ui/primitives'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 type Identity = { name: string; handle: string | null; vision: string; mission: string }
 
@@ -29,7 +30,7 @@ export function OrgIdentityDialog({ open, identity, onClose }: { open: boolean; 
       await save({ name, handle: handle.trim() === '' ? null : handle, vision, mission })
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save')
+      setError(pressFailureWords(err, 'Could not save'))
     } finally {
       setSaving(false)
     }

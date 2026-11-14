@@ -8,8 +8,9 @@ import type { EditorApi } from './useEditorApi'
 import type { EditorView } from './editorTypes'
 import type { FileChange } from '@agenthix/ui/files'
 import { AUTOSAVE_MS } from './editorWords'
+import { pressFailureWords } from '../../../shared/failureWords'
 
-const words = (err: unknown) => (err instanceof Error ? err.message : 'That did not work. Nothing was changed.')
+const words = (err: unknown) => pressFailureWords(err, 'That did not work. Nothing was changed.')
 
 /**
  * What a person is doing in the editor: the working copy of the skill's files, the file open and whether its changes are shown in place, the draft

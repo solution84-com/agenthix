@@ -5,6 +5,7 @@ import { AutomationSwitch } from '@agenthix/ui/projects'
 import { OrgAdminHeading, OrgAdminPage } from '../../org/pages/OrgAdminPage'
 import { FEATURE_WORDS, STAGE_WORDS, type FeaturesAnswer, type FeatureRow } from '../../shared/features'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 const day = (at: string) => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -61,7 +62,7 @@ export function FeaturesPage() {
     setBusy(flag)
     setError('')
     try { await save({ flag, on }) } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not switch that. Nothing was changed.')
+      setError(pressFailureWords(err, 'Could not switch that. Nothing was changed.'))
     } finally { setBusy(null) }
   }
 

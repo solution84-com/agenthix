@@ -23,6 +23,7 @@ import { downloadAgentZip } from './downloadAgentZip'
 import { BUTTON_SECONDARY, ConfirmDialog, FOCUS_RING } from '@agenthix/ui/primitives'
 import { isFinal, useBackgroundRead, useToast } from '@agenthix/ui/attention'
 import { useAttention } from '../../../shared/components/AttentionDialog'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 function ManageAgent({ handle }: { handle: string }) {
   const navigate = useNavigate()
@@ -61,7 +62,7 @@ function ManageAgent({ handle }: { handle: string }) {
       if (what === 'stop') { await stop({ id: agent.id }); toast(`Every run of ${agent.name} stopped`) }
       else { await remove({ id: agent.id }); navigate('/admin/agents') }
     } catch (e) {
-      show({ title: what === 'stop' ? 'Its runs were not stopped' : 'It was not deleted', text: e instanceof Error ? e.message : 'Nothing was changed.', retry: () => void confirmed() })
+      show({ title: what === 'stop' ? 'Its runs were not stopped' : 'It was not deleted', text: pressFailureWords(e, 'Nothing was changed.'), retry: () => void confirmed() })
     } finally { setBusy(false); setAsking(null) }
   }
 

@@ -9,6 +9,7 @@ import { OrgPeopleGate } from './OrgPeopleGate'
 import { RemoveDestinationRow } from './RemoveDestinationRow'
 import { removalDestinations, type OpenTasksChoice } from './peopleFormat'
 import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 function Heading({ children }: { children: ReactNode }) {
   return <h2 className="mb-1 text-micro font-medium uppercase tracking-wide text-text-muted">{children}</h2>
@@ -56,7 +57,7 @@ function RemovePerson({ userId }: { userId: string }) {
       await remove({ userId, openTasks: destinations })
       navigate(`/admin/people/${userId}`)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(pressFailureWords(e))
       setBusy(false)
     }
   }

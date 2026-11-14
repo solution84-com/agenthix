@@ -3,6 +3,7 @@ import { useQuery, useAction, getUserSettings, updateUserSettings } from 'wasp/c
 import { InfoButton } from '../../shared/components/InfoButton'
 import { WorkflowSwitch } from '../../workflows/components/WorkflowSwitch'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 const NOW = {
   on: 'On. The agent makes listening sounds while you talk and opens with a short sentence when a reply will take a while.',
@@ -28,7 +29,7 @@ export function AdaptiveVoiceSection() {
       await update({ adaptiveVoice: !on })
       await refetch()
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : 'That did not work.')
+      setError(pressFailureWords(err, 'That did not work.'))
     } finally {
       setSaving(false)
     }

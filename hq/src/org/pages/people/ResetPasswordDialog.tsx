@@ -5,6 +5,7 @@ import { BRANDING } from '@agenthix/core'
 import { COPY_FAILED_WORDS } from '../../../shared/copyText'
 import { useCopy } from '../../../shared/hooks/useCopy'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 type Made = { link: string; worksOnlyHere: boolean }
 
@@ -35,7 +36,7 @@ export function ResetPasswordDialog({ person, open, onClose }: { person: { userI
       const r = await make({ userId: person.userId })
       setMade({ link: r.link, worksOnlyHere: r.addressWorksOnlyHere })
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(pressFailureWords(err))
     } finally {
       setBusy(false)
     }

@@ -34,17 +34,19 @@ function unanswered(error: unknown): boolean {
     || (error.name === 'TypeError' && /fetch|network|load failed/i.test(error.message))
 }
 
+const sentence = (server: string) => server.charAt(0).toUpperCase() + server.slice(1)
+
 export function failureWords(error: unknown, server: string, fallback = `Something went wrong in ${server}.`): string {
   const status = statusOf(error)
   if (status === undefined) {
-    if (unanswered(error)) return `${server} did not answer.`
+    if (unanswered(error)) return `${sentence(server)} did not answer.`
     if (error instanceof Error && error.message) return error.message
     if (typeof error === 'string' && error) return error
     return fallback
   }
   const own = serverWords(error as { data?: unknown })
   if (own) return own
-  if (status >= 500) return GATEWAY.has(status) ? `${server} did not answer.` : `Something went wrong in ${server}.`
+  if (status >= 500) return GATEWAY.has(status) ? `${sentence(server)} did not answer.` : `Something went wrong in ${server}.`
   // A refusal without words of the server's own (a front door's 413, say): its message, never a status line.
   const message = error instanceof Error ? error.message : ''
   return message && !/^Request failed with status code/i.test(message) ? message : fallback

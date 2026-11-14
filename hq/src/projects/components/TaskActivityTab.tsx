@@ -3,6 +3,7 @@ import { useQuery, getTaskActivity, getTaskTypes, getAgents, getCustomFields } f
 import { useBackgroundRead } from '@agenthix/ui/attention'
 import { useAttention } from '../../shared/components/AttentionDialog'
 import { TaskActivityList, activityLines, type ActivityLine, type ActivityNames, type TaskActivityRowLike } from '@agenthix/ui/tasks'
+import { pressFailureWords } from '../../shared/failureWords'
 
 const PAGE = 100
 
@@ -43,7 +44,7 @@ export function TaskActivityTab({ taskId, projectId, onOpen }: {
       setMore({ busy: false, done: page.length < PAGE })
     } catch (err) {
       setMore({ busy: false, done: false })
-      attention.show({ title: 'Earlier activity could not be read', text: err instanceof Error ? err.message : 'HQ did not answer.', retry: () => void loadOlder() })
+      attention.show({ title: 'Earlier activity could not be read', text: pressFailureWords(err, 'HQ did not answer.'), retry: () => void loadOlder() })
     }
   }
 

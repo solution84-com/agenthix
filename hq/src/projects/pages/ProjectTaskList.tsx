@@ -15,6 +15,7 @@ import { usePlaceOwnTalk, usePlaceTopBarAdd } from '../../places/placeCrumb'
 import { usePhoneActions, usePhoneSelection } from '../../shared/layouts/phoneActions'
 import { useDock } from '../../dock/DockContext'
 import { useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /** How often the list reads its tasks again, so a ring shows a run's progress while the person keeps talking. */
 const TASKS_REFRESH_MS = 15_000
@@ -70,7 +71,7 @@ export function ProjectTaskList({ project, initialCard, onOpen, onOpenRun }: {
   const reorder = (row: TaskListRowData, place: RankPlace) => {
     move({ taskId: row.id, ...place }).catch(e => {
       void refetch()
-      attention.show({ text: e instanceof Error && e.message ? e.message : `${row.key} was not moved. Nothing was changed.` })
+      attention.show({ text: pressFailureWords(e, `${row.key} was not moved. Nothing was changed.`) })
     })
   }
   const talkButton = talk && (

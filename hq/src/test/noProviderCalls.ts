@@ -3,7 +3,7 @@ import https from 'node:https'
 import { syncBuiltinESMExports } from 'node:module'
 
 /**
- * No test calls a model or voice provider: they cost money and carry keys, so a test replaces them with a fake.
+ * No test calls a model, voice or search provider: they cost money and carry keys, so a test replaces them with a fake.
  * Matches a host or any subdomain of one. A local stand-in (localhost, 127.0.0.1) is never matched.
  */
 export const PROVIDER_HOSTS = [
@@ -13,6 +13,7 @@ export const PROVIDER_HOSTS = [
   'assemblyai.com',
   'inworld.ai',
   'generativelanguage.googleapis.com',
+  'exa.ai',
 ]
 
 export function providerHostOf(target: unknown): string | null {
@@ -30,7 +31,7 @@ export function providerHostOf(target: unknown): string | null {
 }
 
 export const refusal = (host: string, test: string) =>
-  `Test "${test}" made an outbound request to ${host}, a model or voice provider. Replace the call with a fake.`
+  `Test "${test}" made an outbound request to ${host}, a model, voice or search provider. Replace the call with a fake.`
 
 /** Wraps fetch and http(s).request/get on the given objects; returns the hosts reached and a way to undo it. */
 export function installProviderGuard(

@@ -1,3 +1,5 @@
+import { pressFailureWords } from '../../../shared/failureWords'
+
 export function reasonOf(err: unknown, fallback: string): string {
-  return err instanceof Error && err.message ? err.message : fallback
+  return pressFailureWords(err, fallback)
 }

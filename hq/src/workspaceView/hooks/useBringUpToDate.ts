@@ -3,6 +3,7 @@ import { useAction, bringBranchUpToDate } from 'wasp/client/operations'
 import type { BranchLineView } from '../../branches/views'
 import { followUpdate, type UpdateAsk } from '../nextStep'
 import { UPDATE_FAILED } from '../words'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /**
  * *Bring up to date* for the branch in view: asks its own agent through hq, then holds *Updating…* until the agent that
@@ -33,7 +34,7 @@ export function useBringUpToDate(line: BranchLineView | null) {
       await bring({ branchId: line.id })
     } catch (e) {
       setAsk(null)
-      setError(e instanceof Error && e.message ? e.message : UPDATE_FAILED)
+      setError(pressFailureWords(e, UPDATE_FAILED))
     }
   }, [bring, line])
 

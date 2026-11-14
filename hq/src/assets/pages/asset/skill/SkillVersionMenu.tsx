@@ -4,6 +4,7 @@ import { useContext, type ReactNode } from 'react'
 import { Dropdown } from '../../../../workspaceView/components/Dropdown'
 import { versionCrumb, versionLine } from './skillWords'
 import { ROW_CHOSEN, ROW_ITEM, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
+import { pressFailureWords } from '../../../../shared/failureWords'
 
 export type VersionRow = {
   id: string
@@ -26,7 +27,7 @@ export function useSkillVersions(assetId: string, enabled = true): { rows: Versi
   const nudge = read.failedWithoutData
     ? held ? null : <Nudge place="meta" action={isFinal(error) ? undefined : { label: 'Try again', onClick: () => void refetch() }}>The versions could not be read.</Nudge>
     : read.nudge
-  return { rows: (data?.versions ?? []) as VersionRow[], error: error ? error.message : null, refetch, nudge }
+  return { rows: (data?.versions ?? []) as VersionRow[], error: error ? pressFailureWords(error) : null, refetch, nudge }
 }
 
 /**

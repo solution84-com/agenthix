@@ -14,6 +14,7 @@ import { WorkspaceAbout } from './WorkspaceAbout'
 import { useFolder } from './filesToolData'
 import { useToolParams, useWide } from './useToolParams'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /**
  * A workspace opened inside the Workspaces tool (spec §3): it opens as its file explorer. A box at the top says
@@ -62,7 +63,7 @@ export function WorkspaceView({ workspaceId, siteLabel, connecting, onBack }: {
 
   const act = (fn: () => Promise<unknown>) => async () => {
     setNotice('')
-    try { await fn() } catch (e: unknown) { setNotice(e instanceof Error ? e.message : 'That did not work') }
+    try { await fn() } catch (e: unknown) { setNotice(pressFailureWords(e, 'That did not work')) }
   }
   const menu: OverflowItem[] = [
     { label: 'Delete workspace', danger: true, confirmLabel: withBranches(workspaceDeleteConfirm(ws.repoUrl ?? null, typeof repoState?.hasFiles === 'boolean' ? repoState : null), removal?.branches), onSelect: act(async () => { await remove({ workspaceId: ws.id }); onBack() }) },

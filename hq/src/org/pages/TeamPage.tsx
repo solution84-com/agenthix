@@ -14,6 +14,7 @@ import { PicturePicker } from '../../shared/pictures/picker'
 import { useSavePictures } from '../../shared/pictures/picker/useSavePictures'
 import { BUTTON_SECONDARY, ConfirmDialog } from '@agenthix/ui/primitives'
 import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 const BUTTON = `px-3 py-1.5 text-body rounded-lg font-medium ${BUTTON_SECONDARY}`
 
@@ -49,7 +50,7 @@ export function TeamPage() {
   const askDelete = async () => {
     setAsking(false)
     setProblem('')
-    try { await remove({ id: team.id }); navigate(base) } catch (err) { setProblem(err instanceof Error ? err.message : 'Could not delete the team') }
+    try { await remove({ id: team.id }); navigate(base) } catch (err) { setProblem(pressFailureWords(err, 'Could not delete the team')) }
   }
 
   return (

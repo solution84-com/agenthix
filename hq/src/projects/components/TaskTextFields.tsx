@@ -3,6 +3,7 @@ import { Pencil } from 'lucide-react'
 import { BUTTON_GHOST, Button, MarkdownBox, FOCUS_RING, FIELD, FOCUS_RING_INSET } from '@agenthix/ui/primitives'
 import { MarkdownMessage, type MarkdownEmbedContext } from '../../shared/components/MarkdownMessage'
 import { useAttention } from '../../shared/components/AttentionDialog'
+import { pressFailureWords } from '../../shared/failureWords'
 
 const EDIT_LINK = `inline-flex items-center gap-1 rounded max-sm:min-h-11 text-small text-text-muted hover:text-text-primary ${FOCUS_RING}`
 
@@ -23,7 +24,7 @@ function useTextSave(value: string, onSave: (v: string) => Promise<void>, what: 
     } catch (e) {
       attention.show({
         title: `${what} wasn’t changed`,
-        text: `${e instanceof Error && e.message ? e.message : 'Could not save.'} Nothing was changed.`,
+        text: `${pressFailureWords(e, 'Could not save.')} Nothing was changed.`,
         retry: () => void save(text),
       })
     } finally {

@@ -11,6 +11,7 @@ describe('which hosts are a provider @SC-1150', () => {
     'https://streaming.assemblyai.com/v3/ws',
     'https://api.inworld.ai/tts/v1/voice',
     'https://generativelanguage.googleapis.com/v1/models',
+    'https://api.exa.ai/search',
   ])('%s', (url) => expect(providerHostOf(url)).not.toBeNull())
 
   it('is not a local stand-in, GitHub or a look-alike', () => {
@@ -24,7 +25,7 @@ describe('which hosts are a provider @SC-1150', () => {
   })
 
   it('names the providers the code reaches', () => {
-    expect(PROVIDER_HOSTS).toEqual(expect.arrayContaining(['anthropic.com', 'openai.com', 'openrouter.ai', 'assemblyai.com', 'inworld.ai']))
+    expect(PROVIDER_HOSTS).toEqual(expect.arrayContaining(['anthropic.com', 'openai.com', 'openrouter.ai', 'assemblyai.com', 'inworld.ai', 'exa.ai']))
   })
 })
 

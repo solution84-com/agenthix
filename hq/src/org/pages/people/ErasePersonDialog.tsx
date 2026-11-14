@@ -3,6 +3,7 @@ import { useAction, useQuery, erasePerson, getErasedProjectCount } from 'wasp/cl
 import { Modal, Button, Input } from '@agenthix/ui/primitives'
 import { eraseConfirmationMatches } from './peopleFormat'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 type Person = { userId: string; name: string; handle: string | null }
 
@@ -18,7 +19,7 @@ export function ErasePersonDialog({ person, open, onClose }: { person: Person; o
   async function submit() {
     setBusy(true)
     setError(null)
-    try { await erase({ userId: person.userId, confirm: typed }); onClose() } catch (e) { setError(e instanceof Error ? e.message : String(e)) } finally { setBusy(false) }
+    try { await erase({ userId: person.userId, confirm: typed }); onClose() } catch (e) { setError(pressFailureWords(e)) } finally { setBusy(false) }
   }
 
   return (

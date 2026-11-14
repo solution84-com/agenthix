@@ -4,6 +4,7 @@ import { useDock } from '../../dock/DockContext'
 import type { PlaceRef } from '../../dock/startPlace'
 import type { BranchLineView } from '../../branches/views'
 import { agentOf } from '../words'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /**
  * Opens a branch's own chat in the app's chat panel: the conversation it came from, or a task's conversation, started
@@ -22,7 +23,7 @@ export function useBranchChat(place: PlaceRef) {
       if (found.conversation) dock.openConversation(found.conversation.id, null)
       else dock.startNew(place, null, { taskId, taskKey: taskKey ?? '', agentName: agentOf(line) })
     } catch (e) {
-      setError(e instanceof Error ? e.message : "The task's chat could not be opened.")
+      setError(pressFailureWords(e, "The task's chat could not be opened."))
     }
   }, [dock, place])
   return { open, error, dismissError: () => setError(null) }

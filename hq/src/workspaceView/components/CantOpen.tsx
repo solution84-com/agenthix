@@ -7,6 +7,7 @@ import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import type { WorkspaceRefusalView } from '../../branches/views'
 import { possessive } from '../words'
 import { ReadNudgesHeld, ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 const HOME = { href: '/', label: 'Home' }
 const projectHref = (key: string) => `/projects/${encodeURIComponent(key)}`
@@ -32,7 +33,7 @@ export function CantOpenWorkspace({ workspaceId, onRetry }: { workspaceId: strin
   if (error && held && !isRefused(error)) return <CantOpenPage back={HOME} title="Opening the workspace…" lines={[]} />
   if (error) {
     const retry = () => { void refetch(); onRetry?.() }
-    return <CantOpenPage back={HOME} title="This workspace can't be opened right now" lines={[`${error.message} Nothing was changed.`]} retry={retry} />
+    return <CantOpenPage back={HOME} title="This workspace can't be opened right now" lines={[`${pressFailureWords(error)} Nothing was changed.`]} retry={retry} />
   }
   const why = data as WorkspaceRefusalView | undefined
   if (!why) return <CantOpenPage back={HOME} title="Opening the workspace…" lines={[]} />

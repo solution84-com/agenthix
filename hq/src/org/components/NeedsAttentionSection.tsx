@@ -6,6 +6,7 @@ import { PROVIDERS_URL } from '../../admin/aiPage'
 import { ReadFailedLine } from '../../shared/siteRead'
 import { BUTTON_SECONDARY } from '@agenthix/ui/primitives'
 import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /**
  * No working model, and voice never set up, are read from what is stored each time, not kept as notifications: each
@@ -54,7 +55,7 @@ export function NeedsAttentionSection() {
   const run = async (key: string, work: () => Promise<unknown>) => {
     setBusy(key)
     setError('')
-    try { await work(); await refetch() } catch (err) { setError(err instanceof Error ? err.message : 'That did not work') } finally { setBusy(null) }
+    try { await work(); await refetch() } catch (err) { setError(pressFailureWords(err, 'That did not work')) } finally { setBusy(null) }
   }
 
   return (

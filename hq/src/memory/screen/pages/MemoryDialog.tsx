@@ -7,10 +7,11 @@ import { ReadFailure, ShowAttention, toast, useBackgroundRead } from '@agenthix/
 import type { MemoryItemView, MemoryScopeChoice } from '../../../shared/memory/protocol'
 import { KIND_LABELS, savedText } from './memoryFormat'
 import { MemoryBadge } from './MemoryRows'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 type Problem = { title: string; text: string; retry?: () => void }
 
-const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err))
+const messageOf = (err: unknown) => pressFailureWords(err)
 
 /**
  * The one way a memory is shown (spec decisions 6, 11, 12): from the memory screen, an agent's page, or Show on a

@@ -10,6 +10,7 @@ import { GroupDialog } from './GroupDialog'
 import { GroupProjects } from './GroupProjects'
 import { WORDS, projectsText, type Group, type GroupKind } from './groupKinds'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /**
  * Products and Programs (every screen reviewed spec §3, Organisation): the list beside the one opened, which shows its
@@ -41,7 +42,7 @@ export function GroupsScreen({ kind, slug }: { kind: GroupKind; slug?: string })
       await (kind === 'product' ? removeProduct({ productId: group.id }) : removeProgram({ programId: group.id }))
       navigate(words.base)
     } catch (err) {
-      setProblem(err instanceof Error ? err.message : `Could not delete the ${words.one}`)
+      setProblem(pressFailureWords(err, `Could not delete the ${words.one}`))
     }
   }
 

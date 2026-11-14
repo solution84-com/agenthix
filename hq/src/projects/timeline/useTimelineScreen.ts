@@ -7,11 +7,12 @@ import {
 import { useBackgroundRead } from '@agenthix/ui/attention'
 import { useNow } from '../pages/useNow'
 import { useMayWork } from '../../shared/hooks/useMayWork'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /** How often the timeline is read again, so a run's slice grows while the person watches. */
 const TIMELINE_REFRESH_MS = 30_000
 
-const failure = (e: unknown) => (e instanceof Error ? e.message : 'That did not work')
+const failure = (e: unknown) => pressFailureWords(e, 'That did not work')
 
 /**
  * The timeline's state and reads for one project: the scale,

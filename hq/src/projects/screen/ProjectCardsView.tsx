@@ -12,6 +12,7 @@ import type { ProjectCardLine } from '../projectCardQueries'
 import { CARD_GRID, PinnedProjects } from './PinnedProjects'
 import { ListControls } from './ListControls'
 import { byLatestActivity, cardCounts, noMatchLine, PIN_SAYS } from './projectList'
+import { pressFailureWords } from '../../shared/failureWords'
 
 type Named = { id: string; name: string }
 
@@ -74,7 +75,7 @@ export function ProjectCardsView({ projects, products, programs, lineOf, isLoadi
     try {
       await join({ projectId: project.id })
     } catch (err) {
-      attention.show({ title: `You did not join ${project.name}`, text: err instanceof Error ? err.message : 'HQ did not add you.', retry: () => void joinIt(project) })
+      attention.show({ title: `You did not join ${project.name}`, text: pressFailureWords(err, 'HQ did not add you.'), retry: () => void joinIt(project) })
     } finally {
       setJoiningId(null)
     }

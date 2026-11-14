@@ -5,6 +5,7 @@
  */
 import type { AppState, LivePreviewLimit, LivePreviewStateName, ServiceState } from '@agenthix/core'
 import type { LiveAppView, LivePreviewSecretsView, LivePreviewSiteView, LivePreviewView } from '../livePreviews/types'
+import { pressFailureWords } from '../shared/failureWords'
 
 export const PREVIEW_STATE_LABEL: Record<LivePreviewStateName, string> = {
   starting: 'Starting', running: 'Running', paused: 'Paused', stopped: 'Stopped',
@@ -49,8 +50,7 @@ export function shownAddress(address: string | null): string {
 
 /** The sentence an operation's refusal carries; HQ's own words, with a fallback for anything that is not one. */
 export function refusalOf(err: unknown, fallback: string): string {
-  if (err instanceof Error && err.message.trim()) return err.message
-  return `${fallback} Nothing was changed.`
+  return pressFailureWords(err, `${fallback} Nothing was changed.`)
 }
 
 /** The refusal's code, when HQ gave one a screen may branch on (`noDelivery`, `full`, `notRepository` …). */

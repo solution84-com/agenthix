@@ -8,6 +8,7 @@ import { BRANDING } from '@agenthix/core'
 import { COPY_FAILED_WORDS } from '../../../shared/copyText'
 import { useCopy } from '../../../shared/hooks/useCopy'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 export type CreatedInvite = { id: string; link: string }
 
@@ -41,7 +42,7 @@ export function InviteDialog({ open, onClose, onCreated }: { open: boolean; onCl
       setMade({ link: created.link, worksOnlyHere: created.addressWorksOnlyHere })
       onCreated({ id: created.id, link: created.link })
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(pressFailureWords(err))
     } finally {
       setBusy(false)
     }

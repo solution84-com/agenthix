@@ -3,6 +3,7 @@ import { useQuery, useAction, getTrustedPackageScopes, setTrustedPackageScopes }
 import { FILES_BUTTON } from '@agenthix/ui/projects'
 import { FIELD } from '@agenthix/ui/primitives'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 const FIELD_CLASS = `w-full rounded-lg ${FIELD} px-3 py-2 font-mono text-small`
 
@@ -30,7 +31,7 @@ export function TrustedPackageScopesSetting() {
       const { scopes } = await save({ scopes: scopesOf(text) })
       setText(scopes.join('\n'))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save that. Nothing was changed.')
+      setError(pressFailureWords(err, 'Could not save that. Nothing was changed.'))
     } finally {
       setBusy(false)
     }

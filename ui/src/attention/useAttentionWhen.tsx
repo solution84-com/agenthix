@@ -1,6 +1,8 @@
 import { Children, isValidElement, useEffect, useState, type ReactNode } from 'react'
 import { AttentionDialog, type Attention } from '../primitives'
 import { isDemoRefusal } from '../primitives/demoRefusal'
+import { failureWords } from './failureWords'
+import { useFailureServer } from './failureServer'
 import { Nudge, type NudgePlace } from './Nudge'
 
 /** What the dialog may be handed: words, a node, or a failure (an `Error`, or anything with a `message`). */
@@ -18,12 +20,21 @@ export type WhenOptions = Omit<Attention, 'text'> & {
   onClose?: () => void
 }
 
-function asNode(text: unknown): ReactNode {
+const STATUS_LINE = /^Request failed with status code/i
+
+/**
+ * Words and nodes are shown as given. A failure is said by `failureWords` for the server the app's root named
+ * (`FailureServer`), so it never shows a request's address or a status line; outside one, its message as it is.
+ */
+function asNode(text: unknown, server: string | null): ReactNode {
   if (text === null || text === undefined || text === false || text === true || text === '') return null
   if (typeof text === 'string' || typeof text === 'number') return String(text)
   if (isValidElement(text) || Array.isArray(text)) return text as ReactNode
-  if (text instanceof Error) return text.message
-  if (typeof text === 'object' && typeof (text as { message?: unknown }).message === 'string') return (text as { message: string }).message
+  const message = typeof text === 'object' && typeof (text as { message?: unknown }).message === 'string'
+    ? (text as { message: string }).message
+    : null
+  if (text instanceof Error) return server ? failureWords(text, server) : text.message
+  if (message !== null) return server ? failureWords(text, server, STATUS_LINE.test(message) ? undefined : message || undefined) : message
   return String(text)
 }
 
@@ -45,7 +56,7 @@ export function wordsOf(node: ReactNode): string {
 export function useAttentionWhen(text: AttentionText, { kind, place = 'meta', onClose, ...options }: WhenOptions): ReactNode {
   const rest = isDemoRefusal(text) ? { ...options, retry: undefined } : options
   const [shown, setShown] = useState<Attention | null>(null)
-  const node = asNode(text)
+  const node = asNode(text, useFailureServer())
   const key = node === null ? '' : wordsOf(node) || 'node'
   useEffect(() => {
     if (kind === 'alert' && node !== null) setShown({ ...rest, text: node })

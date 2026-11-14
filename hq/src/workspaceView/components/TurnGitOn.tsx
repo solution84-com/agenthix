@@ -6,6 +6,7 @@ import { Modal } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import { gitOnNote } from '../words'
 import { Nudge, ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export type GitTurnedOn = { leftOut: string[]; gitignoreAdded: boolean }
 
@@ -29,7 +30,7 @@ export function TurnGitOnDialog({ workspaceId, name, onClose, onDone }: {
       const result = await turnOn({ workspaceId })
       onDone({ leftOut: result.leftOut, gitignoreAdded: result.gitignoreAdded })
     } catch (e) {
-      setError(e instanceof Error ? `${e.message} Nothing was changed.` : 'Git could not be turned on. Nothing was changed.')
+      setError(`${pressFailureWords(e, 'Git could not be turned on.')} Nothing was changed.`)
     } finally {
       setBusy(false)
     }

@@ -3,6 +3,7 @@ import { useAction, stopAllSessions } from 'wasp/client/operations'
 import { Square } from 'lucide-react'
 import { Button } from '@agenthix/ui/primitives'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../failureWords'
 
 /** The organisation-wide Stop all (admins), on the organisation's Runs, until the Sites view takes it over. */
 export function StopAllRunsButton() {
@@ -19,7 +20,7 @@ export function StopAllRunsButton() {
         setStopping(true)
         setFailed(null)
         try { await stopAll({} as never) } catch (e) {
-          setFailed(e instanceof Error && e.message ? e.message : 'Stop all did not go through. Nothing was stopped.')
+          setFailed(pressFailureWords(e, 'Stop all did not go through. Nothing was stopped.'))
         } finally { setStopping(false) }
       }}
       disabled={stopping}

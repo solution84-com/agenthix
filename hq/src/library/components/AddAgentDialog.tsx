@@ -3,6 +3,7 @@ import { useAction, useQuery, applyAgentTemplate, getAgentTemplates } from 'wasp
 import { Button, FormField, Input, Modal } from '@agenthix/ui/primitives'
 import { MissingSkillsNotice } from '../pages/MissingSkillsNotice'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /** Add to agents: the library's agent becomes the organisation's own copy under a handle. */
 export function AddAgentDialog({ templateId, onClose }: { templateId: string | null; onClose: () => void }) {
@@ -21,7 +22,7 @@ export function AddAgentDialog({ templateId, onClose }: { templateId: string | n
     if (!template) return
     setBusy(true)
     setError('')
-    try { const done = await apply({ id: template.id, handle: handle.trim() }); setMade({ handle: done.handle, missingSkills: done.missingSkills }) } catch (err) { setError(err instanceof Error ? err.message : 'Could not add the agent') } finally { setBusy(false) }
+    try { const done = await apply({ id: template.id, handle: handle.trim() }); setMade({ handle: done.handle, missingSkills: done.missingSkills }) } catch (err) { setError(pressFailureWords(err, 'Could not add the agent')) } finally { setBusy(false) }
   }
 
   return (

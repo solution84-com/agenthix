@@ -12,6 +12,7 @@ import { refusalWords } from './PageActions'
 import { pageEmbed, pageFolder } from './pageEmbed'
 import type { KnowledgeOwner, KnowledgePageRow, LastChange } from './knowledgeTypes'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 export type EditTarget =
   | { kind: 'new'; section: string }
@@ -68,7 +69,7 @@ export function PageEditor({ owner, target, pages, backLabel, onCancel, onSaved 
       } else if (result.reason === 'problems' && result.problems?.length) setProblems(groupByField(result.problems))
       else setError(refusalWords(result))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nothing was changed.')
+      setError(pressFailureWords(e, 'Nothing was changed.'))
     } finally {
       setSaving(false)
     }

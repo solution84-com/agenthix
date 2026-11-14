@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useAction, getUserSettings, updateUserSettings } from 'wasp/client/operations'
 import { WorkflowSwitch } from '../../workflows/components/WorkflowSwitch'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 const NOW = {
   on: 'On. A short sound when voice is ready and when it ends, when you mute or unmute, and when the connection drops.',
@@ -24,7 +25,7 @@ export function VoiceSoundsSection() {
       await update({ voiceSounds: !on })
       await refetch()
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : 'That did not work.')
+      setError(pressFailureWords(err, 'That did not work.'))
     } finally {
       setSaving(false)
     }

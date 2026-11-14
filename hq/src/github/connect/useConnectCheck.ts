@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { checkConnect } from 'wasp/client/operations'
 import { isFinal, retryRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export type ConnectKind = 'new' | 'existing'
 type Target = { ownerType: 'user' | 'project'; ownerId: string; workspaceId?: string }
@@ -33,7 +34,7 @@ export function useConnectCheck(target: Target, kind: ConnectKind, text: string,
       // The check is a read made as the person types: it is tried again quietly, and only then said.
       retryRead(() => checkConnect({ target: { ownerType, ownerId, workspaceId }, kind, installationId, ...ask }), { signal: stop.signal })
         .then((a) => { if (latest.current === mine) setAnswer(a) })
-        .catch((e: unknown) => { if (latest.current === mine) setFailure({ words: e instanceof Error ? e.message : 'The check failed.', final: isFinal(e) }) })
+        .catch((e: unknown) => { if (latest.current === mine) setFailure({ words: pressFailureWords(e, 'The check failed.'), final: isFinal(e) }) })
         .finally(() => { if (latest.current === mine) setChecking(false) })
     }, WAIT_MS)
     return () => { clearTimeout(timer); stop.abort() }
