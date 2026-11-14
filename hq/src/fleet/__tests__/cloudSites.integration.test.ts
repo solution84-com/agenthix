@@ -33,7 +33,7 @@ beforeEach(async () => {
   await prisma.org.create({ data: { name: 'Test org' } })
 })
 
-describe('Cloud\'s site commands while Agenthix Cloud is off, as shipped (adr-0189)', () => {
+describe('Cloud\'s site commands while Agenthix Cloud is off, as shipped (adr-0189) @SC-2123', () => {
   it('refuses to register a site and makes none', async () => {
     expect(await register('machine-1', 'cloud-site-1')).toMatchObject({ ok: false, code: 'not_found' })
     expect(await prisma.executionSite.count({ where: { cloudMachineId: 'machine-1' } })).toBe(0)

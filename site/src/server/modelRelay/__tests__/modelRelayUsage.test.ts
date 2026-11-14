@@ -132,7 +132,7 @@ describe('each call through the relay is reported @SC-1228', () => {
   })
 })
 
-describe('Agenthix Cloud through the relay while its flag is off (adr-0189)', () => {
+describe('Agenthix Cloud through the relay while its flag is off (adr-0189) @SC-2127', () => {
   it('refuses the call as not available, without asking hq for a token or reaching the gateway', async () => {
     let asked = 0
     const before = cloudAnswer

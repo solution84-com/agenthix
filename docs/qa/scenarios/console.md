@@ -77,6 +77,8 @@ The Fleet Console has no accounts and no authority of its own: a fleet admin sig
 
 ## Agenthix Cloud
 
+*(Changed 2026-11-14: Agenthix Cloud is behind the `cloud` flag, at preview, until its service opens (ADR-0189, **SC-2128**); everything here holds only while the flag is on, and with it off the part says nothing of Cloud and refuses what asks for it: see **SC-2133**.)*
+
 - **SC-1068** — On a machine Cloud runs, remote access listens with the certificate chain Cloud had issued for the key made on the machine (the key kept readable by its owner only and never leaving it), announced with its end and the addresses it admits; a connection from an address outside the allow list is closed before any TLS; a certificate for another key, for another name, or that ends before remote access would is refused; asked again while on, it replaces all of it, also on the same port; a new request makes a new key while the key in use serves until a certificate for the new one arrives; off stops it now. · fulfils AC-336a, AC-336b · tests `console/src/__tests__/remoteAccess.test.ts`
 - **SC-1069** — Remote access ends by itself at its end, ending what came through it, and after a restart comes back until its end and not after it. · fulfils AC-336a · tests `console/src/__tests__/remoteAccess.test.ts`
 - **SC-1070** — Through the control socket, as the host service asks, the Fleet Console makes a request, turns remote access on with its certificate, says it is on, and turns it off; what is not valid is refused in words; an authenticator handed over is kept unclaimed, and handed over again is answered as added. · fulfils AC-336a · tests `console/src/__tests__/remoteControl.test.ts`
@@ -110,3 +112,9 @@ Written at the close of the unit *live preview*, from the finished code. The Fle
 
 - **SC-1777** — The Fleet Console asks hq which flagged features are on (`features.on`, host protocol 1.3), keeps only the flags it knows, keeps the answer briefly and then asks again, and fails closed: none is on while hq is not asked, does not answer or refuses. It tells a signed-in screen which are on and nobody else, and a flagged route answers 404, *not available* ending "Nothing was changed.", before its handler while the feature is off, and goes through while hq says it is on. · fulfils AC-429a, AC-429b · tests `console/src/__tests__/features.test.ts`
 - **SC-1779** — While the live preview's flag is off, every route for a site's live previews answers 404 and asks hq nothing about them, the screens are told it is off, and a site's page has no live-preview section. · fulfils AC-429b, AC-426e · tests `console/src/__tests__/siteLivePreviews.test.ts`, `console-web/src/__tests__/sitePage.test.tsx`
+
+## Agenthix Cloud behind the `cloud` flag, in the Fleet Console (added 2026-11-14)
+
+Written at the close of the unit *0.1.0-alpha.4*, from the finished code. The Fleet Console asks hq whether `cloud` is on (US-490, **SC-2128**).
+
+- **SC-2133** — While hq says the flag is off the Fleet Console's Cloud routes (`/api/cloud*`, `/api/remote-access`, `/api/authenticator`, with Cloud's asks and offers) answer not available after the session check, and the platform's Cloud reads too; through the control socket as the host service asks, remote access will not make a request, turn on or take a code and changes nothing, while turning it off and its status still answer; `/api/sign-in/remote` is not gated, since it answers before sign-in, when no flag can be known, and can say *remote* only when Cloud turned remote access on; a restart brings back remote access that was on, whatever the flag says. · fulfils AC-490d · tests `console/src/__tests__/cloud.test.ts`, `console/src/__tests__/remoteControl.test.ts`

@@ -88,7 +88,7 @@ describe('the demo reset schedule @SC-1996', () => {
     expect(log.at(-1)).toMatch(/^The demo was reset\. The next reset is at 2026-10-15T00:00:00\.000Z\.$/)
   })
 
-  it('tries a failed scheduled reset again after ten minutes, and again, until one finishes', async () => {
+  it('tries a failed scheduled reset again after ten minutes, and again, until one finishes @SC-2131', async () => {
     await installDemo()
     const log: string[] = []
     const schedule = demoResetSchedule(m.ctx, line => log.push(line))
@@ -122,7 +122,7 @@ describe('the demo reset schedule @SC-1996', () => {
     expect(attempts()).toBe(3)
   })
 
-  it('never overlaps a reset in progress', async () => {
+  it('never overlaps a reset in progress @SC-2131', async () => {
     await installDemo()
     const schedule = demoResetSchedule(m.ctx, () => {})
     const attempts = () => m.calls.filter(c => c[0] === 'volume' && c[1] === 'rm' && c[2] === 'demo-site-db-data').length

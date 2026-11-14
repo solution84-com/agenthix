@@ -154,7 +154,7 @@ describe('a working file opened in the file viewer @SC-1559 @SC-1869', () => {
   })
 })
 
-describe('the task\'s working files @SC-1560', () => {
+describe('the task\'s working files @SC-1560 @SC-2119', () => {
   it('say where a task\'s files come from when the folder is empty', () => {
     ops.data.listLocationFiles = { entries: [] }
     const { container } = render(<TaskWorkingFiles loc={loc} onOpen={vi.fn()} />)
@@ -205,7 +205,7 @@ describe('the task\'s working files @SC-1560', () => {
   })
 })
 
-describe('a path a run\'s result names @SC-1560', () => {
+describe('a path a run\'s result names @SC-1560 @SC-2120', () => {
   function result(content: string) {
     const onOpen = vi.fn()
     const facts = createEmbedBatch<FileFactsAnswer>(async files => files.map(() => ({ state: 'gone' as const })), 0)

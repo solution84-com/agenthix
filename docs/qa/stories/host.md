@@ -1,7 +1,7 @@
 ---
 name: User Stories — host
 description: Business-level requirements for the host service — what a machine admin, whoever can use Docker on a machine, needs from Agenthix on that machine. Written for business readers.
-updated: 2026-11-12
+updated: 2026-11-14
 ---
 
 # User Stories — `host/`
@@ -184,6 +184,7 @@ As a machine admin, I want the images HQ and its site run from to be published a
 - AC-335a: the release tag and the pre-release tags `-alpha.N`, `-beta.N` and `-rc.N` publish the images, and each image is checked against the workflow run for its own tag before it is fetched.
 - AC-335b: a machine that pulls private images is given a registry credential in its start-up settings, used for the pull and the signature check and nothing else, and never logged or sent anywhere.
 - AC-335c: an upgrade offers only the newest release, never a pre-release.
+- AC-335e: the published versions are read with the machine's registry credential when it has one, so a machine that pulls private images is offered upgrades; a registry that refuses the read is said to refuse it, with no credential shown, and is never taken for nothing being published. *(Added 2026-11-14)*
 - AC-335d: Agenthix Cloud depends on the same implementation of the host protocol as this repository, published from the same tags.
 
 ---
@@ -313,6 +314,6 @@ As the person who runs a public demo, I want one command to install it and a sch
 **Acceptance criteria:**
 - AC-477a: `agenthix install --demo` installs hq and its site with the demo setting in hq, its relay and the site, gives the site no machine Docker, publishes only HQ on a port of its own, starts no Fleet Console and takes no nightly backup, and the installation records that it is a demo; installing again without the flag keeps it one, and it is refused where an HQ that is not a demo is already installed.
 - AC-477b: every 6 hours, at 00:00, 06:00, 12:00 and 18:00 UTC, and on `agenthix demo reset` (after a question, unless `--yes`), the demo's containers, databases and storage are removed and HQ then its site started again, keeping the networks; the command is refused, touching nothing, on an installation that is not a demo.
-- AC-477c: a reset the host service missed while it was down happens at once when it is back, one that fails is said in the log and does not stop the next, and each that finishes is recorded.
+- AC-477c: a reset the host service missed while it was down happens at once when it is back, one that fails is said in the log with the time it will be tried again, and is tried again after 10 minutes and after each failure until one finishes, never later than the next scheduled time, and each that finishes is recorded. *(Changed 2026-11-14: a failed reset waited for the next scheduled time.)*
 - AC-477d: the demo's containers, and every front door, keep their logs in at most three files of 10 MB each, and the front door writes no access log.
 - AC-477e: a front door on the same machine serves the demo too (`front-door add-installation`) with a certificate for each of its names, and serves its files host as downloads only; installing without `--demo` writes what it wrote before.

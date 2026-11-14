@@ -40,7 +40,7 @@ beforeEach(() => { h.data = { getBillingProfiles: { month: '2026-10', timeZone: 
 afterEach(() => { cleanup(); h.data = {}; h.error = undefined; h.actions = {} })
 
 describe('the Billing profiles page and Agenthix Cloud (adr-0189)', () => {
-  it('names no Cloud while its flag is off, in the key or in a new profile\'s name hint', () => {
+  it('names no Cloud while its flag is off, in the key or in a new profile\'s name hint @SC-2124', () => {
     show()
     expect(document.body.textContent).not.toContain('Agenthix Cloud')
     fireEvent.click(screen.getByRole('button', { name: 'New billing profile' }))

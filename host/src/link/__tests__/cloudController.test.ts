@@ -80,7 +80,7 @@ describe('the Cloud controller this machine pins @SC-1058', () => {
   })
 })
 
-describe('a machine set up for Cloud while Agenthix Cloud is off (adr-0189)', () => {
+describe('a machine set up for Cloud while Agenthix Cloud is off (adr-0189) @SC-2129', () => {
   it('is one the organisation runs itself: Cloud\'s settings are ignored, and a Fleet Console is not refused for them', () => {
     expect(cloudSettings({ CLOUD_URL: 'https://cloud.example', CLOUD_MACHINE_ID: 'machine-1' })).toBeNull()
     expect(consoleRefusedForCloud(m.ctx.state, { CLOUD_URL: 'https://cloud.example' })).toBeNull()

@@ -65,7 +65,7 @@ async function threeProviders() {
   return { llm, stt, tts }
 }
 
-describe('Agenthix Cloud while its flag is off (adr-0189)', () => {
+describe('Agenthix Cloud while its flag is off (adr-0189) @SC-2123', () => {
   it('is never supplied as a provider: refused as not available, and nothing is stored', async () => {
     vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
     await expect(supplyCloudProvider({ kind: 'cloud_controller' })).rejects.toMatchObject({ statusCode: 404 })

@@ -24,7 +24,7 @@ import { withFeature } from '../../test/withFeature'
 
 const as = (user: { id: string } | null) => ({ user, entities: {} }) as any
 
-describe('Agenthix Cloud for members while its flag is off (adr-0189)', () => {
+describe('Agenthix Cloud for members while its flag is off (adr-0189) @SC-2123', () => {
   it('every read and write refuses as not available, and nothing is kept', async () => {
     cloud.name = 'Acme Robotics'
     const dana = await createUser()

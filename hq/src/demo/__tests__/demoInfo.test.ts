@@ -67,7 +67,7 @@ describe('getDemoInfo', () => {
     expect(info).toEqual({ on: true, nextResetAt: '2026-11-12T00:00:00.000Z', lastResetAt: null, agents: {} })
   })
 
-  it('says when the demo was last reset: when hq\'s data began, null when that cannot be read @SC-1948', async () => {
+  it('says when the demo was last reset: when hq\'s data began, null when that cannot be read @SC-1948 @SC-2122', async () => {
     setDemoModeForTests(true)
     process.env.DEMO_DATA_DIR = '/nowhere/at/all'
     db.findFirst.mockResolvedValue({ createdAt: new Date('2026-11-11T12:00:07Z') })

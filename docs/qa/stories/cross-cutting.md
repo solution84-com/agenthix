@@ -1,7 +1,7 @@
 ---
 name: User Stories — cross-cutting
 description: Business-level requirements that span more than one module. Each story maps to acceptance criteria in multiple modules' scenarios files.
-updated: 2026-11-12
+updated: 2026-11-14
 ---
 
 # User Stories — cross-cutting
@@ -256,3 +256,18 @@ As the person who installs Agenthix for an organisation, I want everything the d
 **Acceptance criteria:**
 - AC-478a: the demo is on only when `DEMO_MODE` is exactly `true`; unset, empty or anything else is off, and it is read once, at start, written only by the host service.
 - AC-478b: with it off the guard passes everything, the entry route is not there, the demo's information says only that it is off, no script, seed or clip is read, models and voices reach their vendors as before, the site runs its harnesses and Docker as before, the voice socket's events reach the voice service, and files keep their own disposition.
+
+## Agenthix Cloud waits behind a flag (added 2026-11-14)
+
+Written at the close of the unit *0.1.0-alpha.4*, from the finished code (ADR-0189, which supersedes ADR-0130). A release ships before Agenthix Cloud's service opens, so every part that offers or uses it is behind one flag at preview.
+
+### US-490 — Be offered no service that has not opened
+
+As the person who installs Agenthix for an organisation, I want a release to offer, name and call nothing of Agenthix Cloud until its service opens, so that no one in my organisation is shown a service they cannot use.
+
+**Acceptance criteria:**
+- AC-490a: one flag, `cloud`, holds Agenthix Cloud back in every part; at preview it is off in a released build whatever an organisation's switch says, and on in development.
+- AC-490b: with it off hq offers no connecting to Cloud, no Cloud as a provider, no signing in with an Agenthix account, no Cloud offers and no *where HQ runs*, refuses what asks for any of them, and asks Cloud nothing of its own accord; the sign-in pages show no trace of it, not even for a moment.
+- AC-490c: with it off a site relays no model call to Cloud.
+- AC-490d: with it off the host service ignores Cloud's settings and takes no enrolment, offers no `agenthix cloud` commands, and the Fleet Console offers no Cloud, no remote access to switch on and no code to set up; remote access that is already on can still be turned off.
+- AC-490e: with it on, in development, all of it works as before.

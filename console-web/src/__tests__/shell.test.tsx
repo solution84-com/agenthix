@@ -150,7 +150,7 @@ describe('the menu', () => {
     expect(screen.queryAllByText(/›/).filter(el => !el.closest('a[href^="/help"]'))).toHaveLength(0)
   })
 
-  it('lists Remote access among the jobs only while Agenthix Cloud is on (adr-0189) @SC-1077', () => {
+  it('lists Remote access among the jobs only while Agenthix Cloud is on (adr-0189) @SC-1077 @SC-2134', () => {
     expect(JOBS.map(i => i.label)).toContain('Remote access')
     expect(jobsFor(true).map(i => i.label)).toContain('Remote access')
     expect(jobsFor(false).map(i => i.label)).not.toContain('Remote access')

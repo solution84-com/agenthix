@@ -38,7 +38,7 @@ afterEach(() => {
   m.cleanup()
 })
 
-describe("the machine admin's Cloud commands while Agenthix Cloud is off (adr-0189)", () => {
+describe("the machine admin's Cloud commands while Agenthix Cloud is off (adr-0189) @SC-2130", () => {
   it('refuses the connection and the code reset without asking hq or the Fleet Console; turning remote access off stays open', async () => {
     m.hq['cloud-connection'] = { ok: true, text: 'Not connected.', data: { connection: null, connecting: null, lastAttempt: null, runByCloud: false } }
     expect(await ask({ op: 'hq.cloudConnection', action: 'state' })).toMatchObject({ ok: false, refusal: { code: 'conflict', message: expect.stringContaining('not available') } })

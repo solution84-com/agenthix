@@ -32,7 +32,7 @@ describe('the flag list (adr-0172) @SC-1761', () => {
     expect(FEATURE_FLAGS.marketplace.feature).toMatch(/Marketplace/)
   })
 
-  it('holds Agenthix Cloud at preview until its service opens (adr-0189)', () => {
+  it('holds Agenthix Cloud at preview until its service opens (adr-0189) @SC-2128', () => {
     expect(FEATURE_FLAGS.cloud.stage).toBe('preview')
     expect(FEATURE_FLAGS.cloud.removeWhen).toBe("Agenthix Cloud's service is open.")
     expect(isFeatureOn('cloud', { env: PRODUCTION, switches: { cloud: true } })).toBe(false)

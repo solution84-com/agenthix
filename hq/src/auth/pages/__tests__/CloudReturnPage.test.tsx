@@ -23,7 +23,7 @@ function open(finish: { status?: number; body: unknown }, query = `state=${STATE
 beforeEach(() => { api.setSessionId.mockReset(); sessionStorage.clear() })
 afterEach(cleanup)
 
-describe('back from Agenthix Cloud where hq offers no Cloud (adr-0189)', () => {
+describe('back from Agenthix Cloud where hq offers no Cloud (adr-0189) @SC-2125', () => {
   it('goes back to signing in, saying nothing of Cloud, and keeps no session', async () => {
     sessionStorage.setItem(`cloud_sign_in:${STATE}`, JSON.stringify({ binding: BINDING, purpose: 'signIn' }))
     const { leave } = open({ status: 404, body: { message: 'Agenthix Cloud is not available in this organisation. Nothing was changed.' } })

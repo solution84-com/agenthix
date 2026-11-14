@@ -48,7 +48,7 @@ const DOORS: Array<[string, Handler]> = [
   ['a site\'s ask for Cloud\'s AI token', cloudAiTokenHandler as Handler],
 ]
 
-describe('Agenthix Cloud\'s server doors while its flag is off (adr-0189)', () => {
+describe('Agenthix Cloud\'s server doors while its flag is off (adr-0189) @SC-2123', () => {
   for (const [name, handler] of DOORS) {
     it(`${name} refuses as not available, and reads or calls nothing`, async () => {
       touched.length = 0

@@ -26,7 +26,7 @@ beforeEach(async () => {
 })
 afterEach(() => m.cleanup())
 
-describe('what Cloud asks while Agenthix Cloud is off (adr-0189)', () => {
+describe('what Cloud asks while Agenthix Cloud is off (adr-0189) @SC-2130', () => {
   it('is refused as not available, even from the pinned Cloud identity, and nothing is done', async () => {
     expect(await cloudOperation(m.ctx, { op: 'stop', target: 'site' })).toMatchObject({ ok: false, refusal: { code: 'conflict', message: expect.stringContaining('not available') } })
     expect(shared.calls).toEqual([])

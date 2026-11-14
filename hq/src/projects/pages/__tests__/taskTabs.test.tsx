@@ -28,7 +28,7 @@ describe('the tabs @SC-515', () => {
     expect(screen.getByText('the runs')).toBeTruthy()
   })
 
-  it('have Files last, with its count, when the task has a folder', () => {
+  it('have Files last, with its count, when the task has a folder @SC-2119', () => {
     render(<TaskTabs session={null} comments={<p>c</p>} runs={<p>r</p>} activity={<p>a</p>} files={<p>the files</p>} fileCount={1} />)
     expect(screen.getAllByRole('tab').map(t => t.textContent)).toEqual(['Activity', 'Comments', 'Runs', 'Files1'])
     fireEvent.click(screen.getByRole('tab', { name: /Files/ }))

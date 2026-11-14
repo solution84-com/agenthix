@@ -11,7 +11,7 @@ import { ACCEPT_FIRST, CloudSignInOption } from '../parts/CloudSignInOption'
 afterEach(cleanup)
 const button = () => screen.getByRole('button', { name: 'Sign in with Agenthix Cloud' }) as HTMLButtonElement
 
-describe('Sign in with Agenthix Cloud where hq offers no Cloud (adr-0189)', () => {
+describe('Sign in with Agenthix Cloud where hq offers no Cloud (adr-0189) @SC-2125 @SC-1109', () => {
   it('is not drawn at all, before or after hq answers, on the sign-in page, an invitation or setup', async () => {
     for (const place of ['signIn', 'invite', 'setup'] as const) {
       const calls = fakeFetch({ '/api/auth/cloud/status': { status: 404, body: { message: 'Agenthix Cloud is not available in this organisation. Nothing was changed.' } } })

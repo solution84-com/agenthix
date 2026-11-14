@@ -43,7 +43,7 @@ const HASH = 'a'.repeat(64)
 
 beforeEach(() => { calls.length = 0 })
 
-describe("Cloud's commands while Agenthix Cloud is off (adr-0189)", () => {
+describe("Cloud's commands while Agenthix Cloud is off (adr-0189) @SC-2123", () => {
   it('are refused as not available, before anything is done', async () => {
     for (const [command, args] of [['cloud-first-link', ['r_1-x']], ['cloud-organisation-key', []], ['cloud-connection', ['state']]] as const) {
       expect(await runHqMachineCommand(command, [...args])).toMatchObject({ ok: false, code: 'not_found', error: expect.stringContaining('not available') })

@@ -51,7 +51,7 @@ describe('the pledge card @SC-1122', () => {
   })
 })
 
-describe('the pledge card while Agenthix Cloud is off (adr-0189)', () => {
+describe('the pledge card while Agenthix Cloud is off (adr-0189) @SC-2126', () => {
   it('asks Cloud nothing: a linked person gets the plain invitation, and Settings shows no signature', async () => {
     const dana = await createUser()
     standing.of.set(dana.id, { kind: 'signed', version: 1, currentVersion: 2, signerId: 's_1' })

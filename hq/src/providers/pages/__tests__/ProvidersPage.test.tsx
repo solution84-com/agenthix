@@ -198,7 +198,7 @@ describe('the other dialogs @SC-1173 @SC-1174', () => {
     await waitFor(() => expect(act('revokeAiProvider')).toHaveBeenCalledWith({ id: 'p2' }))
   })
 
-  it('offers no Agenthix Cloud while its flag is off, on the page or in the Add provider dialog (adr-0189)', () => {
+  it('offers no Agenthix Cloud while its flag is off, on the page or in the Add provider dialog (adr-0189) @SC-2124', () => {
     h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: true } }
     show()
     expect(screen.queryByRole('button', { name: /Agenthix Cloud/ })).toBeNull()

@@ -23,7 +23,7 @@ afterEach(async () => {
 
 const hashes = Array.from({ length: 10 }, (_, i) => i.toString(16).repeat(64))
 
-describe('remote access through the control socket while Agenthix Cloud is off (adr-0189)', () => {
+describe('remote access through the control socket while Agenthix Cloud is off (adr-0189) @SC-2133', () => {
   it('will not make a request, turn on or take a code, and changes nothing; off and its status still answer', async () => {
     await expect(requestControl(socketPath, 'remote-csr', { payload: { name: NAME } })).rejects.toThrow(/not available/)
     await expect(requestControl(socketPath, 'remote-on', { payload: { name: NAME, port: await freePort(), certificate: 'x', until: inHours(1), allow: ['127.0.0.1/32'] } })).rejects.toThrow(/not available/)

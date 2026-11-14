@@ -165,7 +165,7 @@ describe('Sign in with Agenthix Cloud @SC-1109', () => {
 })
 
 describe('the public demo', () => {
-  it('shows Enter the demo, the notice and the countdown in place of the sign-in form @SC-1948', async () => {
+  it('shows Enter the demo, the notice and the countdown in place of the sign-in form @SC-1948 @SC-2121', async () => {
     demo.info = { on: true, nextResetAt: new Date(Date.now() + (2 * 60 + 14) * 60_000 - 1_000).toISOString(), agents: {} }
     await open()
     expect(screen.getByTestId('enter-demo').textContent).toBe('Enter the demo')
@@ -180,7 +180,7 @@ describe('the public demo', () => {
     expect(screen.queryByLabelText('Password')).toBeNull()
   })
 
-  it('says when the demo was last reset beside the next reset, and nothing when that is unknown', async () => {
+  it('says when the demo was last reset beside the next reset, and nothing when that is unknown @SC-2122', async () => {
     const at = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString()
     demo.info = { on: true, nextResetAt: at(60), lastResetAt: at(-(2 * 60 + 5) + 0.5), agents: {} }
     await open()

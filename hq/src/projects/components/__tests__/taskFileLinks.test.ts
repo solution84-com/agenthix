@@ -6,7 +6,7 @@ import { resolveEmbedTarget } from '../../../shared/components/markdownEmbed/emb
 const files = new Set(['pages/work.md', 'notes.md', 'out/q3 report.pdf'])
 const spanned = (text: string) => fileSpans(text, files).map(s => text.slice(s.start, s.end))
 
-describe('the spans of a result that name a file of the task\'s folder', () => {
+describe('the spans of a result that name a file of the task\'s folder @SC-2120', () => {
   it('finds a path in a sentence, without the full stop after it', () => {
     const text = 'I drafted the Work page. The page is in pages/work.md.'
     expect(fileSpans(text, files)).toEqual([{ start: 40, end: 53, path: 'pages/work.md' }])
@@ -31,7 +31,7 @@ describe('the spans of a result that name a file of the task\'s folder', () => {
   })
 })
 
-describe('the folders a result names', () => {
+describe('the folders a result names @SC-2120', () => {
   it('are the folders of the paths it writes, the top as \'\', each once, at most the number asked', () => {
     expect(foldersNamed('pages/work.md and pages/home.md, notes.md, a/b/c.txt', 4)).toEqual(['pages', '', 'a/b'])
     expect(foldersNamed('a/x.md b/x.md c/x.md', 2)).toEqual(['a', 'b'])
@@ -56,7 +56,7 @@ const links = (node: Node): Node[] => [
   ...(node.children ?? []).flatMap(links),
 ]
 
-describe('the result\'s Markdown', () => {
+describe('the result\'s Markdown @SC-2120', () => {
   it('links a path in plain text, and one in inline code keeping it code', () => {
     const root = tree(para(text('The page is in pages/work.md.')))
     expect(root.children?.[0].children).toEqual([

@@ -24,7 +24,7 @@ const COMING = ROUTES.filter(([method, path]) =>
 const send = (method: string, path: string, auth: object) =>
   h.request(path, { method, body: method === 'POST' ? {} : undefined, ...auth })
 
-describe('Cloud routes while Agenthix Cloud is off (adr-0189)', () => {
+describe('Cloud routes while Agenthix Cloud is off (adr-0189) @SC-2133', () => {
   it.each(ROUTES)('%s %s answers not available, after the session check, and asks hq nothing about Cloud', async (method, path) => {
     expect((await h.request(path, { method })).status).toBe(401)
     const auth = await h.signIn()

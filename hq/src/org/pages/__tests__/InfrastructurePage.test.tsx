@@ -44,7 +44,7 @@ describe('Infrastructure › Logs and diagnostics row @SC-724', () => {
   })
 })
 
-describe('Infrastructure › Where HQ runs while Agenthix Cloud is off (adr-0189)', () => {
+describe('Infrastructure › Where HQ runs while Agenthix Cloud is off (adr-0189) @SC-2124', () => {
   it('says only that HQ is self-hosted, naming no Cloud', () => {
     data.current.getWhereHqRuns = { hosting: 'self', connectedAs: 'Acme Robotics' }
     render(<MemoryRouter><InfrastructurePage /></MemoryRouter>)

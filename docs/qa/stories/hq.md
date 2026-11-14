@@ -1,16 +1,16 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-11-12
+updated: 2026-11-14
 verified: 2026-06-19
-next-us: US-486
+next-us: US-491
 ---
 
 # User Stories — `hq/`
 
 > Business-level requirements for hq's users, and for the person who owns an Execution Site machine (stories US-182 to US-185).
 > Audience: business readers — no implementation detail.
-> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*. The stories from US-430 upward, and the criteria changed on 2026-11-08, at the close of the unit *tasks, runs, boards and routines*. The stories from US-456 upward (US-456 and US-457 are in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-11, at the close of the unit *a softer, more polished design system*. The stories from US-468 upward (US-477 is in [`host.md`](host.md), US-478 in [`cross-cutting.md`](cross-cutting.md)), on 2026-11-12, at the close of the unit *a live demo of hq*. The stories from US-479 upward, and US-055 as rewritten, on 2026-11-12, at the close of the unit *generated avatars and covers*.
+> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*. The stories from US-430 upward, and the criteria changed on 2026-11-08, at the close of the unit *tasks, runs, boards and routines*. The stories from US-456 upward (US-456 and US-457 are in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-11, at the close of the unit *a softer, more polished design system*. The stories from US-468 upward (US-477 is in [`host.md`](host.md), US-478 in [`cross-cutting.md`](cross-cutting.md)), on 2026-11-12, at the close of the unit *a live demo of hq*. The stories from US-479 upward, and US-055 as rewritten, on 2026-11-12, at the close of the unit *generated avatars and covers*. The stories from US-486 upward (US-490 is in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-14, at the close of the unit *0.1.0-alpha.4*.
 > A retired story or criterion keeps its number; nothing is renumbered. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/hq.md`](../scenarios/hq.md), [`../scenarios/site.md`](../scenarios/site.md)), never here.
 
 ---
@@ -3475,7 +3475,7 @@ As a member, I want the conversation to fit the window I have, from a wide scree
 
 ### US-338 — Sign in to HQ with my Agenthix account
 
-As a member whose organisation has connected HQ to Agenthix Cloud, I want to link my Agenthix account to my HQ account and sign in with it, so that I use one account, while HQ keeps working for everyone if Cloud is away.
+As a member whose organisation has connected HQ to Agenthix Cloud, I want to link my Agenthix account to my HQ account and sign in with it, so that I use one account, while HQ keeps working for everyone if Cloud is away. *(Changed 2026-11-14: this holds only while the `cloud` flag is on; in a released build it is off and nothing offers Cloud, US-490.)*
 
 **Acceptance criteria:**
 - AC-338a: in Settings › Sign-in I link my Agenthix account after entering my HQ password, and I can unlink it; an account linked to someone else is refused.
@@ -3541,10 +3541,10 @@ As a maintainer, I want a tag such as an alpha to carry the guide's new and chan
 
 ### US-344 — See that Agenthix Cloud exists, and ask for it
 
-As a member, I want sign-in pages and Settings to tell me what an Agenthix account would give me and let me ask for it, so that I can have it without finding out who runs HQ.
+As a member, I want sign-in pages and Settings to tell me what an Agenthix account would give me and let me ask for it, so that I can have it without finding out who runs HQ. *(Changed 2026-11-14: this holds only while the `cloud` flag is on; in a released build it is off and nothing offers Cloud, US-490.)*
 
 **Acceptance criteria:**
-- AC-344a: the sign-in page always carries *Sign in with Agenthix Cloud*; when HQ is not connected it is greyed out with its reason beneath, and a public page carries no link to Cloud.
+- AC-344a: the sign-in page carries *Sign in with Agenthix Cloud* once HQ has said it offers it; when HQ is not connected it is greyed out with its reason beneath, and a public page carries no link to Cloud.
 - AC-344b: on an invitation and in setup it is greyed out the same way, and when connected it says to accept with a username and password first and starts nothing.
 - AC-344c: in Settings › Sign-in, when HQ is not connected, I can ask a fleet admin to turn it on, once, for good; afterwards it says I asked.
 - AC-344d: the review at the end of setup mentions Cloud once, in a sentence with no action, and not on an HQ that Cloud runs.
@@ -3942,7 +3942,7 @@ As a member, I want a task's attachments and the files its runs worked on to ope
 
 **Acceptance criteria:**
 - AC-394a: a task's attachment opens in the file viewer over the task, with a way back named for the task, and still downloads. *(Changed 2026-11-10: it opened beside the task.)*
-- AC-394b: the folder the task's runs work in is listed under its attachments, and I step into its folders and open its files.
+- AC-394b: the folder the task's runs work in is listed in the task's Files tab (AC-486a), and I step into its folders and open its files. *(Changed 2026-11-14: it was listed under its attachments.)*
 - AC-394c: a task's file has a link that names the project, the task and the file, which opens the task and the file together; someone who cannot see the project is told it is not found.
 - AC-394d: a file in a task's own text, whatever place it is in, opens in the file viewer over the task. *(Changed 2026-11-10: a file of the place opened in its own tool.)*
 
@@ -4756,3 +4756,39 @@ As an organisation admin, I want an agent I work with to make or change another 
 
 **Acceptance criteria:**
 - AC-485a: an agent with the admin's role can ask for a fresh random picture or give a look, and the picture is made as the picker would make it; it cannot reach a person's, a team's or the organisation's.
+
+## A task's files, the demo's entry and its last reset (added 2026-11-14)
+
+Written at the close of the unit *0.1.0-alpha.4*, from the finished code. A task's files are in a tab of its page and a result's paths open them (US-486, US-487), and the demo's entry says what entering agrees to and when it was last reset (US-488, US-489). A demo reset that fails is tried again soon (AC-477c in [`host.md`](host.md)), and Agenthix Cloud waits behind a flag until its service opens (US-490 in [`cross-cutting.md`](cross-cutting.md)).
+
+### US-486 — Find what a task's runs wrote, in the task's own tab
+
+As a member, I want the files a task's runs wrote in its folder in a tab of the task's page, with how many there are, so that I find them where I look at the task's work, not at the bottom of its side panel.
+
+**Acceptance criteria:**
+- AC-486a: the task's page has a *Files* tab after Activity, Comments and Runs, with a count of the files and folders at the top of the task's folder, hidden ones not counted; an epic's page and a task of Your space have none.
+- AC-486b: it lists the folder, folder by folder, and I step into a folder and back and open a file beside the task; an empty folder says what shows there, and a listing that cannot be read says so, with Try again where it can help.
+- AC-486c: the open tab is kept in the address, and the task's side panel no longer holds the working files.
+
+### US-487 — Open a file a run's result names
+
+As a member, I want a path in a run's result to open the file it names, so that I read what the agent says it made without looking for it.
+
+**Acceptance criteria:**
+- AC-487a: a path in a result or a run's steps that names a file of the task's own folder is a link that opens the file beside the task; a folder, a path that is not there and part of a longer path are never links, and what is in a link or a code block is left as written.
+- AC-487b: while the folder is being read, or when it cannot be, the text reads as written, without links.
+
+### US-488 — Know what entering the demo agrees to
+
+As a visitor to the public demo, I want its entry to say what entering agrees to, so that I know the terms and not to type anything personal before I enter a demo that is shared.
+
+**Acceptance criteria:**
+- AC-488a: under *Enter the demo* one line links the Terms and the Privacy Policy, each opening in a new tab, and says not to type anything personal, as the demo is shared and wiped every 6 hours.
+
+### US-489 — See that the demo is still being reset
+
+As a visitor to the public demo, or the person who runs it, I want the entry page to say when the demo was last reset, so that a demo that has stopped resetting can be seen from outside.
+
+**Acceptance criteria:**
+- AC-489a: beside the time to the next reset the entry page says how long ago the last one was (*Last reset 2 h 4 min ago*, *Last reset just now*), and says nothing of it when that is not known.
+- AC-489b: the demo's public information carries when it was last reset, the start of hq's data, and says null when that cannot be read.

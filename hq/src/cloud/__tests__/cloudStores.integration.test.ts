@@ -55,7 +55,7 @@ describe("the connection's key and record", () => {
   })
 })
 
-describe('connecting HQ to Cloud while its flag is off (adr-0189)', () => {
+describe('connecting HQ to Cloud while its flag is off (adr-0189) @SC-2123', () => {
   it('refuses the admin operations and the console link\'s methods as not available, and asks Cloud nothing', async () => {
     const admin = await createUserWithRole('ADMIN')
     const asUser = (user: { id: string }) => ({ user: { id: user.id } }) as never

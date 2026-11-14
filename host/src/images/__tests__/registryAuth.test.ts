@@ -78,7 +78,7 @@ describe('the registry credential of a machine that pulls private images @SC-820
     expect(JSON.stringify(env)).not.toContain('fake-token-not-real')
   })
 
-  it("gives the host service's own registry requests the same login, only when both are set", () => {
+  it("gives the host service's own registry requests the same login, only when both are set @SC-2132", () => {
     expect(registryLogin(CREDENTIAL)).toBe(Buffer.from('fake-user:fake-token-not-real').toString('base64'))
     expect(registryLogin({ REGISTRY_USERNAME: 'fake-user' })).toBeUndefined()
     expect(registryLogin({})).toBeUndefined()

@@ -65,7 +65,7 @@ describe('the AI step @SC-1184', () => {
     expect(onNext).toHaveBeenCalled()
   })
 
-  it('B: the button opens the pop-up listing the vendors directly, and no Agenthix Cloud while its flag is off @SC-1843', () => {
+  it('B: the button opens the pop-up listing the vendors directly, and no Agenthix Cloud while its flag is off @SC-1843 @SC-2124', () => {
     show([], NONE)
     fireEvent.click(screen.getByRole('button', { name: /Add a provider/ }))
     expect(screen.getByRole('dialog')).toBeTruthy()

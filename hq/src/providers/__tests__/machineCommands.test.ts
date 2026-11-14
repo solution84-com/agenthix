@@ -58,7 +58,7 @@ describe('provider command @SC-1180', () => {
   })
 })
 
-describe('supplyCloudAfterConnect while Agenthix Cloud is off (adr-0189)', () => {
+describe('supplyCloudAfterConnect while Agenthix Cloud is off (adr-0189) @SC-2123', () => {
   it('adds nothing, even on a machine Cloud runs, and never fails the connect', async () => {
     vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
     await supplyCloudAfterConnect()

@@ -14,7 +14,7 @@ describe('versions, pre-releases included @SC-820 @SC-1052', () => {
   })
 })
 
-describe("the registry's published versions, read with the machine's credential while the images are private", () => {
+describe("the registry's published versions, read with the machine's credential while the images are private @SC-2132", () => {
   const LOGIN = Buffer.from('someone:a-read-token').toString('base64')
   type Asked = { url: string; authorization: string | null }
 

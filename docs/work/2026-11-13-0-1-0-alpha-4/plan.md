@@ -66,6 +66,9 @@ rehearsal.
       machine, an installation of `v0.1.0-alpha.3` under a test namespace moves to `v0.1.0-alpha.4`
       (`agenthix upgrades host`) and answers as the new version, its old container removed, hq, the site and the Fleet
       Console still running; and a switch that fails is put back.
+      **Moved out of this unit, to agenthix#31:** alpha.3 installed and ran, but its host service read the published
+      versions without its registry credential and, while the packages are private, offered no upgrade. Fixed on
+      `main` (`b1c192b6`); the first switch that can be proved is from the next pre-release to the one after.
 
 ## Not in this unit
 
@@ -88,3 +91,29 @@ launch; the Linux proofs left with the other proofs on real machines before 0.1.
 |---|---|---|
 | 14 Nov | Added 1.7: Agenthix Cloud behind a preview flag (ADR-0189, supersedes ADR-0130) | Cloud's service does not open with the first release; the product must not offer it before it is announced |
 | 14 Nov | Phase 2 cut by one Release workflow (ADR-0190, supersedes ADR-0146's tag pushed by hand): pin, release build, tag and publish in one run; the guide capture made one script | The capture broke four times, one push at a time, from two copies of its steps; the owner wanted the release to be one button |
+| 14 Nov | 3.1 moved to agenthix#31; the host service's version lookup fixed (`b1c192b6`) | The host service read the published versions anonymously, which a private registry refuses; the running (old) version does the lookup, so no switch from alpha.3 or alpha.4 can run while the packages are private |
+| 14 Nov | Done alongside: a retried demo reset says so in the log (`2aea1ad1`) | Found while building 1.5: the retry's log line read as the scheduled reset |
+
+## Closing note (14 Nov 2026)
+
+**Accepted by the owner** on 14 Nov, with 3.1 moved to agenthix#31. `v0.1.0-alpha.4` was published by the Release
+workflow on `2c0b2d7d`. Objectives 1–3 are met; objective 4 is carried by agenthix#31, which blocks `v0.1.0`.
+
+**Open items closed in the unit:** the Cloud wording on product screens (lane D's flag hides it while Cloud is off);
+the guide's Remote access screenshot and recipe (removed); the retried demo reset's log line (`2aea1ad1`); the host
+service's version lookup on a private registry (`b1c192b6`); agenthix#228 (closed, released in alpha.4).
+
+**Deferred as issues:** agenthix#265 (Files tab loses the way back up when a subfolder fails, the review's one Should
+fix), #266, #267, #268, #269, #270 (the review's Minor findings), #271 (an e2e test that fails only under the full
+regression's load), #272 (the Release workflow's pin push to `main` will be refused by its ruleset; blocks `v0.1.0`).
+Lane D's other choices (remote access can always be turned off; leftovers of a Cloud that was on stay listed) are
+recorded in its decisions, with nothing owed before 0.1.0's clean slate.
+
+**Not checked in a running app:** a run result's path as a live link, Cloud's gates outside hq's screens, and the demo
+on a real demo install. They wait for the QA audit before `v0.1.0`.
+
+**QA contract:** stories US-486 to US-490, scenarios SC-2119 to SC-2134, the scenarios the unit made untrue corrected
+(SC-515, SC-516, SC-1053, SC-1077, SC-1109, SC-1560, SC-1948, SC-1996), SC-1121 retired, the covering tests tagged. No
+QA audit ran at the close (a pre-release needs none); these entries await the audit before `v0.1.0`.
+
+**Decision records:** ADR-0189 and ADR-0190 written and Accepted in the unit; ADR-0146's patch rule annotated.

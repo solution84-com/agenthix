@@ -26,7 +26,7 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-describe('the offer to run a site on Agenthix Cloud while its flag is off (adr-0189)', () => {
+describe('the offer to run a site on Agenthix Cloud while its flag is off (adr-0189) @SC-2124', () => {
   it('shows a fleet admin nothing', () => {
     render(<CloudOffer offer="site" />)
     expect(screen.queryByRole('link')).toBeNull()

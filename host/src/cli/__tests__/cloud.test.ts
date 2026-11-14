@@ -7,7 +7,7 @@ import { withFeature } from '@agenthix/core/testing'
 
 const flat = (s: string) => s.replace(/\s+/g, ' ')
 
-describe('the Cloud commands while Agenthix Cloud is off (adr-0189)', () => {
+describe('the Cloud commands while Agenthix Cloud is off (adr-0189) @SC-2130', () => {
   it('are no commands, and help names no Cloud', () => {
     expect(parseCommand(['cloud', 'connect'])).toMatchObject({ kind: 'usage' })
     expect(parseCommand(['console', 'remote', 'on'])).toMatchObject({ kind: 'usage' })

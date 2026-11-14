@@ -45,7 +45,7 @@ afterEach(() => {
   sessionStorage.clear()
 })
 
-describe('Agenthix Cloud while its flag is off (adr-0189)', () => {
+describe('Agenthix Cloud while its flag is off (adr-0189) @SC-2134', () => {
   it('the dashboard, the menu and HQ\'s page name no Cloud, and its pages are not found', async () => {
     const requests = fakeServer(signedIn())
     openAt('/fleet')

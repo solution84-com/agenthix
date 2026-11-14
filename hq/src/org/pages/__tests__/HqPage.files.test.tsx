@@ -47,7 +47,7 @@ describe('HQ page › uploaded files', () => {
   })
 })
 
-describe('HQ page › where HQ runs while Agenthix Cloud is off (adr-0189)', () => {
+describe('HQ page › where HQ runs while Agenthix Cloud is off (adr-0189) @SC-2124', () => {
   it('has no such block, and names no Cloud', () => {
     data.current.getWhereHqRuns = { hosting: 'self', connectedAs: null }
     render(<HqPage />)

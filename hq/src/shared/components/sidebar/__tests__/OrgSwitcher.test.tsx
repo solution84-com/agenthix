@@ -27,7 +27,7 @@ function open(path = '/projects') {
   fireEvent.click(screen.getByRole('button', { name: 'Acme Robotics, organisations' }))
 }
 
-describe('the organisation switcher while Agenthix Cloud is off (adr-0189)', () => {
+describe('the organisation switcher while Agenthix Cloud is off (adr-0189) @SC-2124', () => {
   it('lists only this organisation, and names no Cloud, no way to switch and no way to start another', () => {
     ops.cloud = { ...ops.cloud, connected: true, linked: true }
     open()

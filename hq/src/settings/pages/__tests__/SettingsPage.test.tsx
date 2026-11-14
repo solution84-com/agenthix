@@ -49,7 +49,7 @@ beforeEach(() => {
 })
 
 describe('Settings › Sign-in and Agenthix Cloud (adr-0189)', () => {
-  it('has no Agenthix account row while Cloud is off', () => {
+  it('has no Agenthix account row while Cloud is off @SC-2124', () => {
     render(<MemoryRouter><SettingsPage /></MemoryRouter>)
     expect(screen.queryByTestId('cloud-account-row')).toBeNull()
   })
