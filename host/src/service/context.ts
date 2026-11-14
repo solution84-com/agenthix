@@ -53,9 +53,9 @@ export type Context = {
   portInUse?: PortInUse
   /** What backing up and restoring asks of Docker and of the folders the machine admin names. */
   backupIO: BackupIO
-  /** Lists an image repository's published tags; the registry's own anonymous API when absent. */
+  /** Lists an image repository's published tags, with the machine's registry credential if any; anonymously when absent. */
   registryTags?: TagLister
-  /** The platform image an image index lists for this machine; the registry's own anonymous API when absent. */
+  /** The platform image an image index lists for this machine, asked as the tags are; anonymously when absent. */
   registryPlatformDigest?: PlatformDigest
   /** The link to HQ's relay while a Fleet Console is pinned (`link/link.ts`); absent where nothing runs it. */
   link?: LinkHandle

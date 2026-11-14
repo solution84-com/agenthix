@@ -7,7 +7,7 @@ import { StateFolder } from '../../state/folder'
 import type { Context } from '../../service/context'
 import { fetchImages } from '../images'
 import { checkSignature } from '../signatures'
-import { childEnv, registryEnv } from '../registryAuth'
+import { childEnv, registryEnv, registryLogin } from '../registryAuth'
 import { signerFor } from '../published'
 
 const DIGEST = `sha256:${'ab'.repeat(32)}`
@@ -76,5 +76,11 @@ describe('the registry credential of a machine that pulls private images @SC-820
     const env = childEnv({ PATH: '/bin', ...CREDENTIAL, TZ: 'UTC' }, { DOCKER_CONFIG: '/state/registry/docker' })
     expect(env).toEqual({ PATH: '/bin', TZ: 'UTC', DOCKER_CONFIG: '/state/registry/docker' })
     expect(JSON.stringify(env)).not.toContain('fake-token-not-real')
+  })
+
+  it("gives the host service's own registry requests the same login, only when both are set", () => {
+    expect(registryLogin(CREDENTIAL)).toBe(Buffer.from('fake-user:fake-token-not-real').toString('base64'))
+    expect(registryLogin({ REGISTRY_USERNAME: 'fake-user' })).toBeUndefined()
+    expect(registryLogin({})).toBeUndefined()
   })
 })

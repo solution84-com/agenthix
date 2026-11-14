@@ -23,7 +23,9 @@ import { namesFor } from './state/namespace'
 import { readInstallation, startInstallation } from './state/installation'
 import { figuresVolumeWarning } from './figures/mount'
 import { checkSignature, cosignCli } from './images/signatures'
-import { registryEnv } from './images/registryAuth'
+import { registryEnv, registryLogin } from './images/registryAuth'
+import { registryTagsWith } from './upgrades/versions'
+import { registryPlatformDigestWith } from './upgrades/unchangedSince'
 import { DEVELOPMENT, ownVersion } from './images/ownVersion'
 import { machineStatus } from './status/machineStatus'
 import { Firewall, nftCli } from './protections/firewall'
@@ -98,6 +100,8 @@ async function main(): Promise<void> {
     machine: { name: machineName(state), hostServiceVersion: version },
     signatures: (ref, signer) => checkSignature(cosignCli, ref, signer, registryEnv(state, process.env)),
     registryEnv: () => registryEnv(state, process.env),
+    registryTags: registryTagsWith(() => registryLogin(process.env)),
+    registryPlatformDigest: registryPlatformDigestWith(() => registryLogin(process.env)),
     machinePaths: machinePathsFrom(docker, names.hostContainer, process.env.HOST_STATE_ON_MACHINE),
     figuresWarning: figuresVolumeWarning(readMountInfo(), FIGURES_MOUNT, names.hostFiguresVolume),
     sleep: ms => new Promise(resolve => setTimeout(resolve, ms)),

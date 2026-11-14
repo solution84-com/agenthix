@@ -1,6 +1,7 @@
 /**
  * Which published versions exist (host-management spec §11): the tags every image of a part carries in the
- * registry, read without credentials through the registry's own API. When the registry cannot be read, no version
+ * registry, read through the registry's own API: anonymously, or with the machine's registry credential while the
+ * images are private (images/registryAuth.ts). When the registry cannot be read, no version
  * is offered: an upgrade is never chosen from a guess.
  */
 import { imageName } from '@agenthix/core'
@@ -58,10 +59,6 @@ export function newest(versions: string[]): string | null {
 export const [REGISTRY_HOST, OWNER] = REGISTRY.split('/')
 export const TIMEOUT_MS = 20_000
 
-/**
- * The registry's anonymous route (the OCI distribution API, as ghcr serves it): a pull token for the repository,
- * then its tag list. No credentials are held or sent.
- */
 /** The registry answered that it holds no such image: nothing is published yet. */
 export class NothingPublished extends Error {
   constructor() {
@@ -69,30 +66,52 @@ export class NothingPublished extends Error {
   }
 }
 
-const NOT_THERE = new Set([401, 403, 404])
+/**
+ * The machine's registry credential as the registry's basic login (`username:token` in base64), when it has one
+ * (images/registryAuth.ts); asked each time, so a credential changed at a restart is the one used.
+ */
+export type RegistryLogin = () => string | undefined
 
-/** A pull token for `repository`, anonymously; throws `NothingPublished` when the registry holds no such image. */
-export async function registryToken(repository: string, signal: AbortSignal): Promise<string> {
-  const answer = await fetch(`https://${REGISTRY_HOST}/token?scope=repository:${repository}:pull&service=${REGISTRY_HOST}`, { signal })
-  if (NOT_THERE.has(answer.status)) throw new NothingPublished()
+const refused = (login: string | undefined) => new Error(login
+  ? "the registry refused this machine's registry credential"
+  : 'the registry asks for a credential to read it, and this machine has none')
+
+/**
+ * A pull token for `repository`: anonymously, or with the machine's credential while the images are private. Throws
+ * `NothingPublished` when the registry holds no such image: anonymously it answers 403 for that, and 401 for an image
+ * that is there but private.
+ */
+export async function registryToken(repository: string, signal: AbortSignal, login?: string): Promise<string> {
+  const answer = await fetch(`https://${REGISTRY_HOST}/token?scope=repository:${repository}:pull&service=${REGISTRY_HOST}`, {
+    ...(login ? { headers: { Authorization: `Basic ${login}` } } : {}), signal,
+  })
+  if (answer.status === 404 || (answer.status === 403 && !login)) throw new NothingPublished()
+  if (answer.status === 401 || answer.status === 403) throw refused(login)
   if (!answer.ok) throw new Error('the registry could not be asked just now')
   const { token } = (await answer.json()) as { token?: unknown }
   if (typeof token !== 'string') throw new Error('the registry gave no way to ask it')
   return token
 }
 
-export const registryTags: TagLister = async repository => {
-  const signal = AbortSignal.timeout(TIMEOUT_MS)
-  const token = await registryToken(repository, signal)
-  const answer = await fetch(`https://${REGISTRY_HOST}/v2/${repository}/tags/list?n=1000`, {
-    headers: { Authorization: `Bearer ${token}` }, signal,
-  })
-  if (NOT_THERE.has(answer.status)) throw new NothingPublished()
-  if (!answer.ok) throw new Error('the registry did not list the versions')
-  const { tags } = (await answer.json()) as { tags?: unknown }
-  if (!Array.isArray(tags)) throw new Error('the registry answered without a list of versions')
-  return tags.filter((t): t is string => typeof t === 'string')
+/** The registry's tag list, through the OCI distribution API as ghcr serves it, with the machine's credential if any. */
+export function registryTagsWith(login?: RegistryLogin): TagLister {
+  return async repository => {
+    const signal = AbortSignal.timeout(TIMEOUT_MS)
+    const credential = login?.()
+    const token = await registryToken(repository, signal, credential)
+    const answer = await fetch(`https://${REGISTRY_HOST}/v2/${repository}/tags/list?n=1000`, {
+      headers: { Authorization: `Bearer ${token}` }, signal,
+    })
+    if (answer.status === 404) throw new NothingPublished()
+    if (answer.status === 401 || answer.status === 403) throw refused(credential)
+    if (!answer.ok) throw new Error('the registry did not list the versions')
+    const { tags } = (await answer.json()) as { tags?: unknown }
+    if (!Array.isArray(tags)) throw new Error('the registry answered without a list of versions')
+    return tags.filter((t): t is string => typeof t === 'string')
+  }
 }
+
+export const registryTags: TagLister = registryTagsWith()
 
 export type Published = { ok: true; versions: string[] } | { ok: false; problem: string }
 

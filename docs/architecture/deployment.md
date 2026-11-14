@@ -150,8 +150,8 @@ the same forms, and a host test holds them together.
 has one. Put `REGISTRY_USERNAME` and `REGISTRY_TOKEN` in the host service's start-up settings
 (`--env-file /etc/agenthix/host.env` on its `docker run`); the token needs read access to the packages and nothing
 else. When both are set the host service writes a Docker client configuration of its own in its state folder,
-readable by its owner only (never the machine's `~/.docker`), and uses it for the image pull and for the signature
-check. The credential is never logged, never sent to hq, a site or an agent, and is dropped from the environment of
+readable by its owner only (never the machine's `~/.docker`), and uses it for the image pull, the signature check
+and its own reading of the published versions, so a staging machine is offered upgrades too. The credential is never logged, never sent to hq, a site or an agent, and is dropped from the environment of
 every command the host service starts. Without both, the host service pulls anonymously, as it always has.
 
 **A machine Agenthix Cloud runs** has three more start-up settings, written by Cloud when it creates the machine:

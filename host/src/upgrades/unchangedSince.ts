@@ -4,7 +4,7 @@
  * platform image. A release that changed nothing in a part publishes that part's image again unchanged, under a new
  * tag, so the tags tell which releases share it.
  *
- * Asked of the registry as `versions.ts` asks for tags (anonymously, with the same timeout) once per part and version,
+ * Asked of the registry as `versions.ts` asks for tags (with the same credential, if any, and the same timeout) once per part and version,
  * then kept in the state folder. A registry that cannot be read leaves the answer out and keeps nothing, and never
  * fails `status`.
  */
@@ -12,7 +12,7 @@ import { imageName } from '@agenthix/core'
 import { installed, type Context } from '../service/context'
 import { isDevelopmentBuild } from '../images/images'
 import { isReleaseVersion, type PublishedPart } from '../images/published'
-import { compare, OWNER, REGISTRY_HOST, registryTags, registryToken, sameLine, TIMEOUT_MS } from './versions'
+import { compare, OWNER, REGISTRY_HOST, registryTags, registryToken, sameLine, TIMEOUT_MS, type RegistryLogin } from './versions'
 
 /** The platform image (`sha256:…`) an index lists for this machine, given a tag or the index's digest; null when it lists none. */
 export type PlatformDigest = (repository: string, reference: string, signal?: AbortSignal) => Promise<string | null>
@@ -37,18 +37,22 @@ const INDEX_TYPES = [
 
 const architecture = () => (process.arch === 'x64' ? 'amd64' : process.arch)
 
-export const registryPlatformDigest: PlatformDigest = async (repository, reference, outer) => {
-  const signal = outer ? AbortSignal.any([outer, AbortSignal.timeout(TIMEOUT_MS)]) : AbortSignal.timeout(TIMEOUT_MS)
-  const token = await registryToken(repository, signal)
-  const answer = await fetch(`https://${REGISTRY_HOST}/v2/${repository}/manifests/${reference}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: INDEX_TYPES }, signal,
-  })
-  if (!answer.ok) throw new Error('the registry did not give the image index')
-  const body = (await answer.json()) as { manifests?: { digest?: unknown; platform?: { os?: unknown; architecture?: unknown } }[] }
-  if (!Array.isArray(body.manifests)) return reference.startsWith('sha256:') ? reference : answer.headers.get('docker-content-digest')
-  const mine = body.manifests.find(m => m.platform?.os === 'linux' && m.platform.architecture === architecture())
-  return typeof mine?.digest === 'string' ? mine.digest : null
+export function registryPlatformDigestWith(login?: RegistryLogin): PlatformDigest {
+  return async (repository, reference, outer) => {
+    const signal = outer ? AbortSignal.any([outer, AbortSignal.timeout(TIMEOUT_MS)]) : AbortSignal.timeout(TIMEOUT_MS)
+    const token = await registryToken(repository, signal, login?.())
+    const answer = await fetch(`https://${REGISTRY_HOST}/v2/${repository}/manifests/${reference}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: INDEX_TYPES }, signal,
+    })
+    if (!answer.ok) throw new Error('the registry did not give the image index')
+    const body = (await answer.json()) as { manifests?: { digest?: unknown; platform?: { os?: unknown; architecture?: unknown } }[] }
+    if (!Array.isArray(body.manifests)) return reference.startsWith('sha256:') ? reference : answer.headers.get('docker-content-digest')
+    const mine = body.manifests.find(m => m.platform?.os === 'linux' && m.platform.architecture === architecture())
+    return typeof mine?.digest === 'string' ? mine.digest : null
+  }
 }
+
+export const registryPlatformDigest: PlatformDigest = registryPlatformDigestWith()
 
 type Kept = Record<string, string | null>
 

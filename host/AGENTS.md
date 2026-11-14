@@ -35,8 +35,8 @@ Agenthix Cloud sets carries its own time zone instead (`upgrades/zoned.ts`).
 
 Start-up settings beyond these come from a file (`--env-file /etc/agenthix/host.env`), read once at start
 (`src/config.ts`): `REGISTRY_USERNAME` and `REGISTRY_TOKEN` for a staging machine's private image
-pulls (`src/images/registryAuth.ts`; the credential reaches only the pull and the signature check, never another
-command or container), and, on a machine Agenthix Cloud runs, `CLOUD_URL`, `CLOUD_MACHINE_ID` and
+pulls (`src/images/registryAuth.ts`; the credential reaches only the pull, the signature check and the host service's
+own reading of the published versions, never another command or container), and, on a machine Agenthix Cloud runs, `CLOUD_URL`, `CLOUD_MACHINE_ID` and
 `CLOUD_ENROLMENT_CODE_FILE`. The code file's folder must be mounted writable, because the host service
 deletes the file once the code is spent; the code is never logged. On such a machine hq is told so when its services are written (`HQ_RUN_BY_CLOUD`, with
 `CLOUD_URL` so it answers to the same Cloud; `compose/projects.ts`).
