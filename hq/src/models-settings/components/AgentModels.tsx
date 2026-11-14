@@ -6,7 +6,7 @@ import { useModelListSaver } from './saveList'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
 
 /**
- * An agent's own models, voice and list (models from one place, part 4), on its page in the admin area: the same rows
+ * An agent's own model, hearing, speaking and list (models from one place, part 4), on its page in the admin area: the same rows
  * as the organisation's, each saying whose it is. One left as the organisation's follows it when it changes.
  */
 export function AgentModels({ agentId, agentName }: { agentId: string; agentName: string }) {

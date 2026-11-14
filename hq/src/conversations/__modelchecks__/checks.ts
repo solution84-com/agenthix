@@ -11,6 +11,8 @@ import { CODE_WORK_CHECKS } from './codeWorkChecks'
 import { LIVE_PREVIEW_CHECKS } from './livePreviewChecks'
 import { TASK_RUN_CHECKS } from './taskRun/checks'
 import { STARTING_CHECKS } from './taskRun/startingChecks'
+import { WEB_SEARCH_CHECKS } from './taskRun/webSearchChecks'
+import { LEAD_WEB_SEARCH_CHECKS } from './leadWebSearchChecks'
 import { TASK_TOOL_CHECKS } from './taskToolChecks'
 import { MEMORY_CHECKS } from './memoryChecks'
 import type { TaskRunSetup } from './taskRun/setup'
@@ -136,6 +138,8 @@ export const CHECKS: readonly Check[] = [
   ...LIVE_PREVIEW_CHECKS,
   ...TASK_RUN_CHECKS,
   ...STARTING_CHECKS,
+  ...WEB_SEARCH_CHECKS,
+  ...LEAD_WEB_SEARCH_CHECKS,
   ...TASK_TOOL_CHECKS,
   ...MEMORY_CHECKS,
 ]

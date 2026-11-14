@@ -27,7 +27,6 @@ export function OrgSettingsPage() {
       <UploadedFilesSetting />
       <TrustedPackageScopesSetting />
       <OrgEntryGroup title="Access to models and tools">
-        <OrgEntryRow to="/admin/settings/model-access" title="Web search" line="The key agents search the web with" />
         <OrgEntryRow to="/admin/settings/github" title="GitHub" line={githubLine(github)} />
       </OrgEntryGroup>
       <OrgEntryGroup title="Where work runs">

@@ -18,16 +18,18 @@ import { DEFAULT_RUNTIME_TOOLS, RUNTIME_TOOLS } from '../shared/runtimeTools'
 
 /**
  * Effective permissions when agent.allowedTools is null ("use defaults").
- * Matches the pre-three-state defaults: filesystem always-on, web/bash never,
- * always-injected + default-on MCP always-on, administrative MCP never.
+ * Filesystem always-on, bash never, web ask (a person approves each fetch and
+ * search), always-injected + default-on MCP always-on, administrative MCP never.
+ * Read at run time, so a change here reaches every agent that saved no list.
  */
 export const DEFAULT_TOOL_PERMISSIONS: ToolPermission[] = [
   // Filesystem tools — always on by default
   ...DEFAULT_RUNTIME_TOOLS.map(n => ({ name: n, state: 'always' as const })),
-  // Bash + web — never by default (must be explicitly granted)
+  // Bash — never by default (must be explicitly granted)
   { name: RUNTIME_TOOLS.BASH.BASH,     state: 'never' as const },
-  { name: RUNTIME_TOOLS.WEB.WEB_FETCH,  state: 'never' as const },
-  { name: RUNTIME_TOOLS.WEB.WEB_SEARCH, state: 'never' as const },
+  // Web — ask by default: a page read can steer an agent, so a person approves each use unless an admin says Always
+  { name: RUNTIME_TOOLS.WEB.WEB_FETCH,  state: 'ask' as const },
+  { name: RUNTIME_TOOLS.WEB.WEB_SEARCH, state: 'ask' as const },
   // Always-injected MCP tools — on unless a mounted workspace's §H6 cap narrows
   // them (see mergeWithAlwaysInjected below for the agent-config-vs-workspace-cap split)
   ...ALWAYS_INJECTED_MCP_TOOLS.map(n => ({ name: n, state: 'always' as const })),

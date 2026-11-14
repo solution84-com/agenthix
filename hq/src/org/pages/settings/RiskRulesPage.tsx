@@ -4,6 +4,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { OrgAdminHeading, OrgAdminPage } from '../OrgAdminPage'
 import { FIELD, Button, NativeSelect } from '@agenthix/ui/primitives'
 import { useAttentionWhen, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 type RiskRule = { pattern: string; riskLevel: string }
 const LEVELS = ['SAFE', 'LOW', 'MEDIUM', 'HIGH', 'FLAGGED']
@@ -30,7 +31,7 @@ export function RiskRulesPage() {
     try {
       await save({ rules })
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(pressFailureWords(err))
     }
   }
 

@@ -62,7 +62,7 @@ Times are in the machine's own time zone. `agenthix help` lists the commands, an
 | `hq restore` | Brings back an HQ erased here, within its 30 days |
 | `hq logs [<part>]` | HQ's recent log lines: `hq-server`, `hq-web` and `hq-db`, or one of them. `--lines <n>` shows more or fewer |
 | `hq console-code` | A one-time code to run the Fleet Console on another machine, retiring the current one |
-| `provider add <vendor> [--name <name>] [--address <address>]` | Adds one of the organisation's model or voice providers: `anthropic`, `openai`, `google`, `openrouter`, `openai_compatible`, `assemblyai` or `inworld`. It asks for the key, not shown as you type; from a script, pipe it in. The key is checked with the vendor first. `openai_compatible` needs `--address`. Every organisation admin is told. See [Providers](../your-tools/providers.md#from-a-terminal) |
+| `provider add <vendor> [--name <name>] [--address <address>]` | Adds one of the organisation's model or voice providers: `anthropic`, `openai`, `google`, `openrouter`, `openai_compatible`, `assemblyai` or `inworld`. It asks for the key, not shown as you type; from a script, pipe it in. The key is checked with the vendor first. `openai_compatible` needs `--address`. Every organisation admin is told. See [the AI page](../your-tools/providers.md#from-a-terminal) |
 | `provider list` | The organisation's providers, what each provides (LLM, STT, TTS), whether it works, and its key's last four characters |
 | `provider remove <vendor> [--yes]` | Removes a provider after asking. Whatever used it falls to another of its type, and the answer says what. Refused when it would leave no model, speech-to-text or text-to-speech provider |
 

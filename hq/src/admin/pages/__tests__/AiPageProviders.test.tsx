@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
-/** The Providers page: each state in words, the dialogs, and that no stored key is ever drawn. No test calls a vendor. */
+/** The AI page's providers: adding one, Agenthix Cloud, and each line's dialogs. No test calls a vendor. */
 import React from 'react'
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import type { AiProviderSummary } from '@agenthix/core'
 
 // ui resolves its own copy of lucide-react (see boardColumnsView.test.tsx); its icons are mocked by that path.
 const uiLucideReactPath = vi.hoisted(() => {
@@ -19,98 +18,37 @@ const h = vi.hoisted(() => ({
 }))
 vi.mock('wasp/client/operations', async () => {
   const { featuresAnswer } = await import('../../../test/featuresAnswer')
-  const names = ['getFeatures', 'getAiProviders', 'getAiProviderRecords', 'getAiProviderImpact', 'addAiProvider', 'replaceAiProviderKey', 'renameAiProvider', 'removeAiProvider', 'revokeAiProvider', 'checkAiProviderNow', 'getHqCloudConnection', 'connectHqToCloud', 'disconnectHqFromCloud']
+  const names = ['getFeatures', 'getAiProviders', 'getAiProviderRecords', 'getAiProviderImpact', 'addAiProvider', 'replaceAiProviderKey', 'renameAiProvider', 'removeAiProvider', 'revokeAiProvider', 'checkAiProviderNow', 'getHqCloudConnection', 'connectHqToCloud', 'disconnectHqFromCloud', 'getModelsSettings', 'getWebSearchKeyStatus', 'setModelDefaults', 'setModelList', 'setWebSearchKey', 'deleteWebSearchKey']
   return {
     ...Object.fromEntries(names.map(n => [n, n])),
     useQuery: (op: string) => ({ data: op === 'getFeatures' ? featuresAnswer() : h.data[op], error: undefined }),
     useAction: (op: string) => (h.actions[op] ??= vi.fn().mockResolvedValue({})),
   }
 })
+vi.mock('../../../models-settings/components/ListEditor', () => ({ ListEditor: ({ intro }: { intro: string }) => <div>The list editor: {intro}</div> }))
 vi.mock('../../../shared/layouts/AppLayout', () => ({ AppLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 
-import { ProvidersPage } from '../ProvidersPage'
+import { AiPage } from '../AiPage'
 import { withFeature } from '@agenthix/core/testing'
+import { anthropic as base, assembly, cloud, custom, settings } from './aiPageFixtures'
 
-const base: AiProviderSummary = {
-  id: 'p1', name: 'Anthropic', vendor: 'anthropic', types: ['llm'], credential: 'api_key', baseUrl: null, keyHint: 'a3f9',
-  state: 'works', stateSince: '2026-10-12T09:00:00Z', stateDetail: null, lastCheckedAt: null, lastWorkedAt: null,
-  usedBy: { defaults: ['conversation'], agents: [] }, costThisMonth: [], createdAt: '2026-10-12T09:00:00Z',
-}
-const assembly: AiProviderSummary = {
-  ...base, id: 'p2', name: 'AssemblyAI', vendor: 'assemblyai', types: ['stt'], keyHint: '91c1', state: 'key_refused',
-  stateDetail: 'invalid API key', usedBy: { defaults: ['stt'], agents: [] },
-}
-const cloud: AiProviderSummary = {
-  ...base, id: 'p3', name: 'Agenthix Cloud', vendor: 'cloud', types: ['llm', 'stt', 'tts'], credential: 'none', keyHint: null,
-  state: 'not_available', usedBy: { defaults: [], agents: [] },
-}
-const custom: AiProviderSummary = { ...base, id: 'p4', name: 'Our server', vendor: 'openai_compatible', baseUrl: 'https://models.example.org/v1', keyHint: 'zz11' }
-
-const show = (url = '/admin/providers') => render(<MemoryRouter initialEntries={[url]}><ProvidersPage /></MemoryRouter>)
+const show = (url = '/admin/ai') => render(<MemoryRouter initialEntries={[url]}><AiPage /></MemoryRouter>)
 const act = (name: string) => (h.actions[name] ??= vi.fn().mockResolvedValue({}))
 const openMenu = (provider: string, item: string) => {
+  fireEvent.click(within(screen.getByRole('list', { name: 'Providers' })).getByRole('button', { name: new RegExp(`^${provider}`) }))
   fireEvent.click(screen.getByRole('button', { name: `More about ${provider}` }))
   fireEvent.click(screen.getByRole('menuitem', { name: item }))
 }
 
-beforeEach(() => { h.data = { getAiProviders: [base, assembly, cloud, custom] } })
+beforeEach(() => { h.data = { getAiProviders: [base, assembly, cloud, custom], getModelsSettings: settings, getWebSearchKeyStatus: { present: false } } })
 afterEach(() => { cleanup(); h.data = {}; h.actions = {} })
 
-describe('the Providers page @SC-1178', () => {
-  it('lists each provider with its state in words, the vendor message, what uses it and the key end', () => {
-    show()
-    const anthropic = screen.getByText('Anthropic', { selector: 'h3' }).closest('li')!
-    expect(within(anthropic).getByText('Works')).toBeTruthy()
-    expect(anthropic.textContent).toContain('key ending …a3f9')
-    expect(anthropic.textContent).toContain('Used by the default model')
-    const refused = screen.getByText('AssemblyAI', { selector: 'h3' }).closest('li')!
-    expect(within(refused).getByText('Key refused')).toBeTruthy()
-    expect(refused.textContent).toContain('AssemblyAI says: invalid API key')
-  })
-
-  it('shows a custom endpoint’s address on its line', () => {
-    show()
-    expect(screen.getByText('https://models.example.org/v1')).toBeTruthy()
-  })
-
-  it('reads Agenthix Cloud as not available yet, with no key or key menu', () => {
-    show()
-    const line = screen.getByText('Agenthix Cloud', { selector: 'h3' }).closest('li')!
-    expect(within(line).getByText('Not available yet')).toBeTruthy()
-    expect(within(line).queryByRole('button', { name: /More about/ })).toBeNull()
-  })
-
-  it('never draws a stored key: only its last four characters', () => {
-    show()
-    expect(document.body.innerHTML).not.toMatch(/sk-/)
-    expect(document.querySelectorAll('input[type=password]').length).toBe(0)
-  })
-
-  it('marks the line a notification linked to', () => {
-    show('/admin/providers?provider=p2')
-    expect(document.getElementById('provider-p2')?.getAttribute('aria-current')).toBe('true')
-    expect(document.getElementById('provider-p1')?.getAttribute('aria-current')).toBeNull()
-  })
-
-  it('says so when there are no providers', () => {
-    h.data = { getAiProviders: [] }
-    show()
-    expect(screen.getByText(/No providers yet/)).toBeTruthy()
-  })
-
-  it('checks a provider now', async () => {
-    show()
-    fireEvent.click(within(screen.getByText('Anthropic', { selector: 'h3' }).closest('li')!).getByRole('button', { name: 'Check now' }))
-    await waitFor(() => expect(act('checkAiProviderNow')).toHaveBeenCalledWith({ id: 'p1' }))
-  })
-})
-
-describe('adding a provider @SC-1170 @SC-1178 @SC-1843', () => {
+describe('adding a provider on the AI page @SC-1170 @SC-1178 @SC-1843', () => {
   it('lists the vendors directly, then asks for the key, and offers only vendors not yet added', async () => {
     show()
-    fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add a provider' })[0])
     expect(screen.queryByText('What does the provider do?')).toBeNull()
-    expect(screen.queryByText('Anthropic', { selector: 'span' })).toBeNull()
+    expect(within(screen.getByRole('list', { name: 'Providers to add' })).queryByText('Anthropic')).toBeNull()
     fireEvent.click(screen.getByText('OpenAI'))
     const key = screen.getByLabelText('API key') as HTMLInputElement
     expect(key.type).toBe('password')
@@ -120,9 +58,9 @@ describe('adding a provider @SC-1170 @SC-1178 @SC-1843', () => {
   })
 
   it('asks for the address of a custom endpoint and sends it', async () => {
-    h.data = { getAiProviders: [base] }
+    h.data = { ...h.data, getAiProviders: [base] }
     show()
-    fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add a provider' })[0])
     fireEvent.click(screen.getByText('Your own OpenAI-compatible endpoint'))
     fireEvent.change(screen.getByLabelText('Address'), { target: { value: 'https://x.example/v1' } })
     fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'sk-test-fake-key' } })
@@ -131,9 +69,9 @@ describe('adding a provider @SC-1170 @SC-1178 @SC-1843', () => {
   })
 
   it('saves a custom endpoint with no key, which the server accepts', async () => {
-    h.data = { getAiProviders: [base] }
+    h.data = { ...h.data, getAiProviders: [base] }
     show()
-    fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add a provider' })[0])
     fireEvent.click(screen.getByText('Your own OpenAI-compatible endpoint'))
     fireEvent.change(screen.getByLabelText('Address'), { target: { value: 'http://host.docker.internal:11434/v1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -143,7 +81,7 @@ describe('adding a provider @SC-1170 @SC-1178 @SC-1843', () => {
   it('shows the vendor’s reason under the key field when it refuses', async () => {
     act('addAiProvider').mockRejectedValue(new Error('OpenAI refused this key: invalid x-api-key'))
     show()
-    fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add a provider' })[0])
     fireEvent.click(screen.getByText('OpenAI'))
     fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'sk-test-fake-key' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -199,29 +137,29 @@ describe('the other dialogs @SC-1173 @SC-1174', () => {
   })
 
   it('offers no Agenthix Cloud while its flag is off, on the page or in the Add provider dialog (adr-0189) @SC-2124', () => {
-    h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: true } }
+    h.data = { ...h.data, getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: true } }
     show()
     expect(screen.queryByRole('button', { name: /Agenthix Cloud/ })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add a provider' })[0])
     expect(screen.queryByRole('button', { name: /^Agenthix Cloud/ })).toBeNull()
     expect(screen.getByRole('list', { name: 'Providers to add' }).textContent).not.toContain('Cloud')
   })
 
   withFeature('cloud', () => {
     it('connects Agenthix Cloud from the page, and from the Add provider dialog @SC-1179', () => {
-      h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
+      h.data = { ...h.data, getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
       show()
       fireEvent.click(screen.getByRole('button', { name: 'Connect Agenthix Cloud' }))
       expect(screen.getByLabelText('Agenthix Cloud connection')).toBeTruthy()
       cleanup()
-      h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
+      h.data = { ...h.data, getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: false } }
       show()
-      fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+      fireEvent.click(screen.getAllByRole('button', { name: 'Add a provider' })[0])
       expect((screen.getByRole('button', { name: /^Agenthix Cloud/ }) as HTMLButtonElement).disabled).toBe(true)
       cleanup()
-      h.data = { getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: true } }
+      h.data = { ...h.data, getAiProviders: [base], getHqCloudConnection: { connection: null, connecting: null, lastAttempt: null, problem: null, runByCloud: false, aiAvailable: true } }
       show()
-      fireEvent.click(screen.getByRole('button', { name: 'Add provider' }))
+      fireEvent.click(screen.getAllByRole('button', { name: 'Add a provider' })[0])
       fireEvent.click(screen.getByRole('button', { name: /^Agenthix Cloud/ }))
       expect(screen.getByLabelText('Agenthix Cloud connection')).toBeTruthy()
     })

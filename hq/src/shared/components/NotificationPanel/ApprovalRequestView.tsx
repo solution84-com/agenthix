@@ -12,6 +12,7 @@ import { PanelHead } from './PanelHead'
 import { RequestCommand } from './RequestCommand'
 import { ShowAttention } from '@agenthix/ui/attention'
 import { ReadFailed } from '../../siteRead'
+import { pressFailureWords } from '../../failureWords'
 
 type TaskByKey = { id: string; title: string; assignedAgent: { name: string } | null; project: { name: string } }
 type TaskSession = {
@@ -54,7 +55,7 @@ export function ApprovalRequestView({ taskKey, from, onBack }: { taskKey: string
       await Promise.all([refetchNotifications(), refetchRuns()])
       onBack()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'The answer was not taken')
+      setError(pressFailureWords(e, 'The answer was not taken'))
     } finally {
       setBusy(false)
     }

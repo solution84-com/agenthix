@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import {
   useAction, useQuery, getTaskByKey, getTaskSession, getSessionPendingManifest, getNotifications, getMyRuns, approveManifest,
 } from 'wasp/client/operations'
+import { pressFailureWords } from '../../failureWords'
 
 type Pending = { runId: string; sessionId: string } | null
 
@@ -35,7 +36,7 @@ export function useApproveNow(): {
       await approveRequest({ runId: pending.runId, sessionId: pending.sessionId })
       return true
     } catch (e) {
-      setFailure(e instanceof Error && e.message ? e.message : 'The request was not approved. Nothing was changed.')
+      setFailure(pressFailureWords(e, 'The request was not approved. Nothing was changed.'))
       return true
     } finally {
       // Whether it was approved or already answered, both panels read the new state.

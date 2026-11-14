@@ -4,6 +4,7 @@ import { useBackgroundRead } from '@agenthix/ui/attention'
 import { OrgAdminHeading, OrgAdminPage } from '../../org/pages/OrgAdminPage'
 import { FIELD, Button, Switch } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 interface OrgAutomation {
   agentSchedules: boolean
@@ -77,7 +78,7 @@ function OrgAutomationForm() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save')
+      setError(pressFailureWords(e, 'Could not save'))
     } finally {
       setBusy(false)
     }

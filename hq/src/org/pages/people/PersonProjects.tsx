@@ -5,6 +5,7 @@ import { Button, NativeSelect, FOCUS_RING } from '@agenthix/ui/primitives'
 import { PROJECT_ROLE_CHOICES, firstName, projectRoleLabel, type ProjectRoleData } from '@agenthix/ui/people'
 import type { OrgPersonView } from '../../../settings/orgPeopleQueries'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 type ProjectChoice = { id: string; key: string; name: string; personalOwnerId: string | null }
 type Role = ProjectRoleData
@@ -14,7 +15,7 @@ function ProjectRoleSelect({ projectId, userId, role, label }: { projectId: stri
   const [error, setError] = useState<string | null>(null)
   const [next, setNext] = useState<Role>(role)
   const errorDialog = useAttentionWhen(error, { kind: 'alert', title: 'The role was not changed', retry: () => change(next) })
-  const change = (r: Role) => { setError(null); setNext(r); void setRole({ projectId, userId, role: r }).catch(err => setError(err instanceof Error ? err.message : String(err))) }
+  const change = (r: Role) => { setError(null); setNext(r); void setRole({ projectId, userId, role: r }).catch(err => setError(pressFailureWords(err))) }
   return (
     <>
     <NativeSelect size="sm" aria-label={label} className="w-auto" value={role}
@@ -35,7 +36,7 @@ function AddToProject({ person, options, onDone }: { person: OrgPersonView['pers
 
   async function submit() {
     setError(null)
-    try { await add({ projectId, userId: person.userId, role }); setProjectId(''); onDone() } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
+    try { await add({ projectId, userId: person.userId, role }); setProjectId(''); onDone() } catch (e) { setError(pressFailureWords(e)) }
   }
 
   return (

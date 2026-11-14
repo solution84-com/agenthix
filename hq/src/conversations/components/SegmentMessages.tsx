@@ -5,6 +5,7 @@ import { formatTime } from '@agenthix/ui/sessions'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { wordsOf } from '../long/zoom/spans'
 import { ReadFailure, ShowAttention, retryRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /**
  * The messages a compaction covers, read from the record a page at a time, newest page first and shown in order. The
@@ -30,7 +31,7 @@ export function SegmentMessages({ conversationId, firstSeq, lastSeq }: { convers
       setMore(page.hasMore && inSpan.length === page.messages.length)
     } catch (err) {
       if (first) setFirstFailed(true)
-      else setError(err instanceof Error ? err.message : 'The messages could not be loaded.')
+      else setError(pressFailureWords(err, 'The messages could not be loaded.'))
     } finally {
       setLoading(false)
     }

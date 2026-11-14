@@ -6,6 +6,7 @@ import { INPUT } from './Part'
 import type { DeleteOffer } from './settingsRights'
 import type { SettingsProject } from './types'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 /**
  * Deleting is the organisation admins'; a project admin is told so, and anyone else sees nothing. A personal
@@ -33,7 +34,7 @@ export function DeleteSection({ project, offer }: { project: SettingsProject; of
       await remove({ projectId: project.id })
       navigate('/projects')
     } catch (err) {
-      setProblem(err instanceof Error ? err.message : 'Could not delete the project')
+      setProblem(pressFailureWords(err, 'Could not delete the project'))
       setBusy(false)
     }
   }

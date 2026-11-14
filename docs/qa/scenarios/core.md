@@ -282,3 +282,10 @@ Written at the close of the unit *a live demo of hq*, from the finished code. hq
 Written at the close of the unit *0.1.0-alpha.4*, from the finished code. Every part that offers or uses Agenthix Cloud checks one flag (ADR-0189, which supersedes ADR-0130); the rule is **SC-1761**.
 
 - **SC-2128** — The flag `cloud` is in core's list at preview, naming the feature it holds back (Agenthix Cloud everywhere it is offered or used) and *Agenthix Cloud's service is open.* as when it goes: by the one rule it is on in development unless switched off and off in production whatever the organisation's switch, so a released build offers no Cloud and an organisation cannot turn it on. `usageBilling` stays a flag of its own. · fulfils AC-490a, AC-490e · tests `core/src/shared/__tests__/featureFlags.test.ts`
+
+## What an agent says when it cannot search (added 2026-11-14)
+
+Written at the close of the unit *what agents can do*, from the finished code. The words are in core so that the site that sends them, hq's conversation reply and the model checks that test their wording send the same ones.
+
+- **SC-2157** — Core holds the words for a search that cannot happen, one per reason: with no search key, *I work in OpenCode, and this organisation hasn't added the search key…* naming Manage organisation › AI and its Web search line; with the agent's tools at Never, that its tools do not allow it, where an admin allows it (Agents › Manage agents, Permissions, Search the web, under Web) as Ask or Always; in a run nobody can approve, that it needs a person's approval. Each offers to answer from what the agent knows, and the instructions built from them tell the run never to pretend to search, never to fetch a search engine's page in its place, and, for the tools' reasons, never to say a key is missing; the no-key instructions are unchanged. · fulfils AC-495a, AC-495b · tests `core/src/harness/__tests__/webSearchInstructions.test.ts`
+

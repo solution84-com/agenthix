@@ -7,6 +7,7 @@ import { RunDialog } from '../../workflows/components/RunDialog'
 import { isLivePreviewWorkflow } from '../../livePreviews/workflowNames'
 import { DEPLOY_NONE, DEPLOY_PREVIEW_ONLY, VIEWER_REASON } from '../words'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 type PlaceWorkflows = { workflows: ListedWorkflow[]; mayRun: boolean }
 
@@ -45,7 +46,7 @@ export function DeployList({ place, workspaceId }: { place: WorkflowPlace; works
     try {
       await start({ workflowId: w.id, workspaceId, parameters: {} })
     } catch (e) {
-      setFailed(e instanceof Error ? e.message : `${w.name} did not start. Nothing was changed.`)
+      setFailed(pressFailureWords(e, `${w.name} did not start. Nothing was changed.`))
     }
   }
 

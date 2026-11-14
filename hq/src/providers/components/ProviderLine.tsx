@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { useQuery, useAction, getAiProviderRecords, checkAiProviderNow } from 'wasp/client/operations'
 import type { AiProviderSummary } from '@agenthix/core'
 import { AI_PROVIDER_VENDOR_INFO } from '@agenthix/core'
-import { Button, StatePill, CARD_CHOSEN } from '@agenthix/ui/primitives'
+import { Button, CARD_CHOSEN } from '@agenthix/ui/primitives'
 import { OverflowMenu, type OverflowItem } from '@agenthix/ui/tasks'
-import { STATE_TONE, STATE_WORDS, TYPE_WORDS, keyWords, sinceWords, usedByWords } from './providerWords'
+import { keyWords, sinceWords, usedByWords } from './providerWords'
+import { ProviderCardCore } from './ProviderCardCore'
+import { ProviderRow } from './ProviderRow'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export type LineAction = 'replace' | 'rename' | 'remove' | 'revoke'
 
@@ -32,12 +35,23 @@ function History({ id }: { id: string }) {
 export interface ProviderLineProps {
   provider: AiProviderSummary
   /** The line a notification linked to. */
-  highlighted?: boolean
+  current?: boolean
+  open: boolean
+  onToggle: () => void
   onAction: (action: LineAction, provider: AiProviderSummary) => void
 }
 
-/** One provider: what it is, its state in words and since when, the vendor's message, what depends on it, its key's end. */
-export function ProviderLine({ provider: p, highlighted, onAction }: ProviderLineProps) {
+const since = (iso: string) => {
+  const words = sinceWords(iso)
+  return words === 'just now' ? 'Just now.' : `Since ${words}.`
+}
+
+/**
+ * One provider on the AI page: one line (`ProviderRow`) that opens in place into the card core setup draws too (its
+ * state in words with the vendor's message, and runtime), with since when, who bills, its key's end, its address, what
+ * depends on it, its history and Settings' tools.
+ */
+export function ProviderLine({ provider: p, current, open, onToggle, onAction }: ProviderLineProps) {
   const check = useAction(checkAiProviderNow)
   const [checking, setChecking] = useState(false)
   const [checkError, setCheckError] = useState('')
@@ -50,7 +64,7 @@ export function ProviderLine({ provider: p, highlighted, onAction }: ProviderLin
   const checkNow = async () => {
     setChecking(true)
     setCheckError('')
-    try { await check({ id: p.id }) } catch (err) { setCheckError(err instanceof Error ? err.message : 'Could not check') } finally { setChecking(false) }
+    try { await check({ id: p.id }) } catch (err) { setCheckError(pressFailureWords(err, 'Could not check')) } finally { setChecking(false) }
   }
 
   const items: OverflowItem[] = isCloud ? [] : [
@@ -60,31 +74,26 @@ export function ProviderLine({ provider: p, highlighted, onAction }: ProviderLin
     { label: 'Revoke now', onSelect: () => onAction('revoke', p), danger: true },
   ]
 
+  const actions = (
+    <>
+      <Button size="sm" variant="secondary" disabled={checking} onClick={() => void checkNow()}>{checking ? 'Checking…' : 'Check now'}</Button>
+      {!isCloud && <Button size="sm" variant="ghost" aria-expanded={history} onClick={() => setHistory(h => !h)}>History</Button>}
+      <OverflowMenu items={items} label={`More about ${p.name}`} />
+    </>
+  )
+
   return (
-    <li id={`provider-${p.id}`} aria-current={highlighted ? 'true' : undefined} className={`rounded-2xl border bg-card p-4 ${highlighted ? CARD_CHOSEN : 'border-border-subtle'}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-body font-medium text-text-primary">{p.name}</h3>
-            <StatePill tone={STATE_TONE[p.state]}>{STATE_WORDS[p.state]}</StatePill>
-            <span className="text-small text-text-muted">since {sinceWords(p.stateSince)}</span>
-          </div>
-          <p className="mt-0.5 text-small text-text-secondary">
-            {p.types.map(t => TYPE_WORDS[t]).join(', ')} · {isCloud ? 'billed by Agenthix' : info.label}
-            {key && ` · ${key}`}
-          </p>
-          {p.baseUrl && <p className="mt-0.5 break-all text-small text-text-secondary">Address: <span className="font-mono">{p.baseUrl}</span></p>}
-          {p.stateDetail && <p className="mt-1 text-small text-danger">{info.label} says: {p.stateDetail}</p>}
-          {used && <p className="mt-1 text-small text-text-secondary">{used}</p>}
-          <ShowAttention kind="alert" text={checkError} title="The check did not finish" onClose={() => setCheckError('')} />
-        </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="secondary" disabled={checking} onClick={() => void checkNow()}>{checking ? 'Checking…' : 'Check now'}</Button>
-          {!isCloud && <Button size="sm" variant="ghost" aria-expanded={history} onClick={() => setHistory(h => !h)}>History</Button>}
-          <OverflowMenu items={items} label={`More about ${p.name}`} />
-        </div>
-      </div>
-      {history && <div className="mt-3 border-t border-border-subtle pt-3"><History id={p.id} /></div>}
-    </li>
+    <ProviderRow provider={p} open={open} onToggle={onToggle} current={current} frame={current ? CARD_CHOSEN : 'border-border-subtle bg-card'}
+      aside={<ShowAttention kind="alert" text={checkError} title="The check did not finish" onClose={() => setCheckError('')} />}>
+      <ProviderCardCore provider={p} stateNote={since(p.stateSince)} actions={actions}
+        after={history && <div className="mt-3 border-t border-border-subtle pt-3"><History id={p.id} /></div>}>
+        <p className="mt-1.5 text-small text-text-secondary">
+          {isCloud ? 'Billed by Agenthix' : info.label}
+          {key && ` · ${key}`}
+        </p>
+        {p.baseUrl && <p className="mt-0.5 break-all text-small text-text-secondary">Address: <span className="font-mono">{p.baseUrl}</span></p>}
+        {used && <p className="mt-1 text-small text-text-secondary">{used}</p>}
+      </ProviderCardCore>
+    </ProviderRow>
   )
 }

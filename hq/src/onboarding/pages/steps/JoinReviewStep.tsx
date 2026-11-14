@@ -4,6 +4,7 @@ import { Field, Heading } from '../../../auth/pages/parts/authUi'
 import type { OnboardingData } from '../../queries'
 import { OnboardingFrame, StepButtons } from './OnboardingFrame'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 function Fact({ label, aside, value, note }: { label: string; aside?: string; value: string; note?: string }) {
   return (
@@ -33,7 +34,7 @@ export function JoinReviewStep({ data, onNext }: { data: OnboardingData; onNext:
       if (name.trim() !== (me.displayName ?? '')) await setPersonName({ userId: me.id, displayName: name.trim() })
       onNext()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save. Try again.')
+      setError(pressFailureWords(err, 'Could not save. Try again.'))
     } finally {
       setSaving(false)
     }

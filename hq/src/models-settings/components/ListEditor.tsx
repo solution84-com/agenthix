@@ -8,6 +8,7 @@ import type { ListEntryView, ListView, ReachableModel } from '../types'
 import { listWords } from './listWords'
 import { BUTTON_GHOST } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export type ListDraft = { mode: ModelListMode; entries: { effect: ModelListEffect; pattern: string }[] }
 
@@ -68,7 +69,7 @@ export function ListEditor({ view, reachable, above, intro, save }: Props) {
     ({ mode, entries: entries.map(e => ({ effect: e.effect, pattern: e.pattern })) })
   const commit = async (draft: ListDraft) => {
     setError('')
-    try { await save(draft) } catch (err) { setError(err instanceof Error ? err.message : 'Could not save the list') }
+    try { await save(draft) } catch (err) { setError(pressFailureWords(err, 'Could not save the list')) }
   }
   const add = (effect: ModelListEffect, patterns: string[]) =>
     commit(draftOf(view.mode, [...view.entries, ...patterns.map(pattern => ({ effect, pattern }))]))

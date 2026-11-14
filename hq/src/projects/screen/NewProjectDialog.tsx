@@ -4,6 +4,7 @@ import { deriveProjectKey } from '@agenthix/core'
 import { useAction, createPersonalProject, createProject } from 'wasp/client/operations'
 import { Modal, FormField, Input, Textarea, Button, NativeSelect, CARD_CHOSEN, CARD_CLICKABLE } from '@agenthix/ui/primitives'
 import { useAttention } from '../../shared/components/AttentionDialog'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export type ProjectKind = 'personal' | 'organisation'
 
@@ -86,7 +87,7 @@ export function NewProjectDialog({ open, onClose, isOrgAdmin, sites, billingProf
       navigate(`/projects/${(made as { key: string }).key}`)
     } catch (err) {
       setBusy(false)
-      attention.show({ title: 'The project was not made', text: err instanceof Error ? err.message : 'HQ did not make the project.', retry: () => void submit() })
+      attention.show({ title: 'The project was not made', text: pressFailureWords(err, 'HQ did not make the project.'), retry: () => void submit() })
     }
   }
 

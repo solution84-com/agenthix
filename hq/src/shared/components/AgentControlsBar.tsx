@@ -4,6 +4,7 @@ import { useQuery, useAction } from 'wasp/client/operations'
 import { getAgentChatStats, stopAgent } from 'wasp/client/operations'
 import { useAttentionWhen } from '@agenthix/ui/attention'
 import { AlertCircle, Loader2, Square, BarChart2, ChevronDown, ChevronUp } from 'lucide-react'
+import { pressFailureWords } from '../failureWords'
 
 interface Props {
   agentId: string
@@ -25,7 +26,7 @@ export function AgentControlsBar({ agentId }: Props) {
     setStopBusy(true)
     setStopFailed(null)
     try { await stopAgentFn({ id: agentId }) } catch (e) {
-      setStopFailed(e instanceof Error && e.message ? e.message : 'Stop all did not go through. Nothing was stopped.')
+      setStopFailed(pressFailureWords(e, 'Stop all did not go through. Nothing was stopped.'))
     } finally { setStopBusy(false) }
   }
 

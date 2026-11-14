@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, Modal } from '@agenthix/ui/primitives'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 type Failure = { message: string; retry: () => Promise<boolean> }
 
@@ -23,7 +24,7 @@ export function usePartSave() {
       await work()
       return true
     } catch (err) {
-      if (alive.current) setFailure({ message: err instanceof Error ? err.message : failureText, retry: () => save(work, failureText) })
+      if (alive.current) setFailure({ message: pressFailureWords(err, failureText), retry: () => save(work, failureText) })
       return false
     } finally {
       if (alive.current) setSaving(false)

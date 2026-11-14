@@ -6,6 +6,7 @@ import { WhichAgentsDialog } from '../../../library/components/WhichAgentsDialog
 import type { Bump, EditorApi } from './useEditorApi'
 import type { EditorView } from './editorTypes'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 const STEPS: { id: Bump; label: string }[] = [
   { id: 'patch', label: 'Patch' }, { id: 'minor', label: 'Minor' }, { id: 'major', label: 'Major' },
@@ -55,7 +56,7 @@ export function PublishDialog({ view, api, changes, onClose, onPublished, onRelo
       setDone(result.version)
       onPublished(result.version)
     } catch (err) {
-      const text = err instanceof Error ? err.message : 'It could not be published. Nothing was changed.'
+      const text = pressFailureWords(err, 'It could not be published. Nothing was changed.')
       setError(text)
       setMoved(/changed since you looked|changed as you published|no draft to publish/i.test(text))
     } finally {

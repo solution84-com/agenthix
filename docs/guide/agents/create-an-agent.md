@@ -27,7 +27,7 @@ still talk to every agent from the **Agents** screen.
 ![The New Agent dialog, with a name, a handle and a role](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/new-agent.png)
 
 The dialog asks for no model. A new agent follows the organisation's defaults until it is given its own: see
-[An agent's own models and voice](../your-tools/models.md#an-agents-own-models-and-voice).
+[An agent's own models, hearing and speaking](../your-tools/models.md#an-agents-own-models-hearing-and-speaking).
 
 The handle `@kernel` is reserved for the built-in agent. The new agent appears in the list under
 **Manage › Agents**. Select **Manage** beside it to open its page, where you change it later.
@@ -56,7 +56,7 @@ The agent's page in **Manage › Agents** has a section for each part of it, mos
 
 - **Instructions**: [Instructions and memory](instructions-and-memory.md).
 - **Skills**: the skills the agent has, with **Add a skill** to give it one: [Give a skill to agents](../skills/give-skills-to-agents.md).
-- **Models and voice**: its **Model**, its **Voice** and **Listening** model, and
+- **Thinking, hearing and speaking**: its **Model**, its **Speaking** voice and **Hearing** model, and
   **Which models it may use**. Each row says whether it is the organisation's or the agent's own, and **Follow** hands
   it back. See [Models](../your-tools/models.md).
 - **Settings**: its name and handle, which cannot be changed. A saved change takes effect at the agent's next run.

@@ -4,6 +4,7 @@ import { Loader2, Square } from 'lucide-react'
 import { BUTTON_SECONDARY, Tooltip, useRefusal, withoutHover, ConfirmDialog } from '@agenthix/ui/primitives'
 import { useMayWork } from '../../shared/hooks/useMayWork'
 import { ShowAttention, toast } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 const BUTTON = `flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-small font-medium ${BUTTON_SECONDARY}`
 
@@ -52,7 +53,7 @@ export function ProjectRunControls({ projectId, isProjectAdmin, personal = false
         ? 'Nothing was running'
         : `Stopped ${plural(r.cancelled, 'run', 'runs')}, took ${plural(r.withdrawn, 'waiting task', 'waiting tasks')} out of line`)
     } catch (err: unknown) {
-      setMessage({ text: err instanceof Error ? err.message : 'Could not stop the runs', error: true })
+      setMessage({ text: pressFailureWords(err, 'Could not stop the runs'), error: true })
     } finally {
       setBusy(false)
     }

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
+import { FailureServer } from '@agenthix/ui/attention'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { useConsoleStatus } from './auth/useConsoleStatus'
@@ -31,7 +32,7 @@ export function App() {
   if (ComponentsPage && path === '/_components') {
     return <Suspense fallback={null}><ComponentsPage /></Suspense>
   }
-  return <AuthProvider><Screens path={path} /></AuthProvider>
+  return <FailureServer name="the Fleet Console"><AuthProvider><Screens path={path} /></AuthProvider></FailureServer>
 }
 
 function Screens({ path }: { path: string }) {

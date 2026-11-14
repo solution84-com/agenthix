@@ -8,6 +8,7 @@ import { Dropdown } from './Dropdown'
 import { ROW_CHOSEN, ROW_ITEM } from '@agenthix/ui/primitives'
 import type { BackgroundRead } from '@agenthix/ui/attention'
 import { ReadFailed, ReadNudge, useSiteRead } from '../../shared/siteRead'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export type MainVersions = { versions: MainVersion[]; hasMore: boolean; more: () => void; loading: boolean; error: string | null; failure: unknown; retry: () => void; read: BackgroundRead }
 
@@ -30,7 +31,7 @@ export function useMainVersions(workspaceId: string, head: string, enabled = tru
     hasMore: ((before === null ? first?.hasMore : next?.hasMore) ?? false) && versions.length > 0,
     more: () => { if (versions.length) setBefore(versions[versions.length - 1].commit) },
     loading: !first && !error,
-    error: error ? error.message : null,
+    error: error ? pressFailureWords(error) : null,
     // Data before error: with versions held, a failed refetch leaves them as they are.
     failure: !first && error ? error : null,
     retry: () => { void refetch() },

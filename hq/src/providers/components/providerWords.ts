@@ -1,29 +1,33 @@
 import type { AiProviderState, AiProviderSummary, AiProviderType, AiProviderUse, AiProviderVendor } from '@agenthix/core'
-import type { PillTone } from '@agenthix/ui/primitives'
 import type { ProviderImpact } from '../impact'
 
-export const STATE_WORDS: Record<AiProviderState, string> = {
+/** What each type is called wherever it shows: what a provider lets agents do. */
+export const TYPE_WORDS: Record<AiProviderType, string> = { llm: 'Thinking', stt: 'Hearing', tts: 'Speaking' }
+
+/** A provider's state as a sentence, on its card. */
+export const STATE_SENTENCES: Record<AiProviderState, string> = {
+  works: 'Works.',
+  key_refused: 'The key was refused.',
+  out_of_credit: 'Out of credit.',
+  unreachable: 'Cannot be reached.',
+  not_available: 'Not available yet.',
+  disconnected: 'Disconnected.',
+}
+
+/** A provider's state on its one line: the reason, when it is not working. */
+export const STATE_SHORT_WORDS: Record<AiProviderState, string> = {
   works: 'Works',
   key_refused: 'Key refused',
   out_of_credit: 'Out of credit',
-  unreachable: 'Unreachable',
+  unreachable: 'Cannot be reached',
   not_available: 'Not available yet',
   disconnected: 'Disconnected',
 }
 
-export const STATE_TONE: Record<AiProviderState, PillTone> = {
-  works: 'healthy',
-  key_refused: 'danger',
-  out_of_credit: 'danger',
-  unreachable: 'danger',
-  not_available: 'neutral',
-  disconnected: 'warning',
+/** What a provider lets agents do, in one phrase: "Thinking, Hearing, Speaking". */
+export function kindsWords(types: readonly AiProviderType[]): string {
+  return (['llm', 'stt', 'tts'] as const).filter(t => types.includes(t)).map(t => TYPE_WORDS[t]).join(', ')
 }
-
-export const TYPE_WORDS: Record<AiProviderType, string> = { llm: 'LLM', stt: 'STT', tts: 'TTS' }
-
-/** What each type is called on a chip: what the provider covers. */
-export const TYPE_CHIP_WORDS: Record<AiProviderType, string> = { llm: 'Models', stt: 'Hearing', tts: 'Speaking' }
 
 /** The order the add-provider pop-up lists vendors in. Agenthix Cloud is last, and is not keyed. */
 export const VENDOR_ORDER: readonly AiProviderVendor[] = ['anthropic', 'openai', 'google', 'openrouter', 'inworld', 'assemblyai', 'openai_compatible']
@@ -35,15 +39,16 @@ export const VENDOR_LINES: Record<AiProviderVendor, string> = {
   openrouter: 'Many models, free ones included',
   openai_compatible: 'Any OpenAI-compatible server',
   assemblyai: 'Hearing people',
-  inworld: 'Models, hearing and speaking: one key for all three',
-  cloud: 'Models and voice, no keys. Billed by Agenthix. You approve it with a short code.',
+  inworld: 'Thinking, hearing and speaking: one key for all three',
+  cloud: 'Thinking, hearing and speaking, no keys. Billed by Agenthix. You approve it with a short code.',
 }
 
-const SLOT_WORDS = {
+/** A default a provider serves, in the capability words: Thinking's default is a model. */
+export const SLOT_WORDS: Record<AiProviderUse['defaults'][number], string> = {
   conversation: 'the default model',
-  stt: 'the default speech to text',
-  tts: 'the default text to speech',
-} as const
+  stt: 'the default for Hearing',
+  tts: 'the default for Speaking',
+}
 
 /** "12 Oct", or "just now" for a minute or less ago. */
 export function sinceWords(iso: string, now = new Date()): string {

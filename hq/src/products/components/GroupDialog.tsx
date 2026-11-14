@@ -3,6 +3,7 @@ import { useAction, createProduct, updateProduct, createProgram, updateProgram }
 import { Button, FormField, Input, Modal, NativeSelect, Textarea } from '@agenthix/ui/primitives'
 import { WORDS, type Group, type GroupKind } from './groupKinds'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /** A product or programme made, or its name, description (a programme's goal) and status changed. Organisation admins only; the server refuses anyone else. */
 export function GroupDialog({ kind, open, group, onClose, onSaved }: {
@@ -47,7 +48,7 @@ export function GroupDialog({ kind, open, group, onClose, onSaved }: {
       onSaved(slug)
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Could not save the ${words.one}`)
+      setError(pressFailureWords(err, `Could not save the ${words.one}`))
     } finally {
       setBusy(false)
     }

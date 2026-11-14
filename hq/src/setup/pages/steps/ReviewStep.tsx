@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { useQuery, getSetupDefaults } from 'wasp/client/operations'
 import { providerStateWorks, providerTypesCovered, type AiProviderSummary } from '@agenthix/core'
 import { AuthLayout } from '../../../auth/pages/parts/AuthLayout'
 import { ActionRow, Heading, PRIMARY, SECONDARY, StateLine, Steps, TEXT_LINK } from '../../../auth/pages/parts/authUi'
@@ -9,6 +8,8 @@ import { AuthedImg } from '../../../shared/components/AuthedImg'
 import { SignInPreview } from './SignInPreview'
 import { KernelLine } from './DefaultsSection'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { WhatAgentsCanDoShort } from '../../../capabilities/components/WhatAgentsCanDo'
+import { useCapabilities } from './useCapabilities'
 
 type Props = {
   me: { id: string; displayName: string | null; username: string | null }
@@ -50,35 +51,18 @@ function Thumb({ label, src, wide }: { label: string; src: string | null; wide?:
   )
 }
 
-/** The covered list as one phrase: "Model, hearing and speaking". */
-function joinWords(words: string[]): string {
-  return words.length > 1 ? `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}` : words.join('')
-}
-
-/** What works, and what is not set, in words (ADR-0160): a type nothing covers is a plain "Not set", not a fault. */
+/** What works, then what agents can do, each with its mark (ADR-0160): what nothing covers yet is a plain ○, not a fault. */
 function AiSummary({ providers }: { providers: AiProviderSummary[] }) {
-  const covered = providerTypesCovered(providers)
-  if (providers.length === 0) {
-    return <StateLine tone="warn"><b className="font-medium text-text-primary">Not set up.</b> Agents can&rsquo;t think or talk until you add a provider.</StateLine>
-  }
-  // A provider that offers models is not enough: the model is "set" once a default model exists (the data the AI step shows).
-  const { data: defaults } = useQuery(getSetupDefaults)
-  const modelPending = covered.llm && !defaults?.conversation
-  const kinds = [['Model', covered.llm && !modelPending], ['Hearing', covered.stt], ['Speaking', covered.tts]] as const
-  const set = kinds.filter(([, on]) => on).map(([label], i) => (i === 0 ? label : label.toLowerCase()))
+  const { capabilities, unread } = useCapabilities(providers)
   return (
     <>
+      {providers.length === 0 && <StateLine tone="warn"><b className="font-medium text-text-primary">Not set up.</b> Agents can&rsquo;t think or talk until you add a provider.</StateLine>}
       {providers.map(p => (
         <StateLine key={p.id} tone={providerStateWorks(p.state) ? 'ok' : 'warn'}>
           <b className="font-medium text-text-primary">{p.name}</b> {providerStateWorks(p.state) ? 'works.' : 'is not working.'}
         </StateLine>
       ))}
-      <ul className="mt-2 space-y-0.5 text-small text-text-secondary">
-        {set.length > 0 && <li>{joinWords(set)} set.</li>}
-        {kinds.filter(([, on]) => !on).map(([label]) => (
-          label === 'Model' && modelPending ? <li key={label}>Model not set yet.</li> : <li key={label}>{label}: Not set.</li>
-        ))}
-      </ul>
+      <div className="mt-2"><WhatAgentsCanDoShort capabilities={capabilities} unread={unread} /></div>
     </>
   )
 }
@@ -104,7 +88,7 @@ export function ReviewStep({ timeZone, position, providers, me, orgName, avatarU
       </Section>
       <Section title="AI" editLabel="Edit AI" onEdit={() => onEdit('ai')}>
         <AiSummary providers={providers} />
-        <div className="mt-1 text-small text-text-muted">Change providers and what agents use any time under Manage › Providers and Manage › Models.</div>
+        <div className="mt-1 text-small text-text-muted">Change providers and what agents can do any time under Manage organisation › AI.</div>
       </Section>
       <Section title="Your first agent">
         <KernelLine speaks={covered.tts} />

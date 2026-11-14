@@ -29,10 +29,11 @@ Agents need a model to think with, and a voice to hear and to talk. **HQ**, your
 gets both from *providers*: services such as Anthropic or Inworld that the organisation has an account with. This step
 is one screen, whether you have no provider, one or several.
 
-![Setup's AI step, with Inworld added and covering models, hearing and speaking, and what agents use below it](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-ai.png)
+![Setup's AI step, with Inworld added and covering models, hearing and speaking, and What agents can do below it](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-ai.png)
 
-**Your providers** lists each provider you added, with what it covers (**Models**, **Hearing**, **Speaking**), whether
-it works and **Remove**. Before you add one it reads **None yet**.
+**Your providers** comes first and lists each provider you added as one line: its name, what it covers and whether it
+works. Select a line to open it in place, with its state, what it runs and **Remove**. One line is open at a time.
+(On the AI page an opened line also has its key, what uses it, **Check now**, **History** and the **More about** menu.) Before you add one it reads **None yet**.
 
 ### Add a provider
 
@@ -50,7 +51,7 @@ Select **Add a provider**. A pop-up lists every provider setup offers, with what
 | **AssemblyAI** | Hearing people |
 | **Your own OpenAI-compatible endpoint** | Any server that answers like OpenAI's API, such as a model you run yourself |
 
-The pop-up is the same one **Manage › Providers** uses later. Select a provider and it asks for its key:
+The pop-up is the same one **Manage › AI** uses later. Select a provider and it asks for its key:
 
 ![The key form for a provider, with a short guide to getting the key above the fields](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-ai-key-guide.png)
 
@@ -66,16 +67,23 @@ If the provider refuses the key, the form says why first, in plain words: the ke
 or the provider can't be reached. The provider's own message follows. Fix it and select **Save** again.
 
 Inworld is listed like the others. Its one key covers models, hearing and speaking, so adding it alone covers all three.
-You can add as many providers as you like, now or later under **Manage › Providers**; [Providers](../your-tools/providers.md)
+You can add as many providers as you like, now or later under **Manage › AI**; [the AI page](../your-tools/providers.md)
 explains each kind.
 
-### What agents use
+### What agents can do
 
-Below the list, **What agents use** shows three lines: the **Model** agents think with, **Hearing**, what turns people's words into text, and
-**Speaking**, what gives agents a voice. Each is chosen for you from what you connected, the moment a provider that can serve it works,
-and each has **Change** to pick another. A choice you make is never replaced by a later one. A line nothing covers yet
-reads **Not set**, with what to add, for example **Add a provider that speaks** when only AssemblyAI is added. That is
-not a fault. [Models](../your-tools/models.md) explains each line.
+Below it, **What agents can do** shows four lines: **Thinking**, the model agents think with; **Hearing**, what
+turns people's words into text; **Speaking**, what gives agents a voice; and **Web search**. Each line has a mark: a
+tick when agents can do it, an empty circle when a provider (or a key) would add it, and **!** when only some agents can.
+Thinking, Hearing and Speaking are each chosen for you from what you connected, the moment a provider that can serve it
+works, and each has **Change** to pick another. A choice you make is never replaced by a later one.
+
+**Web search** depends on what the agent runs on. Claude Code agents search on their own. OpenCode agents search through
+Exa with your organisation's key: **Add a key** opens a pop-up for it, which checks the key with Exa when you save it, and you can leave it for later with **Not now**.
+Without a key an OpenCode agent says it can't search. [Web search](../your-tools/providers.md#web-search) has the detail.
+
+A line nothing covers yet reads with what to add, for example **Add a provider that speaks** when only AssemblyAI is
+added. That is a note, not a fault. [Models](../your-tools/models.md#the-organisations-defaults) explains each line.
 
 ### Skip for now
 
@@ -88,8 +96,8 @@ what stays off. Once a provider works, the same place reads **Continue**.
 ![Check everything before you start, with You, Your organisation, AI, Your first agent and Where agents run](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-review.png)
 
 The last look lists what you set, each part with **Edit** to change it. It only confirms: the choices were made on the
-AI step. **AI** is one row that says what works, for example which providers are connected and what agents use for their
-model, hearing and speaking. If you skipped, it says what isn't set up yet, and the choices
+AI step. **AI** is one row that says which providers work, then a short list of what agents can do: **Thinking**, **Hearing**,
+**Speaking** and **Web search**, each with its mark. If you skipped, it says what isn't set up yet, and the choices
 are made for you when you add a provider. **Your first agent** is **Kernel**, the built-in agent, speaking in the
 default voice.
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useAction, getUserSettings, setMyTimezone } from 'wasp/client/operations'
 import { NativeSelect } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 const USE_BROWSER = ''
 
@@ -31,7 +32,7 @@ export function TimezoneSection() {
     try {
       await save({ timezone: value === USE_BROWSER ? null : value })
     } catch (err) {
-      setProblem(err instanceof Error ? err.message : String(err))
+      setProblem(pressFailureWords(err))
     }
   }
 

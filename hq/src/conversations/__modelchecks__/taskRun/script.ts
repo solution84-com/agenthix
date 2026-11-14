@@ -129,6 +129,7 @@ export function answerTaskRun(name: string, input: unknown, setup: TaskRunSetup,
       if (str(args.routineId) !== MORNING_ROUTINE.id) return refused(`Routine ${str(args.routineId)} not found`)
       return { routineId: MORNING_ROUTINE.id, enabled: args.enabled !== false, nextRunAt: args.enabled === false ? null : '2026-11-09T09:00:00.000Z' }
     case 'ping': return { pong: true }
+    case 'web_fetch': return refused(`Could not fetch ${str(args.url)}: the page did not answer.`)
     default: return { ok: true }
   }
 }

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useAction, startClaudeLogin, completeClaudeLogin, cancelClaudeLogin } from 'wasp/client/operations'
 import { FIELD, Button, FOCUS_RING } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 interface Props {
   ownerType: 'org' | 'project' | 'user'
@@ -57,7 +58,7 @@ export function ClaudeSignIn({ ownerType, ownerId, onSignedIn }: Props) {
   }, [])
 
   function fail(err: unknown) {
-    setProblem(err instanceof Error ? err.message : String(err))
+    setProblem(pressFailureWords(err))
     setCode('')
     setStep({ name: 'idle' })
   }

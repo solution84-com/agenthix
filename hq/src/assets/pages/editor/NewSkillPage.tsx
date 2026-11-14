@@ -11,6 +11,7 @@ import { AskWho } from './AskWho'
 import { assetEditPath, placeSkillEditPath } from './editorRoutes'
 import { newSkillProblems, newSkillRequest, type StartingPoint } from './newSkill'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 const CHOICES: { id: StartingPoint; label: string; help: string }[] = [
   { id: 'plain', label: 'A plain skill', help: 'SKILL.md with the usual headings' },
@@ -58,7 +59,7 @@ export function NewSkillPage() {
         navigate(assetEditPath(made.assetId))
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'The draft could not be made. Nothing was changed.')
+      setError(pressFailureWords(err, 'The draft could not be made. Nothing was changed.'))
       setBusy(false)
     }
   }

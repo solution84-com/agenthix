@@ -1,0 +1,168 @@
+<style>
+  .pg { background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-4); font-size: var(--text-sm); }
+  .pg h4 { margin: var(--space-3) 0 var(--space-2); }
+  .crd { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-3); margin-bottom: var(--space-2); }
+  .crd .st { border: 1px solid var(--success); color: var(--text-primary); border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); margin: var(--space-2) 0; }
+  .crd .sub { color: var(--text-secondary); font-size: var(--text-xs); }
+  .chip { display: inline-block; background: var(--bg-tertiary); color: var(--text-primary); border-radius: var(--radius-sm); padding: 0 var(--space-1); font-size: var(--text-xs); margin-left: var(--space-1); }
+  .row { display: grid; grid-template-columns: 1.3fr 1.6fr 1fr auto; gap: var(--space-2); align-items: center; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
+  .row:first-of-type { border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); }
+  .row .sub { color: var(--text-secondary); font-size: var(--text-xs); }
+  .rows { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .dot-ok { color: var(--success); } .dot-bad { color: var(--error); }
+  .bad { background: var(--error-bg); color: var(--error-text); }
+  .cap { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
+  .cap .sub { color: var(--text-secondary); font-size: var(--text-xs); }
+  .act { color: var(--accent); }
+  .more { color: var(--text-secondary); text-align: center; padding: var(--space-2); font-size: var(--text-xs); }
+  .fold { color: var(--text-primary); padding: var(--space-2) 0; }
+  .two { display: grid; grid-template-columns: 1.4fr 1fr; gap: var(--space-3); align-items: start; }
+  .sticky { position: sticky; top: 0; }
+  .note { color: var(--text-secondary); }
+  .scroll { max-height: 520px; overflow: hidden; position: relative; }
+  .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(transparent, var(--bg-primary)); }
+</style>
+<div class="board-layout">
+  <nav class="board-nav">
+    <div class="board-nav-header"><h3>AI page: less scrolling</h3><p>Proposal · 14 Nov</p></div>
+    <div class="nav-group">
+      <div class="nav-group-title">Boards</div>
+      <a class="nav-item" data-board-target="today"><span class="nav-num">1</span>Today</a>
+      <a class="nav-item" data-board-target="a"><span class="nav-num">2</span>A · Summary first, compact rows <span class="tag accent">Recommended</span></a>
+      <a class="nav-item" data-board-target="a-open"><span class="nav-num">2a</span>A · A provider pressed: opens in place <span class="tag accent">Proposed</span></a>
+      <a class="nav-item" data-board-target="a-pop"><span class="nav-num">2b</span>A · …or a pop-up</a>
+      <a class="nav-item" data-board-target="b"><span class="nav-num">3</span>B · Two columns</a>
+      <a class="nav-item" data-board-target="why"><span class="nav-num">4</span>Why A</a>
+    </div>
+  </nav>
+  <main class="board-stage">
+
+    <section class="board-panel" data-board="today" data-title="Today">
+      <div class="board-split">
+        <div class="board-notes"><div class="label">1 · Today</div><h2>Providers first, as tall cards</h2>
+          <p>Each provider is a card of about 240px: name and kinds, a boxed state line, the runtime line, the key, what uses it, and Check now · History · ⋯.</p>
+          <p>With six providers that's about 1,500px before <b>What agents can do</b> — the part that answers "can my agents work?" — and further still to Which models may run.</p>
+          <p>Setup has the same shape: each added provider pushes the list down.</p></div>
+        <div class="board-canvas"><div class="pg scroll">
+          <h4>AI</h4>
+          <h4>Your providers</h4>
+          <div class="crd"><b>Anthropic</b><span class="chip">Thinking</span><div class="st"><span class="dot-ok">●</span> Works. Since 14 Nov.</div><div class="sub">Agents run its models on Claude Code<br>key ending …-key · Used by the default model</div></div>
+          <div class="crd"><b>OpenRouter</b><span class="chip">Thinking</span><div class="st"><span class="dot-ok">●</span> Works. Since 14 Nov.</div><div class="sub">Agents run its models on OpenCode<br>key ending …-key</div></div>
+          <div class="crd"><b>AssemblyAI</b><span class="chip">Hearing</span><div class="st"><span class="dot-ok">●</span> Works. Since 14 Nov.</div><div class="sub">key ending …-key · Used by the default for Hearing</div></div>
+          <div class="crd"><b>Inworld</b><span class="chip">Thinking</span><span class="chip">Hearing</span><span class="chip">Speaking</span><div class="st"><span class="dot-ok">●</span> Works. Since 14 Nov.</div><div class="sub">Agents run its models on OpenCode</div></div>
+          <div class="crd"><b>OpenAI</b><span class="chip">Thinking</span><div class="st"><span class="dot-ok">●</span> Works.</div></div>
+          <div class="fade"></div>
+        </div><p class="more">…two more cards, then What agents can do, then Which models may run</p></div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="a" data-title="A · Summary first">
+      <div class="board-split">
+        <div class="board-notes"><div class="label">2 · Option A — recommended</div><h2>What agents can do first; providers as one line each</h2>
+          <ol>
+            <li><b>What agents can do</b> moves to the top: the answer first, the accounts behind it after.</li>
+            <li><b>Your providers</b> become a table of one line per provider: name, kinds, runtime, state. A working one is quiet; one that isn't working shows its line in the error colour with its reason.</li>
+            <li>Pressing a provider's line opens it in place, with today's full card (key, what uses it, Check now, History, Replace key, Rename, Remove, Revoke). One open at a time; an alert's link opens that provider's line already open.</li>
+            <li>Which models may run stays folded at the bottom.</li>
+          </ol>
+          <p>Six providers take about 300px instead of 1,500px, and the summary is visible without scrolling. Setup gets the same one-line rows (with Remove), and keeps its list after the providers, since setup is about adding them.</p></div>
+        <div class="board-canvas"><div class="pg">
+          <h4>AI</h4>
+          <h4>What agents can do</h4>
+          <div class="rows">
+            <div class="cap"><span class="dot-ok">✓</span><div>Thinking<div class="sub">Claude Opus 4.8 · via Anthropic</div></div><span class="act">Change</span></div>
+            <div class="cap"><span class="dot-ok">✓</span><div>Hearing<div class="sub">Universal-Streaming · via AssemblyAI</div></div><span class="act">Change</span></div>
+            <div class="cap"><span class="dot-ok">✓</span><div>Speaking<div class="sub">inworld-tts-1.5-mini · via Inworld</div></div><span class="act">Change</span></div>
+            <div class="cap"><span>!</span><div>Web search<div class="sub">Claude Code ✓ on its own · OpenCode needs a search key</div></div><span class="act">Add a key</span></div>
+          </div>
+          <h4>Your providers <span class="note">· 6</span> <span class="act" style="float:right">Add a provider</span></h4>
+          <div class="rows">
+            <div class="row"><b>Anthropic</b><span class="sub">Thinking · Claude Code</span><span><span class="dot-ok">●</span> Works</span><span class="act">›</span></div>
+            <div class="row"><b>OpenRouter</b><span class="sub">Thinking · OpenCode</span><span><span class="dot-ok">●</span> Works</span><span class="act">›</span></div>
+            <div class="row"><b>AssemblyAI</b><span class="sub">Hearing</span><span><span class="dot-ok">●</span> Works</span><span class="act">›</span></div>
+            <div class="row"><b>Inworld</b><span class="sub">Thinking, Hearing, Speaking · OpenCode</span><span><span class="dot-ok">●</span> Works</span><span class="act">›</span></div>
+            <div class="row bad"><b>OpenAI</b><span>Thinking · OpenCode</span><span>● Key refused</span><span>›</span></div>
+            <div class="row"><b>Google</b><span class="sub">Thinking · OpenCode</span><span><span class="dot-ok">●</span> Works</span><span class="act">›</span></div>
+          </div>
+          <p class="fold">Which models may run ›<br><span class="note">Any model your providers reach · 305 models.</span></p>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="a-open" data-title="A · opened in place">
+      <div class="board-split">
+        <div class="board-notes"><div class="label">2a · Proposed</div><h2>Pressing a provider opens it in place</h2>
+          <p>The line unfolds into today's full card, right where it is: state and since when, runtime, key, what uses it, the vendor's message when it isn't working, and Check now · History · ⋯ (Replace key, Rename, Remove, Revoke).</p>
+          <p>One provider open at a time; pressing another closes the first. Pressing the open line closes it.</p>
+          <p>An alert or notification about a provider opens the page with that provider's line already open.</p>
+          <p>Why in place: the details belong to the page, not to a moment that needs your attention, so nothing covers the page; the list and What agents can do stay where they were; it works the same on a phone; and the link from an alert can land on it.</p></div>
+        <div class="board-canvas"><div class="pg">
+          <h4>Your providers <span class="note">· 6</span></h4>
+          <div class="rows">
+            <div class="row"><b>Anthropic</b><span class="sub">Thinking · Claude Code</span><span><span class="dot-ok">●</span> Works</span><span class="act">›</span></div>
+            <div class="row" style="border-bottom:none"><b>OpenRouter</b><span class="sub">Thinking · OpenCode</span><span><span class="dot-ok">●</span> Works</span><span class="act">⌄</span></div>
+            <div class="crd" style="margin:0 var(--space-3) var(--space-3);border-color:var(--selected-border)"><div class="st"><span class="dot-ok">●</span> Works. Since 14 Nov.</div><div class="sub">Agents run its models on OpenCode<br>OpenRouter · key ending …-key<br>Used by: no default; 3 agents choose its models</div><p style="margin-top:var(--space-2)"><span class="btn">Check now</span> <span class="act">History</span> <span class="btn">⋯ Replace key · Rename · Remove · Revoke</span></p></div>
+            <div class="row"><b>AssemblyAI</b><span class="sub">Hearing</span><span><span class="dot-ok">●</span> Works</span><span class="act">›</span></div>
+            <div class="row"><b>Inworld</b><span class="sub">Thinking, Hearing, Speaking · OpenCode</span><span><span class="dot-ok">●</span> Works</span><span class="act">›</span></div>
+          </div>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="a-pop" data-title="A · pop-up">
+      <div class="board-split">
+        <div class="board-notes"><div class="label">2b · The alternative</div><h2>…or a pop-up with the provider's details</h2>
+          <p>The same card in a dialog over the page.</p>
+          <p><b>Against it:</b> it covers the list and the summary while you look; a dialog is for something that needs an answer now (hq's message rules keep pop-ups for that); an alert's link would have to open a dialog on arrival; and Replace key and Remove already open their own dialogs, so you'd get a dialog on a dialog.</p></div>
+        <div class="board-canvas"><div class="pg" style="position:relative">
+          <div style="opacity:.35"><h4>Your providers</h4><div class="rows"><div class="row"><b>Anthropic</b><span class="sub">Thinking · Claude Code</span><span><span class="dot-ok">●</span> Works</span><span class="act">›</span></div><div class="row"><b>OpenRouter</b><span class="sub">Thinking · OpenCode</span><span>● Works</span><span>›</span></div></div></div>
+          <div class="crd" style="position:absolute;top:var(--space-6);left:15%;right:15%;border:2px solid var(--border-strong)"><b>OpenRouter</b><span class="chip">Thinking</span><span style="float:right" class="act">✕</span><div class="st"><span class="dot-ok">●</span> Works. Since 14 Nov.</div><div class="sub">Agents run its models on OpenCode<br>key ending …-key</div><p style="margin-top:var(--space-2)"><span class="btn">Check now</span> <span class="act">History</span> <span class="btn">⋯</span></p></div>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="b" data-title="B · Two columns">
+      <div class="board-split">
+        <div class="board-notes"><div class="label">3 · Option B</div><h2>Providers on the left, What agents can do pinned on the right</h2>
+          <p>Today's cards stay as they are in a wider left column; the capability list sits in a right column that stays in view while the providers scroll.</p>
+          <p><b>Against it:</b> the page still scrolls as long; below about 1,100px wide the two columns stack and today's problem comes back (phones, a narrow window, the docked conversation open beside it). The cards still carry most of their detail for providers that are fine.</p></div>
+        <div class="board-canvas"><div class="pg">
+          <h4>AI</h4>
+          <div class="two">
+            <div>
+              <h4>Your providers</h4>
+              <div class="crd"><b>Anthropic</b><span class="chip">Thinking</span><div class="st"><span class="dot-ok">●</span> Works.</div><div class="sub">Claude Code · key …-key</div></div>
+              <div class="crd"><b>OpenRouter</b><span class="chip">Thinking</span><div class="st"><span class="dot-ok">●</span> Works.</div><div class="sub">OpenCode · key …-key</div></div>
+              <div class="crd"><b>AssemblyAI</b><span class="chip">Hearing</span><div class="st"><span class="dot-ok">●</span> Works.</div></div>
+              <p class="more">…three more cards</p>
+            </div>
+            <div class="sticky">
+              <h4>What agents can do</h4>
+              <div class="rows">
+                <div class="cap"><span class="dot-ok">✓</span><div>Thinking<div class="sub">Claude Opus 4.8</div></div><span class="act">Change</span></div>
+                <div class="cap"><span class="dot-ok">✓</span><div>Hearing<div class="sub">Universal-Streaming</div></div><span class="act">Change</span></div>
+                <div class="cap"><span class="dot-ok">✓</span><div>Speaking<div class="sub">inworld-tts-1.5-mini</div></div><span class="act">Change</span></div>
+                <div class="cap"><span>!</span><div>Web search<div class="sub">OpenCode needs a key</div></div><span class="act">Add a key</span></div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="why" data-title="Why A">
+      <h2>Why A</h2>
+      <table>
+        <tr><th></th><th>A · Summary first, compact rows</th><th>B · Two columns</th></tr>
+        <tr><td>Can my agents work? — seen without scrolling</td><td>Yes, at any width</td><td>Only on a wide screen</td></tr>
+        <tr><td>Page length with 6 providers</td><td>About 700px</td><td>About 1,600px (unchanged)</td></tr>
+        <tr><td>A provider that isn't working</td><td>Its one line stands out in the error colour</td><td>As today, inside its card</td></tr>
+        <tr><td>Phone and docked conversation</td><td>Same layout</td><td>Stacks back to today</td></tr>
+        <tr><td>Change to build</td><td>The card core gets a one-line form and opens in place; the page's order changes</td><td>A page layout change only</td></tr>
+      </table>
+      <p class="note">A changes the agreed order (spec decision 8 said "in setup's order: providers, then what agents can do"). If you choose A, I'll correct the spec in place and record it as a deviation, and lane H's screens are unaffected.</p>
+    </section>
+
+    <div class="board-pager"><button class="btn" data-board-step="-1">← Previous</button><span class="board-position"></span><button class="btn" data-board-step="1">Next →</button></div>
+  </main>
+</div>

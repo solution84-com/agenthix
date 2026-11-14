@@ -11,6 +11,7 @@ import type { PictureKind } from '../recipe'
 import { FRAME_ASPECT } from '../upload/sizing'
 import { imageFileProblem, openedSize } from '../upload/cropAndCompress'
 import type { UploadDraft } from './pickerState'
+import { pressFailureWords } from '../../failureWords'
 
 const MIN_ZOOM = 1
 const MAX_ZOOM = 4
@@ -47,7 +48,7 @@ export function UploadPane({ kind, upload, onUpload, onCrop, onProblem, picker =
     try {
       await openedSize(file)
     } catch (err) {
-      onProblem(err instanceof Error ? err.message : String(err))
+      onProblem(pressFailureWords(err))
       return
     }
     setCrop({ x: 0, y: 0 })

@@ -4,6 +4,7 @@ import { Button, FormField, Modal, NativeSelect } from '@agenthix/ui/primitives'
 import type { TeamDetail } from '../../teams/teamQueries'
 import { ROLE_LABEL, type TeamRole } from './teamWords'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 type ProjectRow = { id: string; key: string; name: string; personalOwnerId: string | null; isMember?: boolean }
 
@@ -23,7 +24,7 @@ export function AddToProjectDialog({ open, team, onClose, onAdded }: { open: boo
     e.preventDefault()
     setBusy(true)
     setError('')
-    try { await add({ projectId, teamId: team.id, role }); setProjectId(''); onAdded(); onClose() } catch (err) { setError(err instanceof Error ? err.message : 'Could not add the team') } finally { setBusy(false) }
+    try { await add({ projectId, teamId: team.id, role }); setProjectId(''); onAdded(); onClose() } catch (err) { setError(pressFailureWords(err, 'Could not add the team')) } finally { setBusy(false) }
   }
 
   return (

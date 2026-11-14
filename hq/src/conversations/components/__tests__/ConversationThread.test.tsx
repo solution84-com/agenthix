@@ -194,7 +194,7 @@ describe('a conversation on screen @SC-1004 @SC-1933', () => {
   })
 
   it('says a conversation that cannot be answered by greying its box, not by a band beside it @SC-952 @SC-1911', () => {
-    h.thread.view = { ...baseView, accessProblem: 'No model provider is working. An organisation admin can add one, or fix the one there is, under Manage organisation › Providers.' }
+    h.thread.view = { ...baseView, accessProblem: 'No model provider is working. An organisation admin can add one, or fix the one there is, under Manage organisation › AI, under Your providers.' }
     renderThread()
     const pill = screen.getByTestId('message-pill')
     fireEvent.mouseEnter(pill)
@@ -208,7 +208,7 @@ describe('a conversation on screen @SC-1004 @SC-1933', () => {
     h.thread.view = { ...baseView, accessProblem: 'Anthropic is not working. An organisation admin has been told.', accessOffer: { label: 'OpenRouter' } }
     h.thread.messages = [
       { id: 'p1', seq: 1, role: 'PERSON', authorId: 'u1', agentId: null, kind: 'TEXT', body: { text: 'Summarise it' }, turnId: 't1', createdAt: '2026-10-16T10:00:00.000Z' },
-      { id: 'f1', seq: 2, role: 'AGENT', authorId: null, agentId: 'a1', kind: 'FAILED', body: { reason: 'Anthropic refused the key HQ uses. An organisation admin can check it under Manage organisation › Providers.' }, turnId: 't1', createdAt: '2026-10-16T10:00:01.000Z' },
+      { id: 'f1', seq: 2, role: 'AGENT', authorId: null, agentId: 'a1', kind: 'FAILED', body: { reason: 'Anthropic refused the key HQ uses. An organisation admin can check it under Manage organisation › AI, under Your providers.' }, turnId: 't1', createdAt: '2026-10-16T10:00:01.000Z' },
     ]
     renderThread()
     expect(screen.queryByTestId('access-line')).toBeNull()

@@ -12,6 +12,7 @@ import { WorkspaceChangesContext, WorkspaceEventContext, useWorkspaceLive, useOn
 import { useSiteRead } from '../../shared/siteRead'
 import { useViewSize } from '../hooks/useViewSize'
 import { byRecent, noteOpened, recentWorkspaces } from '../viewAddress'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /**
  * A workspace opened in the app's frame (live preview spec, part 1): HQ's rail on the left, without the project's
@@ -64,7 +65,7 @@ function WorkspaceViewScreen({ workspaceId }: { workspaceId: string }) {
   if (error && !ws) return shell(<CantOpenWorkspace workspaceId={workspaceId} onRetry={() => { void refetchWorkspace() }} />)
   if (!ws || !place) return shell(<Plain>Loading…</Plain>)
   const view = branches.data as WorkspaceBranchesView | undefined
-  if (branches.error && !view) return shell(<CantReadBranches message={branches.error.message} back={placeOf(ws)} onRetry={() => { void branches.refetch() }} />)
+  if (branches.error && !view) return shell(<CantReadBranches message={pressFailureWords(branches.error)} back={placeOf(ws)} onRetry={() => { void branches.refetch() }} />)
   if (!view) return shell(<Plain>Loading…</Plain>)
 
   return shell(

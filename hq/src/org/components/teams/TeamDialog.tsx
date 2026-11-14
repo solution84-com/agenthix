@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAction, createTeam, updateTeam } from 'wasp/client/operations'
 import { Button, FormField, Input, Modal, Textarea } from '@agenthix/ui/primitives'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 /** New team, or a team's name and purpose changed. People and agents are added on the team's own page. */
 export function TeamDialog({ open, team, onClose, onSaved }: {
@@ -35,7 +36,7 @@ export function TeamDialog({ open, team, onClose, onSaved }: {
       }
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save the team')
+      setError(pressFailureWords(err, 'Could not save the team'))
     } finally {
       setSaving(false)
     }

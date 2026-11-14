@@ -4,6 +4,7 @@ import { DateField, NativeSelect } from '@agenthix/ui/primitives'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { useAttention } from '../../shared/components/AttentionDialog'
 import { isEpicTask } from './taskKind'
+import { pressFailureWords } from '../../shared/failureWords'
 
 type Plan = {
   id: string
@@ -41,7 +42,7 @@ export function TaskPlanFacts({ task, onChanged, part }: { task: Plan; onChanged
       await planFn({ taskId: task.id, ...change })
       onChanged()
     } catch (e) {
-      attention.show({ title: 'The plan wasn’t changed', text: `${e instanceof Error ? e.message : 'That did not work.'} Nothing was changed.`, retry: () => void save(change) })
+      attention.show({ title: 'The plan wasn’t changed', text: `${pressFailureWords(e, 'That did not work.')} Nothing was changed.`, retry: () => void save(change) })
     }
   }
   const disabled = !canChange

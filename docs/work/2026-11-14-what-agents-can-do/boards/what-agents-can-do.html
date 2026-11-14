@@ -1,0 +1,454 @@
+<style>
+  .hq{--accent:#5b4bd6;--accent-fill:#5b4bd6;--on-accent:#ffffff;--selected-bg:#efecff;--selected-border:#5b4bd6}
+  [data-theme="dark"] .hq{--accent:#a99bff;--accent-fill:#5b4bd6;--on-accent:#ffffff;--selected-bg:#2a2550;--selected-border:#a99bff}
+  .scr{background:var(--bg-primary);color:var(--text-primary);padding:var(--space-4);font-size:var(--text-sm);max-width:440px;margin:0 auto}
+  .scr .stepline{font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:var(--space-2)}
+  .scr h3{margin:0 0 var(--space-1)}
+  .scr .lead{color:var(--text-secondary);margin:0 0 var(--space-3)}
+  .scr .lbl{font-size:var(--text-xs);color:var(--text-secondary);font-weight:600;margin:var(--space-3) 0 var(--space-1)}
+  .pcard{border:1px solid var(--border);border-radius:var(--radius);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2);background:var(--bg-secondary);color:var(--text-primary)}
+  .pcard .top{display:flex;justify-content:space-between;gap:var(--space-2);align-items:center}
+  .chip{font-size:var(--text-xs);padding:0 6px;border-radius:var(--radius-sm);background:var(--bg-tertiary);color:var(--text-secondary);margin-left:4px}
+  .ok{color:var(--success);font-size:var(--text-xs)}
+  .warn{color:var(--warning);font-size:var(--text-xs)}
+  .muted2{color:var(--text-secondary);font-size:var(--text-xs)}
+  .link{color:var(--accent);font-size:var(--text-xs);font-weight:600}
+  .addbtn{border:1px solid var(--border-strong);border-radius:var(--radius);text-align:center;padding:var(--space-2);margin:var(--space-2) 0 var(--space-3);background:var(--bg-primary);color:var(--text-primary)}
+  .row{display:flex;justify-content:space-between;gap:var(--space-2);padding:var(--space-2) 0;border-bottom:1px solid var(--border)}
+  .row:last-child{border-bottom:none}
+  .row .k{color:var(--text-secondary)}
+  .row.new{background:var(--selected-bg);color:var(--text-primary);border-radius:var(--radius-sm);padding:var(--space-2);border:1px solid var(--selected-border)}
+  .actions{display:flex;gap:var(--space-2);margin-top:var(--space-4)}
+  .actions .b{flex:none;border:1px solid var(--border-strong);border-radius:var(--radius);padding:var(--space-2) var(--space-3);background:var(--bg-primary);color:var(--text-primary)}
+  .actions .p{flex:1;border-radius:var(--radius);padding:var(--space-2) var(--space-3);text-align:center;background:var(--accent-fill);color:var(--on-accent)}
+  .dialog{border:1px solid var(--border-strong);border-radius:var(--radius-lg);padding:var(--space-4);background:var(--bg-secondary);color:var(--text-primary);max-width:400px;margin:var(--space-3) auto;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+  .field{border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:var(--space-2);color:var(--text-tertiary);background:var(--bg-primary);margin:var(--space-2) 0}
+  .newtag{font-size:var(--text-xs);font-weight:700;color:var(--accent)}
+  .chat{max-width:440px;margin:0 auto}
+  .msg{border-radius:var(--radius);padding:var(--space-2) var(--space-3);margin:var(--space-2) 0;font-size:var(--text-sm)}
+  .msg.me{background:var(--selected-bg);color:var(--text-primary);margin-left:20%}
+  .msg.ag{background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border);margin-right:10%}
+  .cap{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:start;padding:var(--space-2) 0;border-bottom:1px solid var(--border)}
+  .cap:last-child{border-bottom:none}
+  .tick{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+  .tick.yes{background:var(--success-bg);color:var(--success-text);border:1px solid var(--success)}
+  .tick.no{background:var(--bg-tertiary);color:var(--text-tertiary);border:1px dashed var(--border-strong)}
+  .tick.part{background:var(--warning-bg);color:var(--warning-text);border:1px solid var(--warning)}
+  .cap .n{font-weight:600}
+  .cap .d{color:var(--text-secondary);font-size:var(--text-xs)}
+  .cap .sub{display:flex;justify-content:space-between;gap:8px;font-size:var(--text-xs);color:var(--text-secondary)}
+</style>
+
+<div class="board-layout" style="--board-nav-width:280px">
+  <nav class="board-nav">
+    <div class="board-nav-header"><h3>What agents can do</h3><p>setup and the AI page · agreed (v6)</p></div>
+    <div class="nav-group">
+      <div class="nav-group-title">Context</div>
+      <a class="nav-item" data-board-target="why"><span class="nav-num">1</span>Who needs a search key</a>
+      <a class="nav-item" data-board-target="today"><span class="nav-num">2</span>Setup's AI step today</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">D1 · Where it sits in setup</div>
+      <a class="nav-item" data-board-target="a"><span class="nav-num">A</span>A row in "What agents use" <span class="tag accent">Recommended</span></a>
+      <a class="nav-item" data-board-target="a-combos"><span class="nav-num">A1</span>A: by runtime <span class="tag accent">New</span></a>
+      <a class="nav-item" data-board-target="caps"><span class="nav-num">A3</span>A: what agents can do, with ticks <span class="tag accent">New</span></a>
+      <a class="nav-item" data-board-target="a-dialog"><span class="nav-num">A2</span>A: the Exa key pop-up</a>
+      <a class="nav-item" data-board-target="b"><span class="nav-num">B</span>Exa as a provider</a>
+      <a class="nav-item" data-board-target="c"><span class="nav-num">C</span>Its own optional section</a>
+      <a class="nav-item" data-board-target="d1"><span class="nav-num">?</span>Choose D1 <span class="tag warning">Open</span></a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">After setup</div>
+      <a class="nav-item" data-board-target="review"><span class="nav-num">3</span>The review step</a>
+      <a class="nav-item" data-board-target="nokey"><span class="nav-num">4</span>An agent with no key <span class="tag warning">D3 open</span></a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Settings, compared <span class="tag accent">New</span></div>
+      <a class="nav-item" data-board-target="s-today"><span class="nav-num">S1</span>Settings today</a>
+      <a class="nav-item" data-board-target="s-compare"><span class="nav-num">S2</span>Setup vs Settings</a>
+      <a class="nav-item" data-board-target="s-prop"><span class="nav-num">S3</span>Proposed Settings</a>
+      <a class="nav-item" data-board-target="s-why"><span class="nav-num">S4</span>Why two pages today</a>
+      <a class="nav-item" data-board-target="s-one"><span class="nav-num">S5</span>One AI page <span class="tag accent">New</span></a>
+      <a class="nav-item" data-board-target="s-one-q"><span class="nav-num">?</span>One page or two <span class="tag warning">Open</span></a>
+      <a class="nav-item" data-board-target="s-scope"><span class="nav-num">?</span>Choose the scope <span class="tag warning">Open</span></a>
+    </div>
+  </nav>
+
+  <main class="board-stage">
+
+    <section class="board-panel" data-board="why" data-title="Who needs a search key">
+      <div class="label">Context</div>
+      <h2>Only agents on OpenCode need a search key</h2>
+      <p class="subtitle">The platform picks the runtime from the provider (<code>runtimeFor</code>). Claude Code brings Claude's own search; OpenCode searches only through the platform's <code>web_search</code> tool, which sends queries to Exa with the organisation's key.</p>
+      <table>
+        <tr><th>Provider</th><th>Runtime</th><th>Web search</th></tr>
+        <tr><td>Anthropic API key</td><td>Claude Code</td><td><span class="tag success">Claude's own</span></td></tr>
+        <tr><td>A person's Claude subscription</td><td>Claude Code</td><td><span class="tag success">Claude's own</span></td></tr>
+        <tr><td>Agenthix Cloud, Claude models (later)</td><td>Claude Code</td><td><span class="tag success">Claude's own</span></td></tr>
+        <tr><td>OpenAI, Google, OpenRouter, Inworld, own endpoint</td><td>OpenCode</td><td><span class="tag warning">Needs Exa key</span></td></tr>
+        <tr><td>Agenthix Cloud, other models (later)</td><td>OpenCode</td><td><span class="tag warning">Needs Exa key</span></td></tr>
+      </table>
+      <div class="callout info">So setup only needs to ask about web search once the organisation has a provider whose models run on OpenCode. An organisation on Claude alone never sees it.</div>
+    </section>
+
+    <section class="board-panel" data-board="today" data-title="Setup's AI step today">
+      <div class="label">Context · step 3 of 4</div>
+      <h2>Setup's AI step today</h2>
+      <p class="subtitle">One list of providers, one "Add a provider" pop-up, then "What agents use". Web search isn't mentioned; its key lives only in Settings.</p>
+      <div class="board-canvas hq">
+        <div class="device browser"><div class="device-bar"><span class="url">hq.example.org/setup?step=ai</span></div>
+          <div class="device-screen"><div class="scr">
+            <div class="stepline">Step 3 of 4 · AI</div>
+            <h3>Connect AI</h3>
+            <p class="lead">Agents think with a model, and hear and speak with a voice. Add the accounts you have.</p>
+            <div class="lbl">Your providers</div>
+            <div class="pcard"><div class="top"><span><strong>OpenRouter</strong><span class="chip">Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div></div>
+            <div class="addbtn">＋ Add a provider</div>
+            <div class="lbl">What agents use</div>
+            <div class="row"><span class="k">Model</span><span>DeepSeek V4 · <span class="link">Change</span></span></div>
+            <div class="row"><span class="k">Hearing</span><span class="muted2">Not set. Add a provider that hears people.</span></div>
+            <div class="row"><span class="k">Speaking</span><span class="muted2">Not set. Add a provider that speaks.</span></div>
+            <div class="actions"><span class="b">Back</span><span class="p">Continue</span></div>
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="a" data-title="A · a row in What agents use">
+      <div class="board-split">
+        <div class="board-notes">
+          <div class="label">D1 · option A <span class="tag accent">Recommended</span></div>
+          <h2>Web search as a fourth row in "What agents use"</h2>
+          <p>Web search sits with model, hearing and speaking: things agents use. It appears only once a provider runs on OpenCode, and its words say which agents it's for.</p>
+          <ul>
+            <li>The row names <strong>runtimes</strong>, one line each: a runtime that searches on its own says so, and OpenCode asks for the key. The combinations are on the next board.</li>
+            <li><em>Add a key</em> opens a small pop-up (A2).</li>
+          </ul>
+          <div class="pros-cons">
+            <div class="pros"><h4>For</h4><ul><li>Reuses today's key storage as is</li><li>Shows only when it matters</li><li>Reads like the other defaults</li></ul></div>
+            <div class="cons"><h4>Against</h4><ul><li>Exa isn't in "Your providers", so removing it lives in Settings</li></ul></div>
+          </div>
+        </div>
+        <div class="board-canvas hq">
+          <div class="device browser"><div class="device-bar"><span class="url">hq.example.org/setup?step=ai</span></div>
+            <div class="device-screen"><div class="scr">
+              <div class="stepline">Step 3 of 4 · AI</div>
+              <h3>Connect AI</h3>
+              <p class="lead">Agents think with a model, hear and speak with a voice, and search the web. Add the accounts you have.</p>
+              <div class="lbl">Your providers</div>
+              <div class="pcard"><div class="top"><span><strong>OpenRouter</strong><span class="chip">Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div></div>
+              <div class="addbtn">＋ Add a provider</div>
+              <div class="lbl">What agents use</div>
+              <div class="row"><span class="k">Model</span><span>DeepSeek V4 · <span class="link">Change</span></span></div>
+              <div class="row"><span class="k">Hearing</span><span class="muted2">Not set. Add a provider that hears people.</span></div>
+              <div class="row"><span class="k">Speaking</span><span class="muted2">Not set. Add a provider that speaks.</span></div>
+              <div class="row new" style="flex-direction:column;gap:4px"><span class="k">Web search <span class="newtag">NEW</span></span><span style="display:flex;justify-content:space-between;gap:8px"><span>OpenCode</span><span class="muted2">Needs a search key · <span class="link">Add a key</span></span></span></div>
+              <div class="actions"><span class="b">Back</span><span class="p">Continue</span></div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="board-panel" data-board="a-combos" data-title="A1 · by runtime">
+      <div class="label">D1 · option A, by runtime</div>
+      <h2>Say it by runtime: one line per runtime in use</h2>
+      <p class="subtitle">The runtime is what decides search, so name it. Each provider card says once which runtime its models run on. The Web search row then lists only the runtimes in use: one that searches on its own says so, and OpenCode asks for the key. When OpenAI's and Google's runtimes arrive, they become one more "searches on its own" line, with no new wording.</p>
+      <div class="cards">
+        <div class="card" style="cursor:default"><div class="card-body"><h3>Anthropic only</h3></div><div class="card-image hq" style="padding:0"><div class="scr" style="max-width:none">
+      <div class="lbl">Your providers</div><div class="pcard"><div class="top"><span><strong>Anthropic</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>Claude Code</strong></div></div>
+      <div class="lbl">What agents use</div>
+      <div class="row"><span class="k">Model</span><span>… · <span class="link">Change</span></span></div>
+      <div class="row new" style="flex-direction:column;gap:4px"><span class="k">Web search</span><span style="display:flex;justify-content:space-between;gap:8px"><span>Claude Code</span><span class="ok">Searches on its own</span></span></div>
+    </div></div></div>
+        <div class="card" style="cursor:default"><div class="card-body"><h3>OpenRouter only</h3></div><div class="card-image hq" style="padding:0"><div class="scr" style="max-width:none">
+      <div class="lbl">Your providers</div><div class="pcard"><div class="top"><span><strong>OpenRouter</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>OpenCode</strong></div></div>
+      <div class="lbl">What agents use</div>
+      <div class="row"><span class="k">Model</span><span>… · <span class="link">Change</span></span></div>
+      <div class="row new" style="flex-direction:column;gap:4px"><span class="k">Web search</span><span style="display:flex;justify-content:space-between;gap:8px"><span>OpenCode</span><span class="muted2">Needs a search key · <span class="link">Add a key</span></span></span></div>
+    </div></div></div>
+        <div class="card" style="cursor:default"><div class="card-body"><h3>Anthropic + OpenRouter + Inworld</h3></div><div class="card-image hq" style="padding:0"><div class="scr" style="max-width:none">
+      <div class="lbl">Your providers</div><div class="pcard"><div class="top"><span><strong>Anthropic</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>Claude Code</strong></div></div><div class="pcard"><div class="top"><span><strong>OpenRouter</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>OpenCode</strong></div></div><div class="pcard"><div class="top"><span><strong>Inworld</strong><span class=chip>Models</span><span class=chip>Speaking</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>OpenCode</strong></div></div>
+      <div class="lbl">What agents use</div>
+      <div class="row"><span class="k">Model</span><span>… · <span class="link">Change</span></span></div>
+      <div class="row new" style="flex-direction:column;gap:4px"><span class="k">Web search</span><span style="display:flex;justify-content:space-between;gap:8px"><span>Claude Code</span><span class="ok">Searches on its own</span></span><span style="display:flex;justify-content:space-between;gap:8px"><span>OpenCode</span><span class="muted2">Needs a search key · <span class="link">Add a key</span></span></span></div>
+    </div></div></div>
+        <div class="card" style="cursor:default"><div class="card-body"><h3>Later: with OpenAI's runtime</h3><p class="muted">Not built: shows the wording scales.</p></div><div class="card-image hq" style="padding:0"><div class="scr" style="max-width:none">
+      <div class="lbl">Your providers</div><div class="pcard"><div class="top"><span><strong>Anthropic</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>Claude Code</strong></div></div><div class="pcard"><div class="top"><span><strong>OpenAI</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>Codex</strong></div></div><div class="pcard"><div class="top"><span><strong>OpenRouter</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>OpenCode</strong></div></div>
+      <div class="lbl">What agents use</div>
+      <div class="row"><span class="k">Model</span><span>… · <span class="link">Change</span></span></div>
+      <div class="row new" style="flex-direction:column;gap:4px"><span class="k">Web search</span><span style="display:flex;justify-content:space-between;gap:8px"><span>Claude Code</span><span class="ok">Searches on its own</span></span><span style="display:flex;justify-content:space-between;gap:8px"><span>Codex</span><span class="ok">Searches on its own</span></span><span style="display:flex;justify-content:space-between;gap:8px"><span>OpenCode</span><span>Exa · <span class="ok">Works</span> · <span class="link">Change</span></span></span></div>
+    </div></div></div>
+      </div>
+      <div class="callout info"><strong>One line of help</strong>, under the row's "?": <em>"A runtime is the program an agent works in. Claude Code searches the web on its own. OpenCode searches through Exa, with your organisation's key."</em></div>
+      <div class="callout">Today's Settings page and guide already say "agents on OpenCode", so this matches what's there.</div>
+    </section>
+
+    <section class="board-panel" data-board="caps" data-title="A3 · What agents can do">
+      <div class="label">D1 · option A, as capabilities <span class="tag accent">New</span></div>
+      <h2>"What agents use" becomes "What agents can do", with a tick each</h2>
+      <p class="subtitle"><strong>Model</strong> becomes <strong>Thinking</strong>, beside Hearing, Speaking and Web search. Each has a tick when agents can do it, an empty circle when a provider would add it, and <span class="tick part" style="display:inline-flex">!</span> when only some agents can (Web search with OpenCode and no key). The runtimes show under Web search only when more than one is in use.</p>
+      <div class="cards"><div class="card" style="cursor:default"><div class="card-body"><h3>Nothing added yet</h3></div><div class="card-image hq" style="padding:0"><div class="scr" style="max-width:none">
+      <div class="lbl">Your providers</div><div class="pcard" style="text-align:center;color:var(--text-secondary)">None yet</div>
+      <div class="lbl">What agents can do</div><div class="cap"><span class="tick no"></span><div><div class="n">Thinking</div><div class="d">Add a provider that offers models.</div></div><span class="link"></span></div><div class="cap"><span class="tick no"></span><div><div class="n">Hearing</div><div class="d">Add a provider that hears people.</div></div><span class="link"></span></div><div class="cap"><span class="tick no"></span><div><div class="n">Speaking</div><div class="d">Add a provider that speaks.</div></div><span class="link"></span></div><div class="cap"><span class="tick no"></span><div><div class="n">Web search</div><div class="d">Comes with your first model provider.</div></div><span class="link"></span></div>
+    </div></div></div><div class="card" style="cursor:default"><div class="card-body"><h3>OpenRouter only</h3></div><div class="card-image hq" style="padding:0"><div class="scr" style="max-width:none">
+      <div class="lbl">Your providers</div><div class="pcard"><div class="top"><span><strong>OpenRouter</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>OpenCode</strong></div></div>
+      <div class="lbl">What agents can do</div><div class="cap"><span class="tick yes">✓</span><div><div class="n">Thinking</div><div class="d">DeepSeek V4</div></div><span class="link">Change</span></div><div class="cap"><span class="tick no"></span><div><div class="n">Hearing</div><div class="d">Add a provider that hears people.</div></div><span class="link"></span></div><div class="cap"><span class="tick no"></span><div><div class="n">Speaking</div><div class="d">Add a provider that speaks.</div></div><span class="link"></span></div><div class="cap"><span class="tick no"></span><div><div class="n">Web search</div><div class="d">OpenCode needs a search key.</div></div><span class="link">Add a key</span></div>
+    </div></div></div><div class="card" style="cursor:default"><div class="card-body"><h3>Anthropic + OpenRouter + Inworld</h3></div><div class="card-image hq" style="padding:0"><div class="scr" style="max-width:none">
+      <div class="lbl">Your providers</div><div class="pcard"><div class="top"><span><strong>Anthropic</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>Claude Code</strong></div></div><div class="pcard"><div class="top"><span><strong>OpenRouter</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>OpenCode</strong></div></div><div class="pcard"><div class="top"><span><strong>Inworld</strong><span class=chip>Models</span><span class=chip>Speaking</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>OpenCode</strong></div></div>
+      <div class="lbl">What agents can do</div><div class="cap"><span class="tick yes">✓</span><div><div class="n">Thinking</div><div class="d">Claude Sonnet 5.5</div></div><span class="link">Change</span></div><div class="cap"><span class="tick no"></span><div><div class="n">Hearing</div><div class="d">Add a provider that hears people.</div></div><span class="link"></span></div><div class="cap"><span class="tick yes">✓</span><div><div class="n">Speaking</div><div class="d">Inworld · Ashley</div></div><span class="link">Change</span></div><div class="cap"><span class="tick part">!</span><div><div class="n">Web search</div><div class="d">Some agents can search.</div><div class="sub"><span>Claude Code</span><span><span class="ok">✓ on its own</span></span></div><div class="sub"><span>OpenCode</span><span>needs a search key</span></div></div><span class="link">Add a key</span></div>
+    </div></div></div><div class="card" style="cursor:default"><div class="card-body"><h3>Everything set</h3></div><div class="card-image hq" style="padding:0"><div class="scr" style="max-width:none">
+      <div class="lbl">Your providers</div><div class="pcard"><div class="top"><span><strong>Anthropic</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>Claude Code</strong></div></div><div class="pcard"><div class="top"><span><strong>OpenRouter</strong><span class=chip>Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>OpenCode</strong></div></div><div class="pcard"><div class="top"><span><strong>AssemblyAI</strong><span class=chip>Hearing</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div></div><div class="pcard"><div class="top"><span><strong>Inworld</strong><span class=chip>Models</span><span class=chip>Speaking</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div><div class="muted2">Agents run its models on <strong>OpenCode</strong></div></div>
+      <div class="lbl">What agents can do</div><div class="cap"><span class="tick yes">✓</span><div><div class="n">Thinking</div><div class="d">Claude Sonnet 5.5</div></div><span class="link">Change</span></div><div class="cap"><span class="tick yes">✓</span><div><div class="n">Hearing</div><div class="d">AssemblyAI</div></div><span class="link">Change</span></div><div class="cap"><span class="tick yes">✓</span><div><div class="n">Speaking</div><div class="d">Inworld · Ashley</div></div><span class="link">Change</span></div><div class="cap"><span class="tick yes">✓</span><div><div class="n">Web search</div><div class="d">Every agent can search.</div><div class="sub"><span>Claude Code</span><span><span class="ok">✓ on its own</span></span></div><div class="sub"><span>OpenCode</span><span><span class="ok">✓ Exa</span></span></div></div><span class="link">Change</span></div>
+    </div></div></div></div>
+      <div class="callout info">An empty circle is a note, never a fault: setup still continues without it. The same list can appear on the review step and in Settings, so "what my agents can do" reads the same everywhere.</div>
+    </section>
+
+    <section class="board-panel" data-board="a-dialog" data-title="A2 · the Exa key pop-up">
+      <div class="board-split">
+        <div class="board-notes">
+          <div class="label">D1 · option A, detail</div>
+          <h2>The pop-up behind "Add a key"</h2>
+          <p>One field and a short guide, like the AI step's key guides. It saves through today's <code>setWebSearchKey</code>, so Settings shows the same key afterwards.</p>
+          <ul>
+            <li>Says what it's for and that Claude models don't need it.</li>
+            <li>Links to Exa's key page; the free tier is enough to try it.</li>
+            <li>A refused key is said under the field, and the pop-up stays open.</li>
+            <li><em>Not now</em> closes it; the row stays "not set", and setup is never blocked.</li>
+          </ul>
+        </div>
+        <div class="board-canvas hq">
+          <div class="dialog">
+            <h3 style="margin-top:0">Web search for OpenCode</h3>
+            <p class="muted2" style="font-size:var(--text-sm)">Agents working in OpenCode search the web through Exa, with your organisation's key. The key stays in HQ and never reaches an agent. Runtimes that search on their own, like Claude Code, don't need it.</p>
+            <div class="field">Exa API key</div>
+            <p class="muted2">No key yet? <span class="link">Get one from Exa ↗</span>: sign up, then copy the key from its dashboard.</p>
+            <div class="actions"><span class="b">Not now</span><span class="p">Save key</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="b" data-title="B · Exa as a provider">
+      <div class="board-split">
+        <div class="board-notes">
+          <div class="label">D1 · option B</div>
+          <h2>Exa as a provider in "Add a provider"</h2>
+          <p>Exa joins the provider pop-up with a new kind, <em>Search</em>, and shows as a card like OpenRouter. "What agents use" still gains a Web search row.</p>
+          <div class="pros-cons">
+            <div class="pros"><h4>For</h4><ul><li>One place to add and remove every account</li><li>Room for other search providers later</li></ul></div>
+            <div class="cons"><h4>Against</h4><ul><li>A new provider kind and a move of today's key storage: a bigger change three days from launch</li><li>Offered even to organisations on Claude alone</li></ul></div>
+          </div>
+        </div>
+        <div class="board-canvas hq">
+          <div class="device browser"><div class="device-bar"><span class="url">hq.example.org/setup?step=ai</span></div>
+            <div class="device-screen"><div class="scr">
+              <div class="lbl">Your providers</div>
+              <div class="pcard"><div class="top"><span><strong>OpenRouter</strong><span class="chip">Models</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div></div>
+              <div class="pcard" style="border-color:var(--selected-border)"><div class="top"><span><strong>Exa</strong><span class="chip">Search</span> <span class="newtag">NEW</span></span><span class="link">Remove</span></div><div class="ok">Works. Added by you.</div></div>
+              <div class="addbtn">＋ Add a provider</div>
+              <div class="lbl">What agents use</div>
+              <div class="row"><span class="k">Model</span><span>DeepSeek V4 · <span class="link">Change</span></span></div>
+              <div class="row"><span class="k">Web search</span><span>Exa</span></div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="c" data-title="C · its own optional section">
+      <div class="board-split">
+        <div class="board-notes">
+          <div class="label">D1 · option C</div>
+          <h2>A separate "Web search (optional)" section</h2>
+          <p>A block under "What agents use", with the key field inline, shown whenever OpenCode is in play.</p>
+          <div class="pros-cons">
+            <div class="pros"><h4>For</h4><ul><li>Very visible; no pop-up</li></ul></div>
+            <div class="cons"><h4>Against</h4><ul><li>A third kind of block on an already full step</li><li>A key field on the page reads as required</li></ul></div>
+          </div>
+        </div>
+        <div class="board-canvas hq">
+          <div class="device browser"><div class="device-bar"><span class="url">hq.example.org/setup?step=ai</span></div>
+            <div class="device-screen"><div class="scr">
+              <div class="lbl">What agents use</div>
+              <div class="row"><span class="k">Model</span><span>DeepSeek V4 · <span class="link">Change</span></span></div>
+              <div class="row"><span class="k">Speaking</span><span class="muted2">Not set.</span></div>
+              <div class="lbl">Web search (optional) <span class="newtag">NEW</span></div>
+              <p class="muted2">For agents working in OpenCode. Claude Code searches on its own.</p>
+              <div class="field">Exa API key</div>
+              <div class="actions"><span class="p" style="flex:none">Save key</span></div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="d1" data-title="Choose D1">
+      <div class="label">Decision D1</div>
+      <h2>Where should web search sit in setup?</h2>
+      <div class="callout info"><strong>Recommendation: A.</strong> It sits where people already look for what agents use, appears only when it matters, and reuses today's key storage untouched. That makes it the smallest safe change before launch. B can come later if more search providers arrive.</div>
+      <div class="options">
+        <div class="option" data-choice="a" onclick="toggleSelect(this)"><div class="letter">A</div><div class="content"><h3>A row in "What agents use", with a key pop-up</h3><p>Shown only once a provider runs on OpenCode.</p></div></div>
+        <div class="option" data-choice="b" onclick="toggleSelect(this)"><div class="letter">B</div><div class="content"><h3>Exa as a provider</h3><p>A new Search kind in "Add a provider".</p></div></div>
+        <div class="option" data-choice="c" onclick="toggleSelect(this)"><div class="letter">C</div><div class="content"><h3>Its own optional section</h3><p>The key field inline on the step.</p></div></div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="review" data-title="The review step">
+      <div class="board-split">
+        <div class="board-notes">
+          <div class="label">After setup · step 4 of 4</div>
+          <h2>The review step names web search</h2>
+          <p>The AI section lists what's set and what isn't, as it does for hearing and speaking. "Not set" is a note, not a fault, and Edit goes back to the AI step.</p>
+        </div>
+        <div class="board-canvas hq">
+          <div class="device browser"><div class="device-bar"><span class="url">hq.example.org/setup?step=review</span></div>
+            <div class="device-screen"><div class="scr">
+              <h3>Check everything before you start</h3>
+              <div class="lbl">AI · <span class="link">Edit</span></div>
+              <p style="margin:0">Model set.</p>
+              <ul style="margin:var(--space-1) 0;padding-left:1.2em" class="muted2"><li>Hearing: Not set.</li><li>Speaking: Not set.</li><li style="color:var(--text-primary)"><strong>Web search:</strong> Claude Code searches on its own; OpenCode not set. <span class="newtag">NEW</span></li></ul>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="nokey" data-title="An agent with no key">
+      <div class="board-split">
+        <div class="board-notes">
+          <div class="label">After setup · decision D3</div>
+          <h2>An OpenCode agent with no search key</h2>
+          <p><strong>Recommended:</strong> don't offer <code>web_search</code> to an OpenCode run when the organisation has no key, and tell the agent so in its context. When asked to search, it says plainly that it can't and who can fix it, instead of a tool failing mid-run.</p>
+          <ul>
+            <li>An admin is pointed to <em>Settings › Access to models and tools › Web search</em>.</li>
+            <li>A member is told an organisation admin can add it.</li>
+            <li>Once a key is saved, the next run has the tool again.</li>
+          </ul>
+          <p class="muted">Alternative: keep the tool and make its error say the same thing. Simpler, but the agent learns only after trying.</p>
+        </div>
+        <div class="board-canvas hq">
+          <div class="chat">
+            <div class="msg me">What changed in the latest Next.js release?</div>
+            <div class="msg ag">I can't search the web here: I work in OpenCode, and this organisation hasn't added the search key OpenCode needs. An organisation admin can add one under <span class="link">Settings › Access to models and tools › Web search</span>. Meanwhile I can answer from what I know, which may be out of date.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="board-panel" data-board="s-today" data-title="Settings today">
+      <div class="label">Settings · today</div>
+      <h2>Settings today: three pages in two places</h2>
+      <p class="subtitle">Providers and Models sit under <em>Models and billing</em>. The web search key sits elsewhere, under <em>Settings › Access to models and tools</em>.</p>
+      <div class="split"><div class="board-canvas hq"><div class="device browser"><div class="device-bar"><span class="url">hq.example.org/admin/providers</span></div><div class="device-screen"><div class="scr" style="max-width:520px"><div class="stepline">Manage organisation › Providers</div><h3>Providers</h3><p class="lead">Where the organisation's models and voice come from, and who bills for them.</p>
+ <div class="pcard"><div class="top"><span><strong>Anthropic</strong> <span class="ok">● Works</span> <span class="muted2">since 2 days</span></span><span class="link">Check now · ⋯</span></div><div class="muted2">Models · Anthropic · key …a4f2</div></div>
+ <div class="pcard"><div class="top"><span><strong>OpenRouter</strong> <span class="ok">● Works</span> <span class="muted2">since 1 day</span></span><span class="link">Check now · ⋯</span></div><div class="muted2">Models · OpenRouter · key …91be</div></div></div></div></div></div><div class="board-canvas hq"><div class="device browser"><div class="device-bar"><span class="url">hq.example.org/admin/models</span></div><div class="device-screen"><div class="scr" style="max-width:520px"><div class="stepline">Manage organisation › Models</div><h3>Models</h3><p class="lead">What every agent uses unless it has its own. Keys are on <span class="link">Providers</span>.</p>
+ <div class="lbl">Thinking</div><div class="row"><span class="k">Model</span><span>Claude Sonnet 5.5 · <span class="link">Change</span></span></div>
+ <div class="lbl">Voice</div><div class="row"><span class="k">Voice</span><span>Inworld · Ashley · <span class="link">Change</span></span></div><div class="row"><span class="k">Listening</span><span class="muted2">Not set</span></div>
+ <div class="lbl">Which models may run</div><p class="muted2">For everyone in Acme. Agents, projects and people can narrow it further, never widen it.</p></div></div></div></div></div>
+      <div style="margin-top:var(--space-4)"><div class="board-canvas hq"><div class="device browser"><div class="device-bar"><span class="url">hq.example.org/admin/settings/model-access</span></div><div class="device-screen"><div class="scr" style="max-width:520px"><div class="stepline">Manage organisation › Settings › Access to models and tools › Web search</div><h3>Web search</h3><p class="lead">The key agents on OpenCode search the web with. Model and voice providers are under Manage organisation › Providers.</p>
+ <div class="pcard"><strong>Web search (Exa)</strong><div class="muted2">Agents on OpenCode search the web through the Execution Site… Claude models search on Anthropic's own service and do not use it.</div><div class="field">Exa API key</div><span class="link">Save key</span></div></div></div></div></div></div>
+    </section>
+
+    <section class="board-panel" data-board="s-compare" data-title="Setup vs Settings">
+      <div class="label">Settings · comparison</div>
+      <h2>Setup and Settings say the same things differently</h2>
+      <table>
+        <tr><th></th><th>Setup's AI step (agreed)</th><th>Settings today</th><th>Proposed for Settings</th></tr>
+        <tr><td>The heading</td><td>What agents can do</td><td>Models</td><td><strong>What agents can do</strong></td></tr>
+        <tr><td>Thinking</td><td>Thinking ✓</td><td>"Model", under a "Thinking" heading</td><td>Thinking ✓</td></tr>
+        <tr><td>Hearing</td><td>Hearing</td><td><strong>Listening</strong></td><td>Hearing</td></tr>
+        <tr><td>Speaking</td><td>Speaking</td><td><strong>Voice</strong></td><td>Speaking</td></tr>
+        <tr><td>Web search</td><td>A line, per runtime, with Add a key</td><td>A separate page in Settings</td><td>The same line; the Settings entry links here</td></tr>
+        <tr><td>Ticks</td><td>✓ ○ !</td><td>None</td><td>✓ ○ !</td></tr>
+        <tr><td>Provider's runtime</td><td>"Agents run its models on …"</td><td>Not said</td><td>The same line</td></tr>
+        <tr><td>Provider's kinds</td><td>Chips: Models, Speaking</td><td>Words: Models, Voice</td><td>Thinking, Hearing, Speaking</td></tr>
+        <tr><td>Which models may run</td><td>Not in setup</td><td>On Models</td><td>Stays, below the list</td></tr>
+        <tr><td>Provider actions</td><td>Remove</td><td>Check now, History, Replace key, Rename, Remove, Revoke</td><td>Unchanged: Settings keeps the full set</td></tr>
+      </table>
+      <div class="callout info"><strong>The principle:</strong> one component, <em>What agents can do</em>, and one provider card core, used in both places. Settings adds what an admin needs later (history, replacing keys, the allowed list); setup shows only the core.</div>
+    </section>
+
+    <section class="board-panel" data-board="s-prop" data-title="Proposed Settings">
+      <div class="label">Settings · proposed</div>
+      <h2>Settings, made consistent with setup</h2>
+      <p class="subtitle">The Models page becomes <strong>What agents can do</strong>: the same ticks and words as setup, with the allowed-models list kept below. Provider lines gain the runtime line and the same kind names.</p>
+      <div class="split"><div class="board-canvas hq"><div class="device browser"><div class="device-bar"><span class="url">hq.example.org/admin/models</span></div><div class="device-screen"><div class="scr" style="max-width:520px"><div class="stepline">Manage organisation › What agents can do</div><h3>What agents can do</h3><p class="lead">What every agent uses unless it has its own. The accounts behind it are on <span class="link">Providers</span>.</p><div class="cap"><span class="tick yes">✓</span><div><div class="n">Thinking</div><div class="d">Claude Sonnet 5.5</div></div><span class="link">Change</span></div><div class="cap"><span class="tick no"></span><div><div class="n">Hearing</div><div class="d">Add a provider that hears people.</div></div><span class="link">Add a provider</span></div><div class="cap"><span class="tick yes">✓</span><div><div class="n">Speaking</div><div class="d">Inworld · Ashley</div></div><span class="link">Change</span></div><div class="cap"><span class="tick part">!</span><div><div class="n">Web search</div><div class="d">Some agents can search.</div><div class="sub"><span>Claude Code</span><span><span class="ok">✓ on its own</span></span></div><div class="sub"><span>OpenCode</span><span>needs a search key</span></div></div><span class="link">Add a key</span></div><div class="lbl">Which models may run</div><p class="muted2">For everyone in Acme. Agents, projects and people can narrow it further, never widen it.</p></div></div></div></div><div class="board-canvas hq"><div class="device browser"><div class="device-bar"><span class="url">hq.example.org/admin/providers</span></div><div class="device-screen"><div class="scr" style="max-width:520px"><div class="stepline">Manage organisation › Providers</div><h3>Providers</h3><p class="lead">The accounts agents think, hear and speak with, and who bills for them.</p>
+ <div class="pcard"><div class="top"><span><strong>Anthropic</strong> <span class="ok">● Works</span> <span class="muted2">since 2 days</span></span><span class="link">Check now · ⋯</span></div><div class="muted2">Thinking · Anthropic · key …a4f2</div><div class="muted2">Agents run its models on <strong>Claude Code</strong> <span class="newtag">NEW</span></div></div>
+ <div class="pcard"><div class="top"><span><strong>OpenRouter</strong> <span class="ok">● Works</span> <span class="muted2">since 1 day</span></span><span class="link">Check now · ⋯</span></div><div class="muted2">Thinking · OpenRouter · key …91be</div><div class="muted2">Agents run its models on <strong>OpenCode</strong> <span class="newtag">NEW</span></div></div></div></div></div></div></div>
+      <div class="callout">The menu becomes <em>Models and billing › Providers · What agents can do · Billing profiles · Usage</em>. <em>Settings › Access to models and tools › Web search</em> links to the Web search line instead of holding its own form.</div>
+    </section>
+
+    <section class="board-panel" data-board="s-scope" data-title="Choose the scope">
+      <div class="label">Decision S1</div>
+      <h2>Make Settings consistent in this unit, or after launch?</h2>
+      <div class="callout info"><strong>Recommendation: in this unit.</strong> The capability list is built once for setup, so using it on the Models page is mostly reuse. Renaming Voice to Speaking and Listening to Hearing is wording. Shipping setup and Settings with different words for the same thing would confuse the first admins on launch day. The one larger piece, Web search moving off its own page, is a link change; the form stays the same pop-up.</div>
+      <div class="options">
+        <div class="option" data-choice="now" onclick="toggleSelect(this)"><div class="letter">A</div><div class="content"><h3>In this unit (recommended)</h3><p>One component in both places; same words; web search linked, not duplicated.</p></div></div>
+        <div class="option" data-choice="words" onclick="toggleSelect(this)"><div class="letter">B</div><div class="content"><h3>Words only now, the list after launch</h3><p>Rename Voice and Listening, add the runtime line; the ticks come later.</p></div></div>
+        <div class="option" data-choice="later" onclick="toggleSelect(this)"><div class="letter">C</div><div class="content"><h3>All of it after launch</h3><p>Setup ships as agreed; Settings stays as it is.</p></div></div>
+      </div>
+    </section>
+
+
+    <section class="board-panel" data-board="s-why" data-title="Why two pages today">
+      <div class="label">Settings · one page or two</div>
+      <h2>Why Providers and Models are two pages today</h2>
+      <div class="split">
+        <div class="mockup"><div class="mockup-header">Providers: the accounts</div><div class="mockup-body"><ul>
+          <li>Each account's key, state and since when, and what the vendor says</li>
+          <li>Who bills for it; Agenthix Cloud's connection</li>
+          <li>Check now, History, Replace key, Rename, Remove, Revoke</li>
+          <li>What depends on it before you remove it</li>
+          <li>The target of "Agents can't answer yet" alerts</li></ul></div></div>
+        <div class="mockup"><div class="mockup-header">Models: the choices</div><div class="mockup-body"><ul>
+          <li>The organisation's defaults: model, voice, listening</li>
+          <li>Which models may run, which agents, projects and people can only narrow</li>
+          <li>Says "Keys are on Providers"</li></ul></div></div>
+      </div>
+      <div class="callout">The split was <em>accounts</em> against <em>choices</em>. Setup showed that people think of it as one thing: "add what I have, and see what my agents can do". The choices can't be made without the accounts, so every visit to Models starts with a trip to Providers.</div>
+    </section>
+
+    <section class="board-panel" data-board="s-one" data-title="One AI page">
+      <div class="board-split">
+        <div class="board-notes">
+          <div class="label">Settings · proposed</div>
+          <h2>One AI page, in setup's order</h2>
+          <p>Your providers, then What agents can do, then Which models may run, folded. It's the same order and words as setup's AI step, with Settings' extra tools on each provider line.</p>
+          <div class="pros-cons">
+            <div class="pros"><h4>For</h4><ul><li>The page matches setup: one mental model</li><li>Adding a provider and seeing a capability tick is one screen</li><li>Web search lives with the rest; no separate page</li></ul></div>
+            <div class="cons"><h4>Against</h4><ul><li>A longer page for organisations with many providers</li><li>Old links (<code>/admin/providers</code>, <code>/admin/models</code>) need redirecting to its sections</li></ul></div>
+          </div>
+          <p class="muted">The menu becomes <em>Models and billing › AI · Billing profiles · Usage</em>. Alerts link to the provider's line on it.</p>
+        </div>
+        <div class="board-canvas hq"><div class="device browser"><div class="device-bar"><span class="url">hq.example.org/admin/ai</span></div><div class="device-screen"><div class="scr" style="max-width:560px">
+<div class="stepline">Manage organisation › AI</div>
+<div style="display:flex;justify-content:space-between;align-items:start;gap:8px"><div><h3>AI</h3><p class="lead">The accounts agents think, hear, speak and search with, and what every agent uses unless it has its own.</p></div><span class="actions" style="margin:0"><span class="p" style="flex:none">Add a provider</span></span></div>
+<div class="lbl">Your providers</div>
+<div class="pcard"><div class="top"><span><strong>Anthropic</strong> <span class="ok">● Works</span> <span class="muted2">since 2 days</span></span><span class="link">Check now · ⋯</span></div><div class="muted2">Thinking · key …a4f2 · Agents run its models on <strong>Claude Code</strong></div></div>
+<div class="pcard"><div class="top"><span><strong>OpenRouter</strong> <span class="ok">● Works</span> <span class="muted2">since 1 day</span></span><span class="link">Check now · ⋯</span></div><div class="muted2">Thinking · key …91be · Agents run its models on <strong>OpenCode</strong></div></div>
+<div class="pcard"><div class="top"><span><strong>Inworld</strong> <span class="ok">● Works</span> <span class="muted2">since 1 day</span></span><span class="link">Check now · ⋯</span></div><div class="muted2">Thinking, Speaking · key …07cd · Agents run its models on <strong>OpenCode</strong></div></div>
+<div class="lbl">What agents can do</div><div class="cap"><span class="tick yes">✓</span><div><div class="n">Thinking</div><div class="d">Claude Sonnet 5.5</div></div><span class="link">Change</span></div><div class="cap"><span class="tick no"></span><div><div class="n">Hearing</div><div class="d">Add a provider that hears people.</div></div><span class="link">Add a provider</span></div><div class="cap"><span class="tick yes">✓</span><div><div class="n">Speaking</div><div class="d">Inworld · Ashley</div></div><span class="link">Change</span></div><div class="cap"><span class="tick part">!</span><div><div class="n">Web search</div><div class="d">Some agents can search.</div><div class="sub"><span>Claude Code</span><span><span class="ok">✓ on its own</span></span></div><div class="sub"><span>OpenCode</span><span>needs a search key</span></div></div><span class="link">Add a key</span></div><div class="lbl">Which models may run ›</div><p class="muted2">All 41 models your providers reach. Agents, projects and people can narrow it further, never widen it. <span class="link">Edit the list</span></p>
+</div></div></div></div>
+      </div>
+    </section>
+
+    <section class="board-panel" data-board="s-one-q" data-title="One page or two">
+      <div class="label">Decision S2</div>
+      <h2>Combine Providers and What agents can do into one AI page?</h2>
+      <div class="callout info"><strong>Recommendation: combine.</strong> It's what setup already does, the two halves are always used together, and it removes the web search page. The long-page risk is small: most organisations have one to four providers, and the allowed-models list stays folded.</div>
+      <div class="options">
+        <div class="option" data-choice="one" onclick="toggleSelect(this)"><div class="letter">A</div><div class="content"><h3>One AI page (recommended)</h3><p>Providers, What agents can do, Which models may run.</p></div></div>
+        <div class="option" data-choice="two" onclick="toggleSelect(this)"><div class="letter">B</div><div class="content"><h3>Keep two pages, same words and ticks</h3><p>Providers, and What agents can do.</p></div></div>
+      </div>
+    </section>
+
+    <div class="board-pager">
+      <button class="btn" data-board-step="-1">← Previous</button>
+      <span class="board-position"></span>
+      <button class="btn" data-board-step="1">Next →</button>
+    </div>
+  </main>
+</div>

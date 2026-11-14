@@ -10,7 +10,7 @@ export const cloudSpec: Spec = [
     query(getWhereHqRuns, { entities: [] }),
     query(getMyCloudOffers, { entities: ["User", "OfferDismissal"] }),
     action(askForCloudSignIn, { entities: ["CloudSignInAsk"] }),
-    // Connecting hq to Cloud: organisation admins, in setup and on Providers.
+    // Connecting hq to Cloud: organisation admins, in setup and on the AI page.
     query(getHqCloudConnection, { entities: [] }),
     action(connectHqToCloud, { entities: ["AiProvider", "AiProviderRecord"] }),
     action(disconnectHqFromCloud, { entities: ["AiProvider", "AiProviderRecord"] }),

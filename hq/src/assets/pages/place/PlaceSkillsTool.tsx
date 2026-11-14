@@ -26,6 +26,7 @@ import { ProjectProposalsWaiting } from '../review/ProposalsWaiting'
 import { WhereLine, YoursBanner, YoursInProject, type YoursView } from './YoursGroup'
 import { BUTTON_SECONDARY, FOCUS_RING } from '@agenthix/ui/primitives'
 import { Nudge, ReadNudgesHeld, ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 export type SkillsPlace = {
   projectId: string
@@ -79,7 +80,7 @@ export function PlaceSkillsTool({ place }: { place: SkillsPlace }) {
       await scanPlaceSkills({ projectId })
       for (const a of agentList) await scanPlaceSkills({ projectId, agentId: a.id })
     } catch (e) {
-      const words = e instanceof Error ? e.message : "HQ couldn't look at the files just now."
+      const words = pressFailureWords(e, "HQ couldn't look at the files just now.")
       if (pressed) setScanNote(words); else setAutoScanNote(words)
     }
   }

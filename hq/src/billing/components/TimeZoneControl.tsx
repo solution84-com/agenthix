@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useAction, setOrganisationTimeZone } from 'wasp/client/operations'
 import { NativeSelect } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 function zoneOptions(stored: string): string[] {
   const known = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : []
@@ -15,7 +16,7 @@ export function TimeZoneControl({ timeZone, onChanged }: { timeZone: string; onC
   const [problem, setProblem] = useState('')
   const change = async (next: string) => {
     setProblem('')
-    try { await save({ timeZone: next }); onChanged() } catch (err) { setProblem(err instanceof Error ? err.message : 'Could not change the time zone') }
+    try { await save({ timeZone: next }); onChanged() } catch (err) { setProblem(pressFailureWords(err, 'Could not change the time zone')) }
   }
   return (
     <div className="mt-3">

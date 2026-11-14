@@ -7,6 +7,7 @@ import { NoExecutionSiteNotice, useNoExecutionSite } from '../../shared/componen
 import type { Owner } from './filesToolData'
 import { FIELD as FIELD_LOOK, CARD_CHOSEN, CARD_CLICKABLE } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 const FIELD = `w-full rounded-lg px-3 py-2 text-body ${FIELD_LOOK}`
 
@@ -44,7 +45,7 @@ export function NewWorkspaceForm({ owner, siteLabel, onBack, onCreated }: {
       }
       if (from === 'empty') onCreated(id)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Could not create the workspace')
+      setError(pressFailureWords(e, 'Could not create the workspace'))
     } finally {
       setBusy(false)
     }

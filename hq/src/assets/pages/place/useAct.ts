@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 /** The message of a refused or failed operation: Wasp's error carries the server's words, which end "Nothing was changed." */
 export function messageOf(err: unknown): string {
-  const m = err && typeof err === 'object' && 'message' in err ? String((err as { message: unknown }).message) : ''
-  return m || "That didn't work. Nothing was changed."
+  return pressFailureWords(err, "That didn't work. Nothing was changed.")
 }
 
 /** Runs one operation at a time and keeps what it said when it failed. */

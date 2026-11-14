@@ -3,14 +3,14 @@ name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
 updated: 2026-11-14
 verified: 2026-06-19
-next-us: US-491
+next-us: US-496
 ---
 
 # User Stories — `hq/`
 
 > Business-level requirements for hq's users, and for the person who owns an Execution Site machine (stories US-182 to US-185).
 > Audience: business readers — no implementation detail.
-> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*. The stories from US-430 upward, and the criteria changed on 2026-11-08, at the close of the unit *tasks, runs, boards and routines*. The stories from US-456 upward (US-456 and US-457 are in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-11, at the close of the unit *a softer, more polished design system*. The stories from US-468 upward (US-477 is in [`host.md`](host.md), US-478 in [`cross-cutting.md`](cross-cutting.md)), on 2026-11-12, at the close of the unit *a live demo of hq*. The stories from US-479 upward, and US-055 as rewritten, on 2026-11-12, at the close of the unit *generated avatars and covers*. The stories from US-486 upward (US-490 is in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-14, at the close of the unit *0.1.0-alpha.4*.
+> This file was named `site.md` until 2026-09-26. The baseline is the 2026-06-19 story review; the stories from US-162 upward and the criteria added on 2026-09-26 come from the user-journey catch-up mapped in [`../coverage.md`](../coverage.md). `verified` is the date the accuracy pass last ran against the whole code; the 2026-09-26 catch-up checked only what it touched. The stories from US-199 upward, and the criteria changed on 2026-10-07, were written from the finished code at the close of the unit that made hq conversation-first; the stories from US-220 upward, and the criteria changed on 2026-10-12, at the close of the unit *Agenthix is usable — every screen reviewed*; the stories from US-329 upward, and the criteria changed on 2026-10-18, at the close of the unit *the desktop shell*; the stories from US-355 upward (US-356 is in [`host.md`](host.md)), and the criteria changed on 2026-10-23, at the close of the unit *models from one place*; the stories from US-383 upward, and the criteria changed on 2026-10-26, at the close of the unit *agent knowledge*; the stories from US-390 upward (US-396 is in [`console.md`](console.md), US-397 in [`cross-cutting.md`](cross-cutting.md)), on 2026-10-27, at the close of the unit *seeing the agents' work*. The stories from US-398 upward, on 2026-10-28, at the close of the unit *skills and the asset layer*. The stories from US-410 upward (US-422 is in [`console.md`](console.md), US-423 in [`host.md`](host.md)), on 2026-11-02, at the close of the unit *live preview*. The stories from US-430 upward, and the criteria changed on 2026-11-08, at the close of the unit *tasks, runs, boards and routines*. The stories from US-456 upward (US-456 and US-457 are in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-11, at the close of the unit *a softer, more polished design system*. The stories from US-468 upward (US-477 is in [`host.md`](host.md), US-478 in [`cross-cutting.md`](cross-cutting.md)), on 2026-11-12, at the close of the unit *a live demo of hq*. The stories from US-479 upward, and US-055 as rewritten, on 2026-11-12, at the close of the unit *generated avatars and covers*. The stories from US-486 upward (US-490 is in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-14, at the close of the unit *0.1.0-alpha.4*. The stories from US-491 upward (US-494 is in [`cross-cutting.md`](cross-cutting.md)), and the criteria changed on 2026-11-14, at the close of the unit *what agents can do*.
 > A retired story or criterion keeps its number; nothing is renumbered. Which scenarios fulfil each criterion is recorded on the scenarios ([`../scenarios/hq.md`](../scenarios/hq.md), [`../scenarios/site.md`](../scenarios/site.md)), never here.
 
 ---
@@ -3600,8 +3600,8 @@ As an organisation admin, I want to add, replace, rename, check and remove the s
 - AC-355e: before I remove a provider I am told what falls to what, and that a type goes down when I remove its last provider; I can revoke one at once. *(Changed 2026-10-28)*
 - AC-355f: every change is recorded with who made it and when, and every organisation admin is told.
 - AC-355g: I am told when a provider stops working, in the vendor's words and with what depends on it, and everyone else sees it only where they are choosing a model or using voice.
-- AC-355h: the Providers page shows each provider's state, what uses it, the end of its key and, for a custom endpoint, its address.
-- AC-355i: I connect Agenthix Cloud from HQ, in setup or on Providers, by approving a short code; it says when it is not available yet.
+- AC-355h: each provider is one line on the AI page, which opens in place into its state, what uses it, the end of its key and, for a custom endpoint, its address. *(Changed 2026-11-14: the Providers page is part of the AI page, US-493)*
+- AC-355i: I connect Agenthix Cloud from HQ, in setup or on the AI page, by approving a short code; it says when it is not available yet. *(Changed 2026-11-14)*
 
 ---
 
@@ -3614,7 +3614,7 @@ As the person who installed HQ, I want one setup, opened from the link the insta
 - AC-357b: before setup is finished HQ's address shows no organisation: it says it is not set up yet and how to get a new link, or that it is almost ready.
 - AC-357c: setup takes me through my account, the organisation, one AI step where I add providers (Agenthix Cloud is one of them) or skip it, and a last look. *(Changed 2026-11-10)*
 - AC-357d: setup finishes with or without models and voice, says plainly what is not set up yet, and writes the organisation's defaults for what was added; a provider added later fills the defaults still empty, and until then HQ says models or voice are not set up rather than down. *(Changed 2026-10-28)*
-- AC-357e: the defaults are chosen for me from what I added, I can change each on the AI step, and a preview plays the voice. *(Changed 2026-11-10)*
+- AC-357e: the defaults are chosen for me from what I added, I can change each on the AI step, and a preview plays the voice. *(Changed 2026-11-10; 2026-11-14: they are shown as what agents can do, US-491)*
 - AC-357f: I give the organisation a name, a picture, a cover and a time zone, and a default billing profile is made, named after it.
 
 ---
@@ -3625,7 +3625,7 @@ As an organisation admin, I want a separate area for what only I manage, reached
 
 **Acceptance criteria:**
 - AC-358a: only an organisation admin reaches it; a member who tries is told who to ask.
-- AC-358b: it has its own menu — Overview, People, Agents, Models and billing, Settings, and Where work runs — with a way back to the organisation, and no conversation docked beside it.
+- AC-358b: it has its own menu — Overview, People, Agents, Models and billing (AI, Billing profiles, Usage), Settings, and Where work runs — with a way back to the organisation, and no conversation docked beside it. *(Changed 2026-11-14: AI replaces Providers and Models)*
 - AC-358c: the old addresses of what moved lead to where it went.
 - AC-358d: its Overview shows what needs me and the day's figures.
 - AC-358e: if I am not signed in, an address in it sends me to the sign-in page instead of leaving me waiting.
@@ -3653,7 +3653,7 @@ As a member or an organisation admin, I want every call to a model decided by on
 As an organisation admin, I want to set the models and the voice the organisation and each agent use, and which models may run, in one place, so that I decide what people get.
 
 **Acceptance criteria:**
-- AC-360a: Models holds three settings — the default model (which a conversation and the work it hands off run on), the voice and the listening model — and one line about which models may run.
+- AC-360a: the AI page holds three settings — Thinking, the default model (which a conversation and the work it hands off run on), Speaking, the voice, and Hearing, the listening model — each with Change under What agents can do, and a folded section, Which models may run. *(Changed 2026-11-14)*
 - AC-360b: an agent can have its own of each or follow the organisation, and every agent has a voice.
 - AC-360c: I edit a list with patterns and bulk selection, and a project admin or a person may narrow it for their own place but never widen it.
 - AC-360d: speech is always Inworld TTS 2 and listening is one of three AssemblyAI live models or Inworld's one, and nothing else can be saved. *(Changed 2026-11-09)*
@@ -4429,8 +4429,8 @@ As a member, I want to turn off the extras an agent adds when I talk to it, so t
 As the person setting up HQ, I want one AI step where I add the services my agents use, with a short guide to getting each key, so that I can finish setup without knowing in advance what a model provider or a voice provider is.
 
 **Acceptance criteria:**
-- AC-447a: the AI step lists my providers with what each covers, has one Add a provider button that opens a pop-up of vendors, and reads *None yet* before I add one.
-- AC-447b: what agents use (a model, hearing and speaking) is chosen for me as soon as a provider that can serve it works, I can change each, and one nothing covers says plainly that it is not set.
+- AC-447a: the AI step lists my providers, each as one line with what it covers, that opens in place, has one Add a provider button that opens a pop-up of vendors, and reads *None yet* before I add one. *(Changed 2026-11-14)*
+- AC-447b: what agents can do (thinking, hearing and speaking, with web search beside them, US-491) is chosen for me as soon as a provider that can serve it works, I can change each, and one nothing covers says plainly that it is not set.
 - AC-447c: I am never blocked: I can skip the step and finish setup with no provider, and the button reads Continue once one works.
 - AC-447d: setup shows no price.
 - AC-447e: the key form tells me where the key comes from in three steps and a button to the vendor's page, and a key the vendor refuses is explained in plain words, with the vendor's own after them.
@@ -4792,3 +4792,53 @@ As a visitor to the public demo, or the person who runs it, I want the entry pag
 **Acceptance criteria:**
 - AC-489a: beside the time to the next reset the entry page says how long ago the last one was (*Last reset 2 h 4 min ago*, *Last reset just now*), and says nothing of it when that is not known.
 - AC-489b: the demo's public information carries when it was last reset, the start of hq's data, and says null when that cannot be read.
+
+## What agents can do, and one AI page (added 2026-11-14)
+
+Written at the close of the unit *what agents can do*, from the finished code. Setup's AI step and the AI page say the same four things — Thinking, Hearing, Speaking and Web search — by runtime (US-491); web search for OpenCode has its own key pop-up (US-492); one AI page replaces Providers, Models and Web search (US-493); a failed press says in words what happened (US-494, in [`cross-cutting.md`](cross-cutting.md)); and an agent that cannot search the web says why (US-495).
+
+### US-491 — See what agents can do
+
+As an organisation admin, or the person setting up HQ, I want one list that says whether agents can think, hear, speak and search the web, and what they use for each, so that I know what is working and what to add without knowing which program or provider does which.
+
+**Acceptance criteria:**
+- AC-491a: the list has Thinking, Hearing, Speaking and Web search, always, each with a mark: ✓ agents can do it, ○ a provider would add it, ! only some agents can do it or its provider needs attention; each mark is read out in words.
+- AC-491b: Thinking, Hearing and Speaking show what agents use and Change where a provider serves them, and say which kind of provider to add where none does; that is a note, never a fault, and setup carries on.
+- AC-491c: a default whose provider stopped working is marked !, says its provider is not working and offers Open its provider, which opens that provider's line, with Change beside it.
+- AC-491d: Web search says it by runtime, not provider: Claude Code searches on its own; OpenCode searches through Exa with the organisation's key, so it says it needs a search key until one is added; with both in use each has a line, and the mark is ! while one cannot search.
+- AC-491e: each provider says which runtime agents run its models on, and its kinds in the same words as the list.
+- AC-491f: setup's AI step and last look show the same list, the last look in short form with Edit back to the AI step; nothing in it blocks setup.
+- AC-491g: the same words are used everywhere: Thinking, Hearing and Speaking, never Voice, Listening, LLM, STT or TTS.
+- AC-491h: when a read behind the list does not come back, the line it feeds says so in place and the rest of the list stays.
+
+### US-492 — Give OpenCode agents a web search key
+
+As an organisation admin, I want to add, replace or remove the Exa key that agents working in OpenCode search with, from the list itself, so that web search works for them without a settings page of its own.
+
+**Acceptance criteria:**
+- AC-492a: *Add a key* opens *Web search for OpenCode*: what the key is for, that it stays in HQ and never reaches an agent, that Claude Code does not need it, a link to Exa's key page, and Not now and Save key; it can be left alone and nothing is blocked.
+- AC-492b: the key is checked with Exa when saved: a key Exa refuses is said under the field and not saved; when Exa does not answer I am told the key could not be checked and can Save without checking.
+- AC-492c: a saved key is never shown back; I replace it by entering a new one, and Remove key asks first and says what stops.
+
+### US-493 — Manage the organisation's AI in one page
+
+As an organisation admin, I want the providers, what agents can do and which models may run on one page, so that I find the answer first and everything behind it beside it.
+
+**Acceptance criteria:**
+- AC-493a: Manage organisation › AI holds, in order, What agents can do, Your providers and Which models may run; Add a provider and Agenthix Cloud are in its header.
+- AC-493b: each provider is one line (name, kinds, runtime, state) that opens in place, one at a time; one that is not working stands out with its reason, and Agenthix Cloud before it opens stays quiet.
+- AC-493c: a link to a provider's line (an alert, a notification, Needs attention, Open its provider) opens that line on the AI page.
+- AC-493d: Which models may run is folded to its one line, and opens into the list editor.
+- AC-493e: the old addresses of Providers, Models and Web search open the AI page at their section, and a provider's link opens its line.
+- AC-493f: the menu's Models and billing reads AI, Billing profiles and Usage.
+
+### US-495 — Know why an agent cannot search the web
+
+As an organisation admin, or anyone who asks an agent to search, I want an agent that cannot search to say so and say why, and a conversation to hand a search to background work or say why it cannot, so that I am never told a search failed for a reason that is not the real one.
+
+**Acceptance criteria:**
+- AC-495a: an OpenCode run of an organisation with no search key is not offered the search tool, is told web search is not set up, and says it works in OpenCode, that the organisation has not added the key, where an admin adds it, and that it can answer from what it knows; a key added or removed takes effect at the next turn.
+- AC-495b: a run whose agent's tools withhold the search, on either runtime, says its tools do not allow it or that it needs a person's approval nobody can give there, and where an admin allows it, and never blames a key.
+- AC-495c: Fetch a page and Search the web start at Ask for every agent, so a person approves each use in a conversation; an agent whose tools were saved keeps what was saved.
+- AC-495d: a conversation's reply, which cannot search, carries a request on to background work when that can search and says when the person will be asked to approve it, or says why it cannot (the agent's tools, or no key), and never says it cannot reach the web.
+

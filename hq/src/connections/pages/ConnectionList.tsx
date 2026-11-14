@@ -3,6 +3,7 @@ import { renewConnection, revokeConnection } from 'wasp/client/operations'
 import { Button, ConfirmDialog } from '@agenthix/ui/primitives'
 import { CONNECTION_GROUP_INFO, DEFAULT_CONNECTION_EXPIRY_DAYS, type ConnectionView } from '../../shared/connections'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 type Status = 'active' | 'expired' | 'revoked'
 
@@ -38,7 +39,7 @@ function ConnectionRow({ connection: c, status }: { connection: ConnectionView; 
     try {
       await fn()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setError(pressFailureWords(err, 'Something went wrong'))
     } finally {
       setBusy(false)
     }

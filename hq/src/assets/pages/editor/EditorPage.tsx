@@ -12,6 +12,7 @@ import { useEditorApi } from './useEditorApi'
 import { retryUnlessDenied } from '../../../projects/place/retryUnlessDenied'
 import { useBackgroundRead } from '@agenthix/ui/attention'
 import { useAttention } from '../../../shared/components/AttentionDialog'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 const POLL_MS = 5000
 
@@ -54,7 +55,7 @@ function EditorScreen({ target }: { target: EditorTarget }) {
       const made = await copy({ assetId: target.assetId })
       navigate(assetEditPath(made.assetId))
     } catch (err) {
-      attention.show({ title: 'The copy was not made', text: err instanceof Error ? err.message : 'The copy could not be made. Nothing was changed.', retry: () => void makeCopy() })
+      attention.show({ title: 'The copy was not made', text: pressFailureWords(err, 'The copy could not be made. Nothing was changed.'), retry: () => void makeCopy() })
     }
   }
   return (

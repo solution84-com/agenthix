@@ -6,7 +6,7 @@ const impact = (over: Partial<ProviderImpact> = {}): ProviderImpact => ({
   provider: { id: 'p1', name: 'Anthropic' }, defaults: [], agents: [], goesDown: [], ...over,
 })
 
-describe('providerWords @SC-1174 @SC-1178', () => {
+describe('providerWords @SC-1174 @SC-1178 @SC-2140', () => {
   it('says what each default falls to, and what agents lack when no other provider works', () => {
     const lines = impactLines(impact({
       defaults: [{ slot: 'conversation', to: { id: 'c', name: 'Agenthix Cloud' } }, { slot: 'stt', to: null }],
@@ -23,7 +23,7 @@ describe('providerWords @SC-1174 @SC-1178', () => {
   })
 
   it('writes what uses a provider, and nothing when nothing does', () => {
-    expect(usedByWords({ defaults: ['conversation', 'stt'], agents: [{ id: 'a', name: 'Kernel' }] })).toBe('Used by the default model, the default speech to text, the agent Kernel')
+    expect(usedByWords({ defaults: ['conversation', 'stt'], agents: [{ id: 'a', name: 'Kernel' }] })).toBe('Used by the default model, the default for Hearing, the agent Kernel')
     expect(usedByWords({ defaults: [], agents: [] })).toBe('')
   })
 

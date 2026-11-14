@@ -151,7 +151,7 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 - **Ops:** getNotifications, markNotificationsRead, dismissNotification, getNeedsAttention, acknowledgeBypassedAgents
 
 ### 18. Model access
-- **Files:** `src/model-access/modelCredentialActions.ts`, `modelCredentialAccess.ts`, `modelCredentialQueries.ts`, `claudeLoginActions.ts`, `talkAccess.ts`, `webSearchKeyActions.ts`, `webSearchKeyQueries.ts`; `src/model-access/modelCredential.ts`, `modelAccessGap.ts`; `src/server/identity/orgPeople.ts`; `src/sites/claudeLoginStore.ts`; `src/model-access/pages/ModelAccessPage.tsx`; `src/model-access/` (the per-person access summary and the web-search key); `src/server/providerService.ts` (the web-search key's provider row)
+- **Files:** `src/model-access/modelCredentialActions.ts`, `modelCredentialAccess.ts`, `modelCredentialQueries.ts`, `claudeLoginActions.ts`, `talkAccess.ts`, `webSearchKeyActions.ts`, `webSearchKeyQueries.ts`; `src/model-access/modelCredential.ts`, `modelAccessGap.ts`; `src/server/identity/orgPeople.ts`; `src/sites/claudeLoginStore.ts`; `src/model-access/` (the per-person access summary and the web-search key); `src/server/providerService.ts` (the web-search key's provider row)
 - **Ops:** getModelCredentialStatus, setModelCredential, deleteModelCredential, startClaudeLogin, completeClaudeLogin, cancelClaudeLogin, getMyModelAccess, getWebSearchKeyStatus, setWebSearchKey, deleteWebSearchKey
 
 ### 19. Storage, workspaces & repositories
@@ -233,12 +233,12 @@ This map was named `site.md` until 2026-09-26. After the split, hq holds the con
 ### 33. AI providers & model resolution
 - **Files:** `src/providers/` (operations.ts, reads.ts, write.ts, store.ts, checks.ts, health.ts, healthRules.ts, impact.ts, notices.ts, secrecy.ts, machineCommands.ts, `providers.wasp.ts`); `src/providers/pages/ProvidersPage.tsx`, `src/providers/components/` (add, key and name, impact dialogs, the provider line, the Cloud connect panel); `src/routing/` (snapshot.ts, decide.ts, resolver.ts, reaching.ts, listMatch.ts, modelKeys.ts, place.ts, problems.ts); `src/shared/modelProviders.ts`
 - **Ops:** getAiProviders, getAiProviderRecords, getAiProviderImpact, addAiProvider, replaceAiProviderKey, renameAiProvider, removeAiProvider, revokeAiProvider, checkAiProviderNow
-- **Note:** added 2026-11-03. `src/routing/` has no operation: it is the rule that picks the provider and model for a call from the providers, the model lists (domain 34) and the place (core states the order); its result is what every model call, in conversations, runs, speech and the web-search key, relies on. Credentials people hold for themselves are domain 18's. Routes: `/admin/providers`.
+- **Note:** added 2026-11-03. `src/routing/` has no operation: it is the rule that picks the provider and model for a call from the providers, the model lists (domain 34) and the place (core states the order); its result is what every model call, in conversations, runs, speech and the web-search key, relies on. Credentials people hold for themselves are domain 18's. Routes: `/admin/ai` (Your providers); `/admin/providers` redirects there.
 
 ### 34. Model lists & defaults
 - **Files:** `src/models-settings/` (settingsReads.ts, settingsActions.ts, modelLists.ts, choices.ts, coverage.ts, offered.ts, pickerAccess.ts, startWorkModels.ts, taskModelChoice.ts, types.ts, `models-settings.wasp.ts`); `src/models-settings/pages/ModelsPage.tsx`; `src/models-settings/components/` (the defaults, the lists and their editor, each agent's models, the voice dialog and its filters)
 - **Ops:** getModelsSettings, getAgentModels, getModelList, getAgentModelLines, getModelPickerChoices, setModelDefaults, setAgentModels, setModelList
-- **Note:** added 2026-11-03. Routes: `/admin/models`. A list narrows which models may run; the provider that serves one is domain 33's.
+- **Note:** added 2026-11-03. Routes: `/admin/ai` (Which models may run); `/admin/models` redirects there. A list narrows which models may run; the provider that serves one is domain 33's.
 
 ### 35. Billing & usage
 - **Files:** `src/billing/` (operations.ts, reads.ts, store.ts, profiles.ts, defaultProfile.ts, costing.ts, pricing.ts, report.ts, months.ts, csv.ts, exportApi.ts, writer.ts, start.ts, types.ts, `callCostView.sql`, `billing.wasp.ts`); `src/billing/sources/` (hq's calls, the relay, runs and voice, where usage is read from); `src/billing/pages/` (BillingProfilesPage, UsagePage); `src/billing/components/`

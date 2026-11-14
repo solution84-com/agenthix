@@ -4,6 +4,7 @@ import { AuthLayout } from '../../../auth/pages/parts/AuthLayout'
 import { FreshHqSide } from '../../../auth/pages/parts/BrandSide'
 import { ActionRow, Field, Heading, PRIMARY, Steps } from '../../../auth/pages/parts/authUi'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 type Props = {
   me: { id: string; displayName: string | null; username: string | null }
@@ -38,7 +39,7 @@ export function YouStep({ me, onNext, position }: Props) {
       if (name.trim() !== (me.displayName ?? '')) await setPersonName({ userId: me.id, displayName: name.trim() })
       onNext()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save. Try again.')
+      setError(pressFailureWords(err, 'Could not save. Try again.'))
     } finally {
       setSaving(false)
     }

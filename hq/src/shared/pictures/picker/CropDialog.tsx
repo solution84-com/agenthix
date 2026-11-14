@@ -9,6 +9,7 @@ import type { PictureKind } from '../recipe'
 import { cropAndCompress } from '../upload/cropAndCompress'
 import { UploadPane } from './UploadPane'
 import type { UploadDraft } from './pickerState'
+import { pressFailureWords } from '../../failureWords'
 
 export type CropDialogProps = {
   file: File
@@ -33,7 +34,7 @@ export default function CropDialog({ file, kind, minSide, onCancel, onConfirm }:
       const dataUrl = await cropAndCompress(upload.file, kind, { crop: upload.crop, minSide })
       await onConfirm(dataUrl)
     } catch (err) {
-      show({ title: 'That picture cannot be used', text: err instanceof Error ? err.message : 'Choose another.' })
+      show({ title: 'That picture cannot be used', text: pressFailureWords(err, 'Choose another.') })
       setWorking(false)
     }
   }

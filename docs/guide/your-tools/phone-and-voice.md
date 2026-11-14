@@ -10,28 +10,28 @@ you talk to an agent. Voice is a mode of the conversation you are already in, no
 
 ## Set up speech for the organisation
 
-Voice needs a [provider](providers.md) that turns what you say into text and one that speaks the answer. **Inworld**
+Voice needs a [provider](providers.md) that offers Hearing, turning what you say into text, and one that offers Speaking, giving the answer a voice. **Inworld**
 does both, on one key: add it once and the organisation can talk to agents and hear them answer. **AssemblyAI** also
 turns what you say into text, so it can hear people in Inworld's place or beside it, but it cannot speak. Setup's
 AI step lists each provider with what it covers, so Inworld shows hearing and speaking together; add AssemblyAI too if
 you want it to hear. Setup can also leave voice for later (see
 [Set up your HQ](../getting-started/setup-hq.md#3-connect-ai)); an organisation admin can add or replace providers
-under **Manage › Providers**. Until something that hears and something that speaks are added, the voice button says
+under **Manage › AI**. Until something that hears and something that speaks are added, the voice button says
 voice isn't set up.
 
 When both Inworld and AssemblyAI are added, people are heard through Inworld unless an administrator chose AssemblyAI
-under **Listening**, because Inworld needs no second key. If the one that hears stops working, Agenthix moves to the
+under **Hearing**, because Inworld needs no second key. If the one that hears stops working, Agenthix moves to the
 other and tells the organisation's admins. Dictation in the message box hears through the same two.
 
-Under **Manage › Models**, **Voice** and **Listening** choose the organisation's voice and the model that hears people,
-and with it which provider hears: see [Models](models.md#the-organisations-defaults). **Listening** says what choosing
+Under **Manage › AI**, in **What agents can do**, **Speaking** and **Hearing** choose the organisation's voice and the model that hears people,
+and with it which provider hears: see [Models](models.md#the-organisations-defaults). **Hearing** says what choosing
 Inworld costs: it hears about as well as AssemblyAI in our tests of clear English speech, but it can write spoken times
 as digits ("ten past nine" as "10:09"). AssemblyAI is recommended for quality; Inworld is the one-key way. Voice is
 always Inworld TTS 2, and the voice is chosen by ear from Inworld's own list. **Kernel**, the built-in agent, speaks in the voice setup chose for you.
 
-Every agent has a voice. To give one agent a different voice or listening model, an organisation admin opens its page in
-**Manage › Agents** and changes **Voice** under **Models and voice**; see
-[An agent's own models and voice](models.md#an-agents-own-models-and-voice).
+Every agent has a voice. To give one agent a different voice or hearing model, an organisation admin opens its page in
+**Manage › Agents** and changes **Speaking** under **Thinking, hearing and speaking**; see
+[An agent's own models, hearing and speaking](models.md#an-agents-own-models-hearing-and-speaking).
 
 ## Talk to an agent
 

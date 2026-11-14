@@ -10,6 +10,7 @@ import { AsideCard, AsideLabel, OnboardingFrame, StepButtons } from './Onboardin
 import { browserZone, zoneOptions } from './zones'
 import { NativeSelect } from '@agenthix/ui/primitives'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 /** Onboarding's second step: the person's picture and time zone (filled in from the browser), beside how they will appear to others. */
 export function YouStep({ data, onBack, onNext }: { data: OnboardingData; onBack: () => void; onNext: () => void }) {
@@ -30,7 +31,7 @@ export function YouStep({ data, onBack, onNext }: { data: OnboardingData; onBack
     try {
       await openedSize(file)
     } catch (err) {
-      setPictureError(err instanceof Error ? err.message : 'That file could not be read as a picture.')
+      setPictureError(pressFailureWords(err, 'That file could not be read as a picture.'))
       return
     }
     setError('')
@@ -45,7 +46,7 @@ export function YouStep({ data, onBack, onNext }: { data: OnboardingData; onBack
       const { url } = await uploadPersonPicture({ userId: me.id, dataUrl })
       setAvatarUrl(url)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not use that picture')
+      setError(pressFailureWords(err, 'Could not use that picture'))
     } finally {
       setUploading(false)
     }
@@ -57,7 +58,7 @@ export function YouStep({ data, onBack, onNext }: { data: OnboardingData; onBack
       await removePersonPicture({ userId: me.id })
       setAvatarUrl(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not remove it. Try again.')
+      setError(pressFailureWords(err, 'Could not remove it. Try again.'))
     }
   }
 
@@ -70,7 +71,7 @@ export function YouStep({ data, onBack, onNext }: { data: OnboardingData; onBack
       if (zone !== (me.timezone ?? browser)) await setMyTimezone({ timezone: zone })
       onNext()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save. Try again.')
+      setError(pressFailureWords(err, 'Could not save. Try again.'))
     } finally {
       setSaving(false)
     }

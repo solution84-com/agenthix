@@ -5,8 +5,8 @@ describe('runFailureAdvice: what failed, and what to do, from a run\'s error @SC
   const cases: [string | null, string, RegExp][] = [
     ["Claude login expired for this run's person", 'login-expired', /renew it in Settings › Your model logins/],
     ['OAuth token has expired; refresh failed', 'login-expired', /renew it/],
-    ['No model credential for this agent', 'no-credential', /Manage organisation › Providers/],
-    ['401 invalid api key', 'credential-refused', /Providers/],
+    ['No model credential for this agent', 'no-credential', /Manage organisation › AI, under Your providers/],
+    ['401 invalid api key', 'credential-refused', /Your providers/],
     ['Run limit reached: 200 turns', 'run-limit', /raise the limit/],
     ['429 rate_limit_error', 'rate-limit', /limit resets/],
     ['529 overloaded_error', 'provider-error', /passes by itself/],

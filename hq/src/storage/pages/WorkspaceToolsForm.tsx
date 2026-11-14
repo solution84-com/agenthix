@@ -5,6 +5,7 @@ import { useAction, setWorkspaceAllowedTools } from 'wasp/client/operations'
 import { FILES_BUTTON } from '@agenthix/ui/projects'
 import { listKnownToolNames, ALWAYS_INJECTED_MCP_TOOLS } from '../../shared/mcpTools'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 // Stable across renders — the checkbox list order and the filters below all key off this.
 const KNOWN_TOOLS = listKnownToolNames()
@@ -45,7 +46,7 @@ export function WorkspaceToolsForm({ workspaceId, allowedTools, onSaved }: { wor
       setConfirmEmpty(false)
       onSaved?.()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to save tool restriction')
+      setError(pressFailureWords(e, 'Failed to save tool restriction'))
     } finally {
       setBusy(false)
     }

@@ -43,6 +43,7 @@ import { heldTaskNotice, lostAccessRunNotice } from './taskHeldNotice'
 import { useMayWork, VIEWER_CANNOT_WORK } from '../../shared/hooks/useMayWork'
 import { isEpicTask } from '../components/taskKind'
 import { retryUnlessDenied } from '../place/retryUnlessDenied'
+import { pressFailureWords } from '../../shared/failureWords'
 
 interface TaskView {
   id: string
@@ -163,7 +164,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
   const change: TaskChange = (what, work) => {
     void work().then(() => detail.refetchTask(), (e: unknown) => attention.show({
       title: `${what} wasn’t changed`,
-      text: `${e instanceof Error && e.message ? e.message : 'That did not work.'} Nothing was changed.`,
+      text: `${pressFailureWords(e, 'That did not work.')} Nothing was changed.`,
       retry: () => change(what, work),
     }))
   }
@@ -193,7 +194,7 @@ export function TaskInToolView({ taskKey, focusWaiting, backLabel, onBack, onGon
       onGone()
     } catch (e) {
       setDeleting('asked')
-      attention.show({ title: `${taskKey} wasn’t deleted`, text: `${e instanceof Error ? e.message : 'That did not work.'} Nothing was changed.`, retry: () => void remove() })
+      attention.show({ title: `${taskKey} wasn’t deleted`, text: `${pressFailureWords(e, 'That did not work.')} Nothing was changed.`, retry: () => void remove() })
     }
   }
   const archive = () => change('The task', async () => { setDeleting(null); await archiveFn({ taskId: task.id }); onGone() })

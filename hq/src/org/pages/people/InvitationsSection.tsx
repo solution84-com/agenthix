@@ -9,6 +9,7 @@ import { BRANDING } from '@agenthix/core'
 import { COPY_FAILED_WORDS } from '../../../shared/copyText'
 import { useCopy } from '../../../shared/hooks/useCopy'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 function WaitingRow({ invite, link, now }: { invite: InvitationView; link: string | undefined; now: Date }) {
   const revoke = useAction(revokeInvite)
@@ -25,7 +26,7 @@ function WaitingRow({ invite, link, now }: { invite: InvitationView; link: strin
 
   async function onRevoke() {
     setAsking(false)
-    try { await revoke({ inviteId: invite.id }) } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
+    try { await revoke({ inviteId: invite.id }) } catch (e) { setError(pressFailureWords(e)) }
   }
 
   return (

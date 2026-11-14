@@ -29,6 +29,7 @@ import { openCodeSessionExists, openCodeSessionForTurn, prismaHarnessSessionStor
 import { runOpenCodeTurn } from './opencode/openCodeTurn'
 import { ReadableRunError } from './readableRunError'
 import { turnPrompt } from './pickedSkill'
+import { webSearchInstructions } from './webSearchInstructions'
 import { openCodeSkillsDirs, stageOpenCodeSkills } from './opencode/openCodeSkills'
 import { setOpenCodeSkillsDir } from './opencode/openCodeGate'
 import { issueRelayToken, pointRelayToken, revokeRelayToken, turnModelCredentials } from '../../server/modelRelay/relayTokens'
@@ -128,7 +129,9 @@ export class OpenCodeRuntime implements AgentRuntime {
         connectionName,
         model,
         context: { ...context, prompt: turnPrompt(context, staged.invocable) },
-        system: [context.agent.systemPrompt, staged.systemSection].filter(Boolean).join('\n\n') || undefined,
+        // A turn not shown web_search — withheld by its tools or no search key (openCodeHiddenPlatformTools) — is told why.
+        system: [context.agent.systemPrompt, staged.systemSection, webSearchInstructions(context, 'opencode')]
+          .filter(Boolean).join('\n\n') || undefined,
       })
     } finally {
       if (openCodeSessionId) clearOpenCodeTurn(openCodeSessionId, token)

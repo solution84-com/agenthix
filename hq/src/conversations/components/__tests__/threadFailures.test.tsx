@@ -24,7 +24,7 @@ import { failedTurnOf, personWordsOfTurn } from '../../hooks/threadBlocks'
 afterEach(cleanup)
 
 const agent = { id: 'a1', name: 'Kernel', handle: 'kernel', avatarUrl: null }
-const AUTH = 'Anthropic refused the key HQ uses. An organisation admin can check it under Manage organisation › Providers.'
+const AUTH = 'Anthropic refused the key HQ uses. An organisation admin can check it under Manage organisation › AI, under Your providers.'
 
 function msg(seq: number, role: 'PERSON' | 'AGENT', kind: 'TEXT' | 'FAILED', body: Record<string, unknown>, extra: Record<string, unknown> = {}): ConversationMessageView {
   return {
@@ -57,13 +57,13 @@ describe('the words of a failure @SC-1005', () => {
     thread([asked, msg(2, 'AGENT', 'FAILED', { reason: AUTH })])
     expect(screen.getByTestId('failed-card').textContent).toContain('Anthropic refused the key HQ uses.')
     expect(screen.getByTestId('failed-who').textContent).toBe('An administrator has been told.')
-    expect(screen.queryByRole('link', { name: 'Open Providers' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Open AI' })).toBeNull()
   })
 
   it('gives an administrator the way to Providers', () => {
     h.role = 'ADMIN'
     thread([asked, msg(2, 'AGENT', 'FAILED', { reason: AUTH })])
-    expect(screen.getByRole('link', { name: 'Open Providers' }).getAttribute('href')).toBe('/admin/providers')
+    expect(screen.getByRole('link', { name: 'Open AI' }).getAttribute('href')).toBe('/admin/ai#providers')
     expect(screen.getByTestId('failed-card').textContent).not.toContain('An administrator has been told')
   })
 

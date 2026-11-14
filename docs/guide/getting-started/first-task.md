@@ -44,7 +44,7 @@ A new project has no agents yet.
 Nothing runs until you start it. A run uses the model the agent is set to, else the organisation's default model, as long as the lists that
 apply allow it: the organisation's, the agent's, the project's and yours. A task or routine can name a model of its own
 under **Model**; a task an agent creates for you in a conversation starts with that conversation's model there. If no model is working, an organisation administrator adds a provider: see
-[Providers](../your-tools/providers.md) and [Models](../your-tools/models.md).
+[the AI page](../your-tools/providers.md) and [Models](../your-tools/models.md).
 
 On the task, select **Run** and **Run now**. The agent's picture shows a turning ring while it runs, and the task shows **Running**. Its **Session**
 shows the run. Its **Runs** tab, below the description, shows each run's steps.

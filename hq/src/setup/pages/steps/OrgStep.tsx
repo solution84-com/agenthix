@@ -9,6 +9,7 @@ import { browserZone, zoneOptions } from '../../../onboarding/pages/steps/zones'
 import { ImageUpload } from './ImageUpload'
 import { SignInPreview } from './SignInPreview'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 type Props = {
   initialName: string
@@ -42,7 +43,7 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
     try {
       await openedSize(f)
     } catch (err) {
-      setFieldError(f => ({ ...f, [type]: err instanceof Error ? err.message : 'That file could not be read as a picture.' }))
+      setFieldError(f => ({ ...f, [type]: pressFailureWords(err, 'That file could not be read as a picture.') }))
       return
     }
     setError('')
@@ -57,7 +58,7 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
       const { url } = await uploadOrgImage({ type, dataUrl })
       setImages(prev => ({ ...prev, [type]: url }))
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Could not use that ${type === 'cover' ? 'cover' : 'picture'}`)
+      setError(pressFailureWords(err, `Could not use that ${type === 'cover' ? 'cover' : 'picture'}`))
     } finally {
       setUploading(null)
     }
@@ -69,7 +70,7 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
       const { url } = await removeOrgImage({ type })
       setImages(prev => ({ ...prev, [type]: url }))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not remove it. Try again.')
+      setError(pressFailureWords(err, 'Could not remove it. Try again.'))
     }
   }
 
@@ -84,7 +85,7 @@ export function OrgStep({ initialName, initialTimeZone, position, avatarUrl, cov
       await saveSetupOrganisation({ timeZone })
       onNext({ name: name.trim(), avatarUrl: images.avatar, coverUrl: images.cover, timeZone })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save. Try again.')
+      setError(pressFailureWords(err, 'Could not save. Try again.'))
     } finally {
       setSaving(false)
     }

@@ -35,7 +35,7 @@ it is for admins.
 | **Overview** | **Needs attention**, what an administrator should look at, each with one button: a missing model, a site that is down, invitations nobody has answered, a team the built-in agent proposed. Then the count of people, agents and projects, and **Today**: **Running now**, **Runs**, **Tasks** and **Spend** for the month, an estimate |
 | **People** | **People and invitations**, and **Teams**: see [Invite your people](invite-people.md) and [Teams](teams.md) |
 | **Agents** | Every agent, and each one's page: see [Create an agent](../agents/create-an-agent.md) |
-| **Models and billing** | **Providers**, **Models**, **Billing profiles** and **Usage**: see [Providers](../your-tools/providers.md), [Models](../your-tools/models.md) and [Billing profiles and usage](../your-tools/billing-and-usage.md) |
+| **Models and billing** | **AI**, **Billing profiles** and **Usage**: see [the AI page](../your-tools/providers.md), [Models](../your-tools/models.md) and [Billing profiles and usage](../your-tools/billing-and-usage.md) |
 | **Settings** | **General** (the sign-in page, below, uploaded files, and **Features**: see [Try a feature in beta](features.md)), **GitHub**, **Automation**, **Runs**, **Memory**, **Library and skills** and **Tool risk rules** |
 | **Where work runs** | **Sites**, the Execution Sites and how each is doing; **Sites for projects**, which sites new projects can be placed on; and **Infrastructure**: HQ itself, its sites and storage |
 

@@ -6,6 +6,7 @@ import { FILES_BUTTON, FILES_BUTTON_PRIMARY } from '@agenthix/ui/projects'
 import type { NextStep } from '../nextStep'
 import { restoreNotice, returnWords } from '../words'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export interface NextStepActions {
   onGit: () => void
@@ -88,7 +89,7 @@ export function ReturnMainDialog({ workspaceId, version, number, expectedMain, o
       const result = await restore({ workspaceId, versionCommit: version, expectedMain })
       onDone(restoreNotice(result, number ?? 0), result.outcome === 'restored')
     } catch (e) {
-      setError(e instanceof Error ? `${e.message} Nothing was changed.` : 'main was not returned to that version. Nothing was changed.')
+      setError(`${pressFailureWords(e, 'main was not returned to that version.')} Nothing was changed.`)
     } finally {
       setBusy(false)
     }

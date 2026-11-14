@@ -5,6 +5,7 @@ import { ListEditor, type ListDraft } from '../../../models-settings/components/
 import { useModelListSaver } from '../../../models-settings/components/saveList'
 import { Part, ReadOnlyValue } from './Part'
 import { useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 /**
  * Which models the project may use, for its admins: the organisation's list narrowed, never widened. Every change
@@ -27,7 +28,7 @@ export function ModelsSection({ projectId }: { projectId: string }) {
       await saveList(projectId, draft)
       await refetch()
     } catch (err) {
-      setFailed({ message: err instanceof Error ? err.message : 'Could not save the list', draft })
+      setFailed({ message: pressFailureWords(err, 'Could not save the list'), draft })
     }
   }
   return (

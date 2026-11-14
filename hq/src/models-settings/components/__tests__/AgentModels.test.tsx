@@ -48,4 +48,13 @@ describe('an agent’s Models @SC-1201', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Follow Fernhill' }))
     await waitFor(() => expect(state.set).toHaveBeenCalledWith({ agentId: 'ag', conversation: null }))
   })
+
+  it('names its rows Thinking, Hearing and Speaking, never Voice, Listening, LLM, STT or TTS @SC-2140', () => {
+    state.data = data
+    render(<AgentModels agentId="ag" agentName="Kernel" />)
+    for (const name of ['Thinking', 'Hearing and speaking']) expect(screen.getByRole('region', { name })).toBeTruthy()
+    for (const row of ['Hearing', 'Speaking']) expect(screen.getByText(row, { exact: true })).toBeTruthy()
+    // "Inworld TTS 2" is a model's own name, not a capability word.
+    expect((document.body.textContent ?? '').replace(/Inworld TTS 2/g, '')).not.toMatch(/\b(Voice|Listening|LLM|STT|TTS)\b/)
+  })
 })

@@ -203,9 +203,17 @@ describe('the tools a session hides in a run with no manifest', () => {
     expect(hidden).not.toContain(`${conn}_create_project`)
   })
 
-  it('hides no platform tool in a run with a manifest, or for a bypassed agent', () => {
-    expect(openCodeHiddenPlatformTools({ ...unattended({ create_task: 'ask' }), approvedManifest: { tools: [], bashPatterns: [], approvedAt: 't' } }, conn)).toEqual([])
-    expect(openCodeHiddenPlatformTools({ bypassed: true, allowedTools: undefined }, conn)).toEqual([])
+  it('hides no platform tool in a run with a manifest, or for a bypassed agent, when the org has a search key', () => {
+    const webSearchKey = 'exa-key'
+    expect(openCodeHiddenPlatformTools({ ...unattended({ create_task: 'ask' }), approvedManifest: { tools: [], bashPatterns: [], approvedAt: 't' }, webSearchKey }, conn)).toEqual([])
+    expect(openCodeHiddenPlatformTools({ bypassed: true, allowedTools: undefined, webSearchKey }, conn)).toEqual([])
     expect(openCodeHiddenBuiltins({ bypassed: true, allowedTools: undefined })).toEqual([])
+  })
+
+  it('hides web_search from a turn with no search key, whatever the agent may use, and lists it with one @SC-2155', () => {
+    expect(openCodeHiddenPlatformTools({ bypassed: true, allowedTools: undefined }, conn)).toEqual([`${conn}_web_search`])
+    expect(openCodeHiddenPlatformTools({ bypassed: true, allowedTools: undefined, webSearchKey: 'exa-key' }, conn)).not.toContain(`${conn}_web_search`)
+    const askOnly = openCodeHiddenPlatformTools(unattended({ web_search: 'ask' }), conn)
+    expect(askOnly.filter(t => t === `${conn}_web_search`)).toHaveLength(1)
   })
 })

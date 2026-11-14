@@ -3,6 +3,7 @@ import { getSpeechToken, reportSpeechSession } from 'wasp/client/operations'
 import { createSpeechInput, type EndableSpeechInput, type SpeechInputToken } from '../voiceClient/speechInput'
 import { createSpeechTrace, type SpeechTrace } from '../voiceClient/speechTiming'
 import { beginDictation, editText, hearSpeech, movePosition, turnOpen, type DictationText } from './dictationText'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /** How long Send and Stop wait for the service to finish the words still being heard. */
 export const FINISH_WAIT_MS = 500
@@ -155,7 +156,7 @@ export function useDictation({ text, setText, field, agentId, conversationId }: 
       if (input.current === made) started.current = true
     } catch (err) {
       close()
-      setError(err instanceof Error ? err.message : 'Dictation could not start.')
+      setError(pressFailureWords(err, 'Dictation could not start.'))
     }
   }, [close, field, getToken, show])
 

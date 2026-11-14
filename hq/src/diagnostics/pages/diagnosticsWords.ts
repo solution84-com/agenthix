@@ -1,5 +1,6 @@
 import type { SiteProblem } from '../../sites/siteStanding'
 import { bytesText, dayText, plural, sinceText } from '../../sites/pages/siteWords'
+import { pressFailureWords } from '../../shared/failureWords'
 
 export { bytesText, plural, sinceText }
 
@@ -51,5 +52,5 @@ export function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
 }
 
 export function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err)
+  return pressFailureWords(err)
 }

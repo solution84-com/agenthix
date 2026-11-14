@@ -32,7 +32,7 @@ export function grantTargetOf(claims: Pick<CapabilityClaims, 'siteId' | 'session
   return { siteId: claims.siteId, sessionId: claims.sessionId, runner: claims.runner }
 }
 
-const NOT_GIVEN = "The run's model provider cannot be given to this run. An organisation admin can check it under Manage organisation › Providers."
+const NOT_GIVEN = "The run's model provider cannot be given to this run. An organisation admin can check it under Manage organisation › AI, under Your providers."
 
 /**
  * Pre-resolves everything site needs beyond the capability itself: the

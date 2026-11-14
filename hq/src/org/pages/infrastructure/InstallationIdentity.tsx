@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery, useAction, getSiteConfig, updateSiteConfig } from 'wasp/client/operations'
 import { FIELD, Button } from '@agenthix/ui/primitives'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 const FIELD_CLASS = `w-full rounded-lg ${FIELD} px-4 py-2.5 text-body`
 
@@ -24,7 +25,7 @@ export function InstallationIdentity() {
     try {
       await save({ name, description })
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(pressFailureWords(err))
     }
   }
 

@@ -13,7 +13,7 @@ suite.
 
 Each check is a conversation's place, what was said, and what passes. The checks run in a fixed world
 (`world.ts`): one person, Your space, one project and the thread of its task, (*Website Rebuild*) with a *Release process* page, and the
-platform guide's pages on providers, voice and the glossary, and one task (*WEB-3*) with one attachment, and two workspaces of the project, one of them a code workspace. The tools answer from a script (`script.ts`) in the
+platform guide's pages on providers, voice and the glossary, and one task (*WEB-3*) with one attachment, and two workspaces of the project, one of them a code workspace. A check may also name what its turn is told of web search in the background (`lead/webSearchBlock.ts`), which a turn works out from the model its background work would run on. The tools answer from a script (`script.ts`) in the
 real tools' words. Nothing reaches a database, a site or a card.
 
 | Check | Where | Message | Passes when |
@@ -39,6 +39,11 @@ real tools' words. Nothing reaches a database, a site or a card.
 | `tasks-into-sprint` | a project | "Put WEB-3 and WEB-4 into the current sprint." | `change_tasks` or `update_task` naming the current sprint's id, as `list_boards` lists it, for both; no work started |
 | `board-open` | a project | "Let's go through the board together." | `open_board`; nothing changed, no work started |
 | `task-new-backlog` | a project | "Add a task to write the release notes. No rush, it can wait." | `create_task` for later, in Backlog; no work started |
+| `web-search-background` | a project, whose background work runs in Claude Code | "Search the web for the newest Node.js release." | `start_work` with a brief that carries the ask; never saying it can't reach the web or sending the person to another agent |
+| `web-search-background-key` | Your space, whose background work runs in OpenCode with a search key | the same | the same |
+| `web-search-no-key` | a project, whose background work runs in OpenCode with no search key | the same | says it works in OpenCode and the organisation hasn't added the search key, where an admin adds it, and offers to answer from what it knows (core's `NO_WEB_SEARCH_WORDS`); no work started |
+| `web-search-ask` | a project, whose background work runs in Claude Code with Search the web at Ask in the agent's tools | the same | `start_work` as for `web-search-background`, and says the person will be asked to approve the search |
+| `web-search-not-allowed` | a project, whose background work runs in OpenCode with a search key, with Search the web at Never in the agent's tools | the same | says the agent's tools don't allow it, where an admin allows it, and offers to answer from what it knows (core's `WEB_SEARCH_NOT_ALLOWED_WORDS`); never blames a key; no work started |
 
 ### Memory
 
@@ -86,6 +91,8 @@ frame stands in for them. The tools answer from `taskRun/script.ts`, with hq's r
 | `taskrun-start-asked` | none | a brief: the person asked to start SHOP-8 now | `run_task` on SHOP-8; never on SHOP-7 (its own task); no `create_task` |
 | `taskrun-routine-weekdays` | none | a brief: every weekday at 9:00, Kernel checks the banner | `create_routine` in SHOP with `cron` `0 9 * * 1-5`, Kernel's id and instructions naming the banner; no task made or started |
 | `taskrun-routine-off` | none | a brief: switch off the routine *Morning review* | `update_routine` on it with `enabled` false and nothing else; nothing started |
+| `taskrun-no-search-key` | none; an OpenCode run of an organisation with no search key, sent the site's words for it (core's `NO_WEB_SEARCH_INSTRUCTIONS`) and offered `web_fetch`, not `web_search` | a brief: search the web for the newest Node.js release | says it works in OpenCode and the organisation hasn't added the search key, that an admin adds it in *Manage organisation › AI*, and offers to answer from what it knows; no `web_search`, no search engine fetched with `web_fetch` |
+| `taskrun-search-not-allowed` | none; a run whose agent's tools set Search the web to Never, sent the site's words for it (core's `webSearchWithheldInstructions('never')`) and offered `web_fetch`, not `web_search` | the same | says its tools don't allow it, that an admin allows it under *Permissions*, and offers to answer from what it knows; never says a key is missing; no `web_search`, no search engine fetched with `web_fetch` |
 
 A run of a lead's check takes up to 5 model calls (the memory checks, usually 1 to 3); a task run's, up to 20. A check passes for a model only when every run of it passes.
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useAction, getOrgIdentity, setSignInShows } from 'wasp/client/operations'
 import { CARD_CLICKABLE, CARD_CHOSEN } from '@agenthix/ui/primitives'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 type Shows = 'cover' | 'name' | 'nothing'
 
@@ -27,7 +28,7 @@ export function SignInPageSetting() {
   async function choose(shows: Shows) {
     setBusy(true)
     setError('')
-    try { await save({ shows }) } catch (err) { setError(err instanceof Error ? err.message : 'Could not save that') } finally { setBusy(false) }
+    try { await save({ shows }) } catch (err) { setError(pressFailureWords(err, 'Could not save that')) } finally { setBusy(false) }
   }
 
   return (

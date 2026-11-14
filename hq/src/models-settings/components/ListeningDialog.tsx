@@ -24,7 +24,7 @@ export function ListeningDialog({ title, current, showVia, options, onClose, onC
 }) {
   return (
     <Modal open onClose={onClose} title={title}>
-      <ul role="listbox" aria-label="Listening model" className="space-y-1.5">
+      <ul role="listbox" aria-label="Hearing model" className="space-y-1.5">
         {options.map(o => {
           const chosen = o.model === current
           return (

@@ -6,6 +6,7 @@ import { EmptyState } from '@agenthix/ui/primitives'
 import { FILES_BUTTON, FileRow, changedLabel, kindAndSize } from '@agenthix/ui/projects'
 import { ATTACHMENT_MAX_BYTES, ATTACHMENT_TOO_LARGE } from '../../shared/attachmentFileName'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -65,7 +66,7 @@ export function TaskAttachments({ taskId, selected, onOpen, disabledReason }: {
         reader.readAsDataURL(file)
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
+      setError(pressFailureWords(err, 'Upload failed'))
     } finally {
       setUploading(false)
       if (fileInput.current) fileInput.current.value = ''

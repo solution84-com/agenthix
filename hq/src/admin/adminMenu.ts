@@ -26,8 +26,7 @@ export const ADMIN_MENU: AdminMenuGroup[] = [
   ] },
   { heading: 'Agents', icon: Bot, entries: [{ to: '/admin/agents', label: 'Agents' }] },
   { heading: 'Models and billing', icon: KeyRound, entries: [
-    { to: '/admin/providers', label: 'Providers' },
-    { to: '/admin/models', label: 'Models' },
+    { to: '/admin/ai', label: 'AI' },
     { to: '/admin/billing-profiles', label: 'Billing profiles' },
     { to: '/admin/usage', label: 'Usage' },
   ] },

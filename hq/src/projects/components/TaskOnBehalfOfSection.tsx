@@ -5,6 +5,7 @@ import { PersonProfileTrigger } from '../../people/PersonProfileCard'
 import { NativeSelect } from '../../shared/components/ui/NativeSelect'
 import { retryUnlessDenied } from '../place/retryUnlessDenied'
 import { ShowAttention } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /**
  * Who the task is done on behalf of, and who queued it (adr-0089). A project
@@ -30,7 +31,7 @@ export function TaskOnBehalfOfSection({ taskId, onChanged }: { taskId: string; o
       await refetch()
       onChanged?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not change who this task is for')
+      setError(pressFailureWords(err, 'Could not change who this task is for'))
     } finally {
       setBusy(false)
     }

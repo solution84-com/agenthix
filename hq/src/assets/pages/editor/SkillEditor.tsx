@@ -13,6 +13,7 @@ import { publishBlock, saveStatus } from './editorWords'
 import type { EditorView } from './editorTypes'
 import type { EditorApi } from './useEditorApi'
 import { useEditorState } from './useEditorState'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 /** Leaving with a change not yet saved asks first. */
 function useLeaveGuard(dirty: boolean) {
@@ -140,7 +141,7 @@ export function SkillEditor({ view, api, reload, onDiscarded, onMakeCopy, versio
         onCancel={() => setDiscarding(false)}
         onConfirm={() => {
           setDiscarding(false)
-          if (view.revision !== null) void api.discard(view.revision).then(onDiscarded, err => state.setError(err instanceof Error ? err.message : 'It could not be discarded. Nothing was changed.'))
+          if (view.revision !== null) void api.discard(view.revision).then(onDiscarded, err => state.setError(pressFailureWords(err, 'It could not be discarded. Nothing was changed.')))
         }}
       />
     </div>

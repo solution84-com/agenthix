@@ -11,6 +11,7 @@ import { toggleTeam, toggleAgent, toggleSkill, setResolvedHandle, toggleProject 
 import { MissingSkillsNotice } from './MissingSkillsNotice'
 import { FIELD as FIELD_LOOK, Button } from '@agenthix/ui/primitives'
 import { ShowAttention, useBackgroundRead } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /** A proposal task keeps the template it proposes and a saved draft in its application data. */
 function applicationDataOf(value: unknown): { templateId?: string; draftSelections?: unknown } {
@@ -102,7 +103,7 @@ export function WorkforceReviewPage() {
       await saveDraftAction({ taskId, selections })
       setSavedAt(new Date())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save draft')
+      setError(pressFailureWords(err, 'Failed to save draft'))
     } finally {
       setSaving(false)
     }
@@ -120,7 +121,7 @@ export function WorkforceReviewPage() {
       if (result.missingSkills.length > 0) setMissingSkills(result.missingSkills)
       else navigate('/org')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      setError(pressFailureWords(err, 'Something went wrong'))
     } finally {
       setApplying(false)
     }

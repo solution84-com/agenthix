@@ -6,6 +6,7 @@ import { AuthedPersonAvatar } from '../../../people/AuthedPersonAvatar'
 import { AuthedAgentAvatar } from '../../../shared/components/AuthedAgentAvatar'
 import { OrgGroupHeading } from '../orgCardParts'
 import { useAttentionWhen } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../../shared/failureWords'
 
 const ROW = 'flex items-center gap-3 border-t border-border-subtle py-2.5 first:border-t-0'
 const LINK_BUTTON = `rounded text-small text-text-muted not-disabled:hover:text-danger ${DISABLED}`
@@ -25,7 +26,7 @@ export function TeamMembers({ team, isAdmin, onChanged }: { team: TeamDetail; is
   const apply = async (userIds: string[], agentIds: string[]) => {
     setBusy(true)
     setError('')
-    try { await change({ id: team.id, userIds, agentIds }); onChanged() } catch (err) { setError(err instanceof Error ? err.message : 'Could not change the team') } finally { setBusy(false) }
+    try { await change({ id: team.id, userIds, agentIds }); onChanged() } catch (err) { setError(pressFailureWords(err, 'Could not change the team')) } finally { setBusy(false) }
   }
 
   return (

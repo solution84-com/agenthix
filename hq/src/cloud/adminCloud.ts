@@ -1,5 +1,5 @@
 /**
- * Connecting hq to Agenthix Cloud and disconnecting it, by an organisation admin, in setup and on Providers (models
+ * Connecting hq to Agenthix Cloud and disconnecting it, by an organisation admin, in setup and on the AI page (models
  * from one place, part 2). The same device approval as before (`CloudConnection`): hq asks Cloud for a short code, the
  * admin approves it on Cloud's page, and hq waits. Every connection and disconnection is recorded and announced to
  * every admin by the connection's own hooks (`cloud/index.ts`).

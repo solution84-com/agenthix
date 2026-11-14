@@ -20,6 +20,7 @@ import { relayProviderUrl } from '../../../server/modelRelay/relayProviders'
 import { isRelayed } from '../../../server/modelRelay/runAccess'
 import type { RunContext } from '../types'
 import { ReadableRunError } from '../readableRunError'
+import { webSearchInstructions } from '../webSearchInstructions'
 import type { StagedTurnSkills } from './claudeSkills'
 import { INSTALL_ENV } from '../../../server/livePreviews/installs/installCommand'
 
@@ -62,7 +63,8 @@ export function buildClaudeStart(context: RunContext, skills: StagedTurnSkills |
   if (problem) throw new ReadableRunError(problem)
   const tools = buildSdkBuiltinTools(context)
   const disallowedTools = buildSdkDisallowedTools(context)
-  const systemPrompt = context.agent.systemPrompt ?? undefined
+  // A run its agent's tools withhold web search from is told why, as an OpenCode run is (webSearchInstructions.ts).
+  const systemPrompt = [context.agent.systemPrompt, webSearchInstructions(context, 'claude')].filter(Boolean).join('\n\n') || undefined
   const apiKey = context.credential?.kind === 'apiKey' ? context.credential.apiKey : null
   // An API key or Agenthix Cloud: the relay presents it, so the process holds neither.
   const relayed = !!context.containerName && isRelayed(context.credential)

@@ -271,3 +271,16 @@ As the person who installs Agenthix for an organisation, I want a release to off
 - AC-490c: with it off a site relays no model call to Cloud.
 - AC-490d: with it off the host service ignores Cloud's settings and takes no enrolment, offers no `agenthix cloud` commands, and the Fleet Console offers no Cloud, no remote access to switch on and no code to set up; remote access that is already on can still be turned off.
 - AC-490e: with it on, in development, all of it works as before.
+
+## Failures said in words (added 2026-11-14)
+
+Written at the close of the unit *what agents can do*, from the finished code. Every failure dialog and held-back line of hq and the Fleet Console's screens says what happened in words, never a request's address.
+
+### US-494 — Be told what happened when a press fails
+
+As a member or an administrator, I want a failed press to say that the server did not answer, or that something went wrong in it, or what it said, so that I never read a request's address or a status line.
+
+**Acceptance criteria:**
+- AC-494a: when HQ cannot be reached the dialog says *HQ did not answer.* with Try again, and when HQ failed with no words of its own, *Something went wrong in HQ.*; when HQ wrote words for it, those words.
+- AC-494b: the Fleet Console's screens say it the same way for their own server, named in the sentence.
+

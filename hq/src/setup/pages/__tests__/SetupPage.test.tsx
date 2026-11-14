@@ -14,6 +14,7 @@ vi.mock('wasp/client/operations', () => ({
   getSetupResume: 'getSetupResume',
   getSetupDefaults: 'getSetupDefaults',
   setModelDefaults: 'setModelDefaults',
+  getWebSearchKeyStatus: 'getWebSearchKeyStatus', setWebSearchKey: 'setWebSearchKey', deleteWebSearchKey: 'deleteWebSearchKey',
   getAiProviders: 'getAiProviders',
   getAiProviderImpact: 'getAiProviderImpact',
   removeAiProvider: 'removeAiProvider',
@@ -83,6 +84,9 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
+/** Each capability on the last look and its mark, read from the short list. */
+const marks = () => Object.fromEntries([...document.querySelectorAll('li:has([data-mark])')].map(li => [li.textContent?.replace(/[✓!]|Agents can do it|A provider would add it|Only some agents can do it/g, '').trim(), li.querySelector('[data-mark]')!.getAttribute('data-mark')]))
+
 describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
   it('opens on the organisation step, beside the sign-in page it makes, which follows the name', () => {
     setup()
@@ -143,7 +147,7 @@ describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
     expect(screen.getByTestId('sign-in-preview').contains(footers[0])).toBe(true)
   })
 
-  it('shows on the last look one AI row with what works and Kernel speaking as the voice, and no defaults of its own @SC-1849', () => {
+  it('shows on the last look one AI row with what works and Kernel speaking as the voice, and no defaults of its own @SC-2139 @SC-1849', () => {
     queries({ getAiProviders: THREE })
     setup(undefined, {}, '/setup?step=review')
     expect(screen.queryByRole('region', { name: 'Thinking' })).toBeNull()
@@ -263,35 +267,32 @@ describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
     expect(screen.getByText(/Asia\/Tokyo/)).toBeTruthy()
   })
 
-  it('says on the last look what works, with a way back to the AI step @SC-1849', async () => {
+  it('says on the last look what works, with a way back to the AI step @SC-2139 @SC-1849', async () => {
     queries({ getAiProviders: [provider('anthropic', 'Anthropic', ['llm'])] })
     setup(undefined, {}, '/setup?step=review')
     expect(screen.getByText('Anthropic')).toBeTruthy()
-    expect(screen.getByText('Model set.')).toBeTruthy()
-    expect(screen.getByText('Hearing: Not set.')).toBeTruthy()
-    expect(screen.getByText('Speaking: Not set.')).toBeTruthy()
+    expect(marks()).toEqual({ Thinking: 'can', Hearing: 'would_add', Speaking: 'would_add', 'Web search': 'can' })
     expect(screen.getByText('Kernel, typing only until a voice is added')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Edit AI' }))
     expect(await screen.findByRole('heading', { name: 'Connect AI' })).toBeTruthy()
   })
 
-  it('says on the last look that the model is not set yet while a provider offers models but no default model exists @SC-1849', async () => {
+  it('says on the last look that the model is not set yet while a provider offers models but no default model exists @SC-2139 @SC-1849', async () => {
     queries({ getAiProviders: [provider('inworld', 'Inworld', ['llm', 'tts'])], getSetupDefaults: { ...DEFAULTS, conversation: null } })
     setup(undefined, {}, '/setup?step=review')
-    expect(screen.getByText('Model not set yet.')).toBeTruthy()
-    expect(screen.getByText('Speaking set.')).toBeTruthy()
+    expect(marks()).toMatchObject({ Thinking: 'would_add', Speaking: 'can' })
   })
 
-  it('says on the last look when nothing is set up, and a model-less or voice-less set, then finishes @SC-1849 @SC-1845', async () => {
+  it('says on the last look when nothing is set up, and a model-less or voice-less set, then finishes @SC-2139 @SC-1849 @SC-1845', async () => {
     setup(undefined, {}, '/setup?step=review')
     expect(screen.getByText('Not set up.')).toBeTruthy()
+    expect(marks()).toEqual({ Thinking: 'would_add', Hearing: 'would_add', Speaking: 'would_add', 'Web search': 'would_add' })
     expect(screen.getByText(/Agents can.t think or talk until you add a provider/)).toBeTruthy()
     expect(screen.getByText('Answers once a model provider is added.')).toBeTruthy()
     cleanup()
     queries({ getAiProviders: [provider('assemblyai', 'AssemblyAI', ['stt']), provider('inworld', 'Inworld', ['tts'])] })
     setup(undefined, {}, '/setup?step=review')
-    expect(screen.getByText('Model: Not set.')).toBeTruthy()
-    expect(screen.getByText('Hearing and speaking set.')).toBeTruthy()
+    expect(marks()).toMatchObject({ Thinking: 'would_add', Hearing: 'can', Speaking: 'can', 'Web search': 'would_add' })
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
     await waitFor(() => expect(mocks.complete).toHaveBeenCalled())
   })

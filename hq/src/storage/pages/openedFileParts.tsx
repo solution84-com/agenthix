@@ -4,6 +4,7 @@ import { FileFrame, FrameHeader, type FileFrameProps } from '@agenthix/ui/files'
 import { FILES_BUTTON } from '@agenthix/ui/projects'
 import { placePathOf, stableLinkOf } from './fileReferences'
 import { ReadFailure, isFinal } from '@agenthix/ui/attention'
+import { pressFailureWords } from '../../shared/failureWords'
 
 /**
  * A file's stable link (spec part 3, *Stable links*): the place's address — `base`, or this page's without a
@@ -48,7 +49,7 @@ export function OpenFailed({ name, error, back, onRetry }: {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <FrameHeader title={name} back={back} downloadLink={null} />
-      {isFinal(error) ? <ReadFailure what="The file" final={error.message} /> : <ReadFailure what="The file" retry={onRetry} />}
+      {isFinal(error) ? <ReadFailure what="The file" final={pressFailureWords(error)} /> : <ReadFailure what="The file" retry={onRetry} />}
     </div>
   )
 }

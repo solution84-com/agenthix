@@ -45,6 +45,17 @@ describe('the model picker, choosing one @SC-953', () => {
     expect(screen.queryByTestId('model-picker')).toBeNull()
   })
 
+  it('draws as a text action, with no chip or chevron, beside other actions in a list, and still opens the list', () => {
+    const { container } = render(<ModelPicker link choices={choices} value="deepseek/v4-flash" onChange={vi.fn()} buttonText="Change" ariaLabel="Change: Thinking" />)
+    const button = screen.getByRole('button', { name: 'Change: Thinking' })
+    expect(button.textContent).toBe('Change')
+    expect(button.className).toContain('text-link')
+    expect(button.className).not.toContain('bg-chip')
+    expect(container.querySelector('svg')).toBeNull()
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+  })
+
   it('opens with the search field focused, the filters, the makers as groups, and the line saying what is offered', () => {
     open()
     expect(document.activeElement).toBe(screen.getByLabelText('Search models'))
