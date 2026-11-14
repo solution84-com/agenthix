@@ -8,6 +8,7 @@
 import type { StateFolder } from '../state/folder'
 import type { StoredHq, StoredSite } from '../service/context'
 import { instantOf, wallIn } from './zoned'
+import type { BuiltImages } from './builtUpgrade'
 
 /**
  * A weekly window, or a daily one (`day` null), in the machine's time, or in `timeZone` (an IANA name) when Cloud set
@@ -36,13 +37,20 @@ export type UnderWay = {
   site: StoredSite
   backupId: string
   backupTakenAt: string
+  /**
+   * Why it is still under way, once a try to end it failed: the health check's problem and why putting it back failed
+   * too, in words. Absent until then.
+   */
+  problem?: string
+  /** A development build's upgrade to images built here (`builtUpgrade.ts`): their tag and ids; `to` is then `dev`. */
+  built?: BuiltImages
 }
 
 /**
  * An upgrade that stopped HQ or the site and has not yet written `underWay`: written before anything stops, so a
  * restart while the backup is taken starts them again instead of leaving them stopped.
  */
-export type Stopping = { target: 'hq' | 'site'; to: string; from: string; at: string }
+export type Stopping = { target: 'hq' | 'site'; to: string; from: string; at: string; built?: string }
 
 export type UpgradeSettings = {
   auto: boolean

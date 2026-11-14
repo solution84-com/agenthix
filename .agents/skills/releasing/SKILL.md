@@ -42,7 +42,9 @@ screenshots, no tag.
 3. **The release rehearsal is an optional local dry run**, on the dev machine, for its own architecture:
    `RELEASE_VERSION=<version> scripts/release/prove.sh` (the image keys, the images built and started, the install test
    and the guide's screenshots, and the flags and trust root checks). The full regression runs with it
-   (`testing-a-change`).
+   (`testing-a-change`). Before a release, the upgrade test (`scripts/upgrade-test/run.sh`) also runs from the
+   previous release to the candidate's images (`UPGRADE_TEST_FROM`, `UPGRADE_TEST_TO_TAG`), so its migrations are
+   proved to carry an installation's data.
 4. **If a release run fails**, the fix is worked on a branch, and *Release* is run there as a dry run
    (`--ref <branch> -f dry_run=true`) until it passes. Then the fix lands on `main` as one commit, and *Release* runs
    again. A change to a workflow file, or to a script only a workflow runs, is proved the same way: the dev machine

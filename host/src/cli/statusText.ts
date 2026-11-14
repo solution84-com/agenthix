@@ -13,6 +13,7 @@ import { GRACE_DAYS } from '../lifecycle/bin'
 import { cmd, nextStep, wrap } from './words'
 import { scheduledLine } from './scheduled'
 import { upgradeLines } from './upgrades'
+import { coveredBy } from './partwayText'
 import type { UpgradesStatus } from '../upgrades/status'
 import type { LifecycleStatus } from '../lifecycle/status'
 import { erasedLines, hqSuspendedLine, siteSuspendedLine } from './lifecycleWords'
@@ -43,10 +44,12 @@ function notRunning(state: PartState, logs: string): string | null {
 /** ", unchanged since 0.2.1" after a version, when its image is the one an earlier release published. */
 const since = (release: string | undefined) => (release ? `, unchanged since ${release}` : '')
 
-function hqBlock(hq: NonNullable<MachineStatus['hq']>, suspended: boolean, blocked: string | undefined, unchanged?: string): string[] {
+/** `upgrading`: an upgrade of HQ is part-way, which says what to do in place of "Stopped" (`partwayText.ts`). */
+function hqBlock(hq: NonNullable<MachineStatus['hq']>, suspended: boolean, blocked: string | undefined, unchanged?: string, upgrading = false): string[] {
   const lines = [`HQ  ${hq.address}  ${hq.version}${since(unchanged)}`]
   const down = notRunning(hq.containers, 'hq logs')
-  if (down && suspended) lines.push(hqSuspendedLine())
+  if (down && upgrading) lines.push(wrap('Stopped for an upgrade, which has not ended:', IN))
+  else if (down && suspended) lines.push(hqSuspendedLine())
   else if (blocked) lines.push(wrap(blocked, IN))
   else if (down) lines.push(down)
   else if (!hq.answer) {
@@ -76,10 +79,14 @@ function stoppedSiteElsewhere(management: ManagementStatus | undefined): string 
 
 function siteBlock(
   site: NonNullable<MachineStatus['site']>, suspended: LifecycleStatus['suspended'] = {}, management?: ManagementStatus, hasHq = true,
-  unchanged?: string,
+  unchanged?: string, upgrading: 'hq' | 'site' | null = null,
 ): string[] {
   const lines = [`Site ${site.name}  ${site.version}${since(unchanged)}${site.carriesHq ? '  HQ · site' : ''}`]
   const down = notRunning(site.containers, 'site logs')
+  if (down && upgrading) {
+    lines.push(wrap(upgrading === 'hq' ? "Stopped for HQ's upgrade, above." : 'Stopped for an upgrade, which has not ended:', IN))
+    return lines
+  }
   if (down) {
     const stopped = site.containers === 'stopped' || site.containers === 'missing'
     lines.push(suspended.site || suspended.hq
@@ -236,8 +243,9 @@ export function statusText(s: StatusWithBackups, now = new Date()): string {
     lines.push(wrap(`A demo: no Fleet Console and no nightly backup, and everything visitors did is removed at each reset, the next at ` +
       `${s.demo.nextResetAt.slice(0, 16).replace('T', ' ')} UTC. To reset it now: ${cmd('demo reset')}`))
   }
-  if (s.hq) lines.push(...hqBlock(s.hq, !!s.lifecycle?.suspended.hq, blocked.find(b => b.part === 'hq')?.text, s.unchangedSince?.hq), ...upgradeLines(s.upgrades, 'hq', now))
-  if (s.site) lines.push(...siteBlock(s.site, s.lifecycle?.suspended, s.management, !!s.hq, s.unchangedSince?.site), ...upgradeLines(s.upgrades, 'site', now))
+  const partway = s.upgrades?.partway
+  if (s.hq) lines.push(...hqBlock(s.hq, !!s.lifecycle?.suspended.hq, blocked.find(b => b.part === 'hq')?.text, s.unchangedSince?.hq, coveredBy(partway, 'hq')), ...upgradeLines(s.upgrades, 'hq', now))
+  if (s.site) lines.push(...siteBlock(s.site, s.lifecycle?.suspended, s.management, !!s.hq, s.unchangedSince?.site, coveredBy(partway, 'site') ? partway!.target : null), ...upgradeLines(s.upgrades, 'site', now))
   if (s.site && s.backups && !s.demo) lines.push(...backupLines(s.backups, now))
   lines.push(...consoleHereLines(s.management, !!s.hq), ...blockedLines(blocked, 'console'))
   if (s.hq) lines.push(...frontDoorBlock(s.hq, s.frontDoor), ...blockedLines(blocked, 'front-door'))

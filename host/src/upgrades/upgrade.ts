@@ -8,6 +8,12 @@
  * put back, by whatever runs next: the scheduler running it again, or the next upgrade. Before that, from the moment
  * anything stops until `underWay` is written, `stopping` says what was stopped, so a restart while the backup is taken
  * starts it again.
+ *
+ * On a development build the same upgrade goes to images built on the machine under one tag (`builtUpgrade.ts`),
+ * without the signature check and the fetch.
+ *
+ * Every step and its outcome also goes to the host service's log, with the health check's problem and, when putting
+ * it back fails too, why: an upgrade nobody watches, a scheduled one, never ends without a word.
  */
 import type { Progress } from '../sockets/lineServer'
 import { installed, type Context } from '../service/context'
@@ -17,12 +23,17 @@ import { cmd, product } from '../cli/words'
 import { checkPorts } from '../install/portCheck'
 import { checkImages, fetchImages } from '../images/images'
 import { sitePins } from '../images/siteImages'
+import { hqPins } from '../images/hqImages'
+import { partsOf } from '../images/partsOfVersion'
 import { exclusive, exclusiveWhenFree, takeBackup, type OnWait } from '../backups/take'
 import { checkUpgrade, whoText, type Target } from './rules'
 import { healthProblem } from './health'
 import { putBack, startDatabases, startTarget, stopTarget, writeProjects } from './rollback'
 import { readUpgrades, writeUpgrades, type Stopping, type UnderWay } from './settings'
 import { PARTS_OF } from './versions'
+import { refuseUnwritable } from './preflight'
+import { againCommand, builtPins, builtText, checkBuiltUpgrade, type BuiltImages } from './builtUpgrade'
+import { DEVELOPMENT } from '../images/ownVersion'
 
 export type UpgradeOutcome =
   | { version: string; rolledBack: false }
@@ -30,11 +41,26 @@ export type UpgradeOutcome =
   | { version: string; rolledBack: true; reason: string }
 
 type Report = (p: Progress) => void
+type Log = (line: string) => void
 
-async function step<T>(progress: Report, name: string, work: () => Promise<T>, outcome: (v: T) => string = () => 'done'): Promise<T> {
+const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err)).replace(/\.$/, '')
+
+/** Lines for the host service's log, each naming the upgrade. */
+const logOf = (ctx: Context, target: Target, to: string): Log => line =>
+  ctx.log?.(`Upgrade of ${target === 'hq' ? 'HQ' : whoText(ctx, target)} to ${to}: ${line}`)
+
+async function step<T>(progress: Report, log: Log, name: string, work: () => Promise<T>, outcome: (v: T) => string = () => 'done'): Promise<T> {
   progress({ event: 'step', step: name })
-  const value = await work()
-  progress({ event: 'stepDone', outcome: outcome(value) })
+  let value: T
+  try {
+    value = await work()
+  } catch (err) {
+    log(`${name}: failed: ${errorText(err)}.`)
+    throw err
+  }
+  const said = outcome(value)
+  log(`${name}: ${said}.`)
+  progress({ event: 'stepDone', outcome: said })
   return value
 }
 
@@ -49,44 +75,70 @@ function whenFree<T>(ctx: Context, onBusy: OnWait | null, work: () => Promise<T>
   return onBusy ? exclusiveWhenFree(ctx, 'version upgrade', work, onBusy) : exclusive('version upgrade', work)
 }
 
-/** The health check of an upgrade under way; when it fails, everything is put back. */
-async function settle(ctx: Context, u: UnderWay, progress: Report): Promise<UpgradeOutcome> {
-  const problem = await step(progress, 'Health check', () => healthProblem(ctx, u.target, u.to), p => (p ? 'fails' : 'passes'))
+/** What an upgrade goes to, in words: its version, or the tag of the images built here. */
+const toText = (u: { to: string; built?: { tag: string } | string | null }) =>
+  (u.built ? builtText(typeof u.built === 'string' ? u.built : u.built.tag) : u.to)
+
+/**
+ * The health check of an upgrade under way; when it fails, everything is put back. `notStarted`: why the new version
+ * could not be started at all, which fails it without a health check, since nothing new runs to be checked.
+ */
+async function settle(ctx: Context, u: UnderWay, progress: Report, notStarted: string | null = null): Promise<UpgradeOutcome> {
+  const to = toText(u)
+  const from = u.built ? 'the images it ran before' : u.from
+  const log = logOf(ctx, u.target, to)
+  const problem = notStarted ?? await step(progress, log, 'Health check', () => healthProblem(ctx, u.target, u.to, u.built?.ids), p => (p ? `fails: ${p}` : 'passes'))
   if (!problem) {
     writeUpgrades(ctx.state, s => {
       s.underWay = null
       s.rolledBack = s.rolledBack.filter(v => v !== `${u.target}@${u.to}`)
-      s.last = { target: u.target, to: u.to, endedAt: ctx.now().toISOString(), rolledBack: false, reason: null }
+      s.last = { target: u.target, to, endedAt: ctx.now().toISOString(), rolledBack: false, reason: null }
     })
+    log(`done; ${u.target === 'hq' ? 'HQ and its site run' : 'it runs'} ${to}.`)
     return { version: u.to, rolledBack: false }
   }
   const who = whoText(ctx, u.target, true)
-  const failed = `${who} did not pass its health check: ${problem}.`
+  const failed = notStarted
+    ? `${who} could not be started on ${to}: ${notStarted}.`
+    : `${who} did not pass its health check: ${problem}.`
   try {
-    await step(progress, `Going back to ${u.from}`, () => putBack(ctx, u))
+    await step(progress, log, `Going back to ${from}`, () => putBack(ctx, u))
   } catch (err) {
-    const why = err instanceof Error ? err.message : String(err)
-    throw new EndedPartway(`${failed} Putting it back failed too: ${why}. The backup from ${clock(u.backupTakenAt)} is on this machine. The host service tries again when it next upgrades or restarts.`)
+    const databases = u.target === 'hq' ? "HQ's and its site's databases are" : "the site's database is"
+    const words = `${failed} Putting it back failed too: ${errorText(err)}. The backup from ${clock(u.backupTakenAt)} is on this machine, ` +
+      `and ${databases} left running. The host service tries again when it next restarts; ` +
+      `to try again now: ${againCommand(u.target, u.to, u.built?.tag)}`
+    writeUpgrades(ctx.state, s => {
+      if (s.underWay) s.underWay.problem = words
+    })
+    log(`ended part-way. ${words}`)
+    throw new EndedPartway(words)
   }
   const restored = u.target === 'hq' ? 'restored the backup' : 'restored the site from the backup'
-  const reason = `${failed} The host service ${restored} from ${clock(u.backupTakenAt)}, and ${u.target === 'hq' ? 'HQ' : 'it'} is on ${u.from} again.`
+  const reason = `${failed} The host service ${restored} from ${clock(u.backupTakenAt)}, and ${u.target === 'hq' ? 'HQ' : 'it'} ${u.built ? 'runs the images it ran before' : `is on ${u.from}`} again.`
   writeUpgrades(ctx.state, s => {
     s.underWay = null
-    if (!s.rolledBack.includes(`${u.target}@${u.to}`)) s.rolledBack.push(`${u.target}@${u.to}`)
-    s.last = { target: u.target, to: u.to, endedAt: ctx.now().toISOString(), rolledBack: true, reason }
+    // A build is no version to hold back from being applied by itself again.
+    if (!u.built && !s.rolledBack.includes(`${u.target}@${u.to}`)) s.rolledBack.push(`${u.target}@${u.to}`)
+    s.last = { target: u.target, to, endedAt: ctx.now().toISOString(), rolledBack: true, reason }
   })
+  log(`rolled back. ${reason}`)
   return { version: u.from, rolledBack: true, reason }
 }
 
 /** Starts again what an upgrade stopped before its backup was taken: nothing else had changed. */
 async function startStopped(ctx: Context, s: Stopping, progress: Report): Promise<UpgradeOutcome> {
   const who = s.target === 'hq' ? 'HQ and its site' : whoText(ctx, s.target)
-  await step(progress, `Starting ${who} again on ${s.from}`, () => startTarget(ctx, s.target))
-  const reason = `The upgrade to ${s.to} stopped before its backup was taken, so nothing was changed; ${who} ${s.target === 'hq' ? 'are' : 'is'} started again on ${s.from}.`
+  const to = toText(s)
+  const from = s.built ? 'the images it ran before' : s.from
+  const log = logOf(ctx, s.target, to)
+  await step(progress, log, `Starting ${who} again on ${from}`, () => startTarget(ctx, s.target))
+  const reason = `The upgrade to ${to} stopped before its backup was taken, so nothing was changed; ${who} ${s.target === 'hq' ? 'are' : 'is'} started again on ${from}.`
   writeUpgrades(ctx.state, u => {
     u.stopping = null
-    u.last = { target: s.target, to: s.to, endedAt: ctx.now().toISOString(), rolledBack: true, reason }
+    u.last = { target: s.target, to, endedAt: ctx.now().toISOString(), rolledBack: true, reason }
   })
+  log(reason)
   return { version: s.from, rolledBack: true, reason }
 }
 
@@ -101,23 +153,30 @@ export function finishUnderWay(ctx: Context, progress: Report = () => {}): Promi
   })
 }
 
+/**
+ * `built`: on a development build, the tag of the images built here to upgrade to, with `version` the development
+ * build's own (`dev`).
+ */
 export function upgrade(
   ctx: Context, target: Target, version: string, progress: Report,
-  opts: { onBusy?: OnWait } = {},
+  opts: { onBusy?: OnWait; built?: string } = {},
 ): Promise<UpgradeOutcome> {
+  const built = opts.built ?? null
   return whenFree(ctx, opts.onBusy ?? null, async () => {
+    if (built) checkBuiltUpgrade(ctx, target, built)
     const { underWay: pending, stopping } = readUpgrades(ctx.state)
     if (!pending && stopping) await startStopped(ctx, stopping, progress)
     if (pending) {
       const settled = await settle(ctx, pending, progress)
-      if (pending.target === target && pending.to === version) return settled
+      if (pending.target === target && pending.to === version && (pending.built?.tag ?? null) === built) return settled
     }
-    return run(ctx, target, version, progress)
+    return run(ctx, target, built ? DEVELOPMENT : version, built, progress)
   })
 }
 
-async function run(ctx: Context, target: Target, version: string, progress: Report): Promise<UpgradeOutcome> {
-  const from = checkUpgrade(ctx, target, version)
+async function run(ctx: Context, target: Target, version: string, builtTag: string | null, progress: Report): Promise<UpgradeOutcome> {
+  const from = builtTag ? installed(ctx)[target]!.settings.version : checkUpgrade(ctx, target, version)
+  const log = logOf(ctx, target, builtTag ? builtText(builtTag) : version)
   // Before anything is fetched: HQ started again on a port another program took meanwhile would only fail its health check.
   const hq = installed(ctx).hq
   if (target === 'hq' && hq?.port != null) {
@@ -125,26 +184,37 @@ async function run(ctx: Context, target: Target, version: string, progress: Repo
   }
   const paths = await ctx.machinePaths()
   if (!paths) throw new Refusal('failed', 'The host service cannot find its state folder on this machine, so it cannot upgrade. Nothing was changed.')
-  const parts = PARTS_OF[target]
+  await refuseUnwritable(ctx, target, version, paths)
+  log(`from ${builtTag ? 'the images it runs now' : from}.`)
+  const parts = partsOf(PARTS_OF[target], version)
   // Before anything stops: an image that fails its check, or cannot be fetched, leaves everything running as it was.
-  const { pins } = await step(progress, `Checking the images are signed by ${product}`, () =>
-    checkImages(ctx, parts.map(part => ({ part, version }))), () => 'passes')
-  await step(progress, target === 'hq' ? `Pulling HQ ${version} and its site` : `Pulling the site ${version}`, () =>
-    fetchImages(ctx, parts.map(part => pins[part]!)))
+  let built: BuiltImages | undefined
+  const { pins } = builtTag
+    ? await step(progress, log, `Finding ${builtText(builtTag)} on this machine`, async () => {
+      const found = await builtPins(ctx, parts, builtTag)
+      built = found.built
+      return found
+    }, () => 'found')
+    : await step(progress, log, `Checking the images are signed by ${product}`, () =>
+      checkImages(ctx, parts.map(part => ({ part, version }))), () => 'passes')
+  if (!builtTag) {
+    await step(progress, log, target === 'hq' ? `Pulling HQ ${version} and its site` : `Pulling the site ${version}`, () =>
+      fetchImages(ctx, parts.map(part => pins[part]!)))
+  }
 
   const before = installed(ctx)
   const who = whoText(ctx, target, true)
-  writeUpgrades(ctx.state, s => { s.stopping = { target, to: version, from, at: ctx.now().toISOString() } })
-  await step(progress, target === 'hq' ? 'Stopping HQ and its site' : 'Stopping the site', () => stopTarget(ctx, target))
-  const backup = await step(progress, 'Taking a sealed backup', async () => {
+  const fromText = builtTag ? 'the images it ran before' : from
+  writeUpgrades(ctx.state, s => { s.stopping = { target, to: version, from, at: ctx.now().toISOString(), ...(builtTag ? { built: builtTag } : {}) } })
+  await step(progress, log, target === 'hq' ? 'Stopping HQ and its site' : 'Stopping the site', () => stopTarget(ctx, target))
+  const backup = await step(progress, log, 'Taking a sealed backup', async () => {
     try {
       await startDatabases(ctx, target)
       return await takeBackup(ctx, 'beforeUpgrade')
     } catch (err) {
       // Once started again, nothing is left for a restart to start.
       await startTarget(ctx, target).then(() => writeUpgrades(ctx.state, s => { s.stopping = null })).catch(() => {})
-      const why = err instanceof Error ? err.message : String(err)
-      throw new Refusal('failed', `Not upgraded, since an upgrade takes a backup first: ${why.replace(/\.?$/, '.')} ${who} is started again on ${from}.`)
+      throw new Refusal('failed', `Not upgraded, since an upgrade takes a backup first: ${errorText(err)}. ${who} is started again on ${fromText}.`)
     }
   })
 
@@ -154,20 +224,22 @@ async function run(ctx: Context, target: Target, version: string, progress: Repo
     site: before.site!.settings,
     backupId: backup.id,
     backupTakenAt: backup.takenAt,
+    ...(built ? { built } : {}),
   }
   writeUpgrades(ctx.state, s => {
     s.underWay = u
     s.stopping = null
   })
-  progress({ event: 'step', step: `Starting ${version}` })
-  try {
-    const hq = target === 'hq' && u.hq ? { ...u.hq, version, images: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'], relay: pins.relay } } : null
-    await writeProjects(ctx, hq, { ...u.site, version, images: sitePins(pins) }, paths)
-    await startTarget(ctx, target)
-    progress({ event: 'stepDone', outcome: 'done' })
-  } catch {
-    // Compose refusing to start it fails the health check, which puts everything back.
-    progress({ event: 'stepDone', outcome: 'fails' })
-  }
-  return settle(ctx, u, progress)
+  let notStarted: string | null = null
+  await step(progress, log, `Starting ${builtTag ? builtText(builtTag) : version}`, async () => {
+    try {
+      const hq = target === 'hq' && u.hq ? { ...u.hq, version, images: hqPins(pins) } : null
+      await writeProjects(ctx, hq, { ...u.site, version, images: sitePins(pins) }, paths)
+      await startTarget(ctx, target)
+    } catch (err) {
+      // Compose's own words, which the put-back that follows carries into the log and the outcome.
+      notStarted = errorText(err)
+    }
+  }, () => (notStarted ? `fails: ${notStarted}` : 'done'))
+  return settle(ctx, u, progress, notStarted)
 }

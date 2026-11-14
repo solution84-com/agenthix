@@ -14,16 +14,28 @@ import type { UnderWay } from './settings'
 import { installSubnets } from '../compose/subnets'
 import { installationOf } from '../state/installation'
 
-/** Writes HQ's and the site's settings and compose projects as given; HQ's only when it is given. */
-export async function writeProjects(ctx: Context, hq: StoredHq | null, site: StoredSite, paths: MachinePaths): Promise<void> {
+/** HQ's (only when it is given) and the site's compose files, as `writeProjects` would write them; throws when one cannot be. */
+export async function composeFiles(ctx: Context, hq: StoredHq | null, site: StoredSite, paths: MachinePaths): Promise<{ hq: string | null; site: string }> {
   const secrets = installSecrets(ctx.state)
   const subnets = await installSubnets(ctx)
-  if (hq) {
+  return {
+    hq: hq ? composeJson(hqProject(ctx.names, hq, secrets, ctx.machine.name, subnets, installationOf(ctx.state))) : null,
+    site: composeJson(siteComposeProject(ctx.state, ctx.names, site, secrets, paths, subnets)),
+  }
+}
+
+/**
+ * Writes HQ's and the site's settings and compose projects as given; HQ's only when it is given. Both files are made
+ * before anything is written, so one that cannot be leaves the settings as they were.
+ */
+export async function writeProjects(ctx: Context, hq: StoredHq | null, site: StoredSite, paths: MachinePaths): Promise<void> {
+  const files = await composeFiles(ctx, hq, site, paths)
+  if (hq && files.hq) {
     ctx.state.writeJson(['hq', 'settings.json'], hq)
-    ctx.state.writePrivate(['hq', 'compose.json'], composeJson(hqProject(ctx.names, hq, secrets, ctx.machine.name, subnets, installationOf(ctx.state))))
+    ctx.state.writePrivate(['hq', 'compose.json'], files.hq)
   }
   ctx.state.writeJson(['site', 'settings.json'], site)
-  ctx.state.writePrivate(['site', 'compose.json'], composeJson(siteComposeProject(ctx.state, ctx.names, site, secrets, paths, subnets)))
+  ctx.state.writePrivate(['site', 'compose.json'], files.site)
 }
 
 /** Stops what the upgrade switches: the site, and HQ too when it is HQ's upgrade. */
@@ -47,7 +59,20 @@ export async function startDatabases(ctx: Context, target: UnderWay['target']): 
   if (here.site) await ctx.backupIO.startServices(here.site.project, here.site.file, ['site-db'])
 }
 
+/**
+ * Puts the upgrade back. When that fails, the databases of what it switches are started again, so a restore, or the
+ * next try, can reach them; the error is thrown as it was.
+ */
 export async function putBack(ctx: Context, u: UnderWay): Promise<void> {
+  try {
+    await putBackOnce(ctx, u)
+  } catch (err) {
+    await startDatabases(ctx, u.target).catch(() => {})
+    throw err
+  }
+}
+
+async function putBackOnce(ctx: Context, u: UnderWay): Promise<void> {
   const paths = await ctx.machinePaths()
   if (!paths) throw new Error('the host service cannot find its state folder on this machine')
   const found = await new BackupStore(ctx.state).find(u.backupId)

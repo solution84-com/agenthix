@@ -53,7 +53,7 @@ export async function restoreMovedSite(ctx: Context, file: string, keys: HostKey
     const manifest = await readManifest(records)
     const agentSlice = await pickAgentSlice(ctx)
     const { pins } = await checkImages(ctx, siteImagesWanted(manifest.site.version))
-    await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(pins)])
+    await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(pins, manifest.site.version)])
     keepAgentSlice(ctx.state, agentSlice)
     // The site's stored secrets are sealed with its master key: it comes with the site. The rest are this machine's.
     ctx.state.writeJson(['secrets.json'], { ...installSecrets(ctx.state), siteMasterKey: manifest.secrets.siteMasterKey })

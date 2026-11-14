@@ -50,6 +50,17 @@ agenthix site upgrade --at "tomorrow 02:00"
 4. **A sealed backup is taken**, encrypted so only its key opens it, then the new version starts.
 5. **If it does not come up healthy** within 10 minutes (HQ answering as the new version, or the site connecting), the
    host service goes back to the version before, from that backup, by itself. `agenthix status` says so afterwards.
+   If the new version could not even be started, it goes back at once, with Docker's reason.
+
+Each step and how it ended is written to the host service's log (`docker logs agenthix-host`), with why a health check
+failed. If going back fails too, the upgrade has not ended: HQ's and the site's databases are left running, the backup
+stays on the machine, and `agenthix status` and `agenthix scheduled` say which version it was going to, from which,
+why it stopped, and the command that finishes it or puts it back, such as `agenthix hq upgrade 0.2.1`. The host
+service also tries again by itself when it next restarts.
+
+An upgrade is refused before anything stops if the host service could not write the services it would start, or the
+ones it would go back to, such as on a machine installed by an older host service whose record lacks HQ's port.
+`agenthix install` run again records what is missing; then upgrade.
 
 ## What members see
 

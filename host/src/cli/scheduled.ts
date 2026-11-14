@@ -13,6 +13,8 @@ import { cmd, wrap } from './words'
 import { parseUpgrade, type UpgradeCommand } from './upgrades'
 import type { LifecycleCommand } from './lifecycle'
 import type { MoveCommand } from './move'
+import type { UpgradePartway } from '../upgrades/status'
+import { partwayLines } from './partwayText'
 
 export type ScheduledCommand =
   | { kind: 'scheduled' }
@@ -102,11 +104,14 @@ export function scheduledLine(c: ScheduledChange, now: Date): string {
   return `  ${c.id.padEnd(4)}${whenColumn(new Date(c.at), now).padEnd(19)}${changeName(c).padEnd(21)}  ${scheduledByText(c)}${state}`
 }
 
-export function scheduledText(changes: ScheduledChange[], machine: string, now: Date): string {
+/** `partway`: an upgrade that has not ended, said first, since it is no longer scheduled but is not over. */
+export function scheduledText(changes: ScheduledChange[], machine: string, now: Date, partway?: UpgradePartway | null): string {
+  const first = partwayLines(partway, now)
   if (changes.length === 0) {
-    return `Nothing is scheduled on ${machine}.\n${wrap(`To schedule a change: ${cmd('site schedule resize --memory 6GB --at <time>')}`)}`
+    const nothing = `Nothing ${partway ? 'else ' : ''}is scheduled on ${machine}.\n${wrap(`To schedule a change: ${cmd('site schedule resize --memory 6GB --at <time>')}`)}`
+    return [...first, nothing].join('\n')
   }
-  return changes.map(c => scheduledLine(c, now)).join('\n')
+  return [...first, ...changes.map(c => scheduledLine(c, now))].join('\n')
 }
 
 function pauseFrom(c: ScheduledChange): string {

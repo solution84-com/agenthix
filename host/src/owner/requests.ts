@@ -10,6 +10,7 @@ import { parseBackupMachineRequest, type BackupMachineRequest } from '../backups
 import { parseUpgradesRequest, type UpgradesMachineRequest } from '../upgrades/operations'
 import type { CloudCliRequest } from './cloudCliOps'
 import { portFields, type PortChoice } from '../install/ports'
+import { IMAGE_TAG } from '../upgrades/builtUpgrade'
 import { parseProviderCliRequest, type ProviderCliRequest } from './providerCliOps'
 
 export type MachineRequest =
@@ -18,7 +19,8 @@ export type MachineRequest =
    * `hqPort`, `consolePort`: the machine admin's choice, from `install --hq-port` and `--console-port`. `demo`: from
    * `install --demo` (adr-0186), absent otherwise. `filesHost`: from `install --files <host>`.
    */
-  | ({ op: 'machine.install'; address: string; demo?: true; filesHost?: string } & PortChoice)
+  /** `imageTag`: on a development build, the images built here as `<image name>:<tag>` instead of the bare names. */
+  | ({ op: 'machine.install'; address: string; demo?: true; filesHost?: string; imageTag?: string } & PortChoice)
   /** `hq files-address <host>`: uploaded files served from a host of the person's choosing (install/filesAddress.ts). */
   | { op: 'hq.filesAddress'; host: string }
   /** `front-door add-installation | remove-installation <namespace>`: another installation's HQ behind this front door. */
@@ -176,7 +178,11 @@ export function parseOwnerRequest(data: unknown): ParsedOwnerRequest {
       if (r.demo !== undefined && r.demo !== true) return malformed('choice of a demo')
       const filesHost = r.filesHost === undefined ? undefined : text(r.filesHost, 253)
       if (filesHost === null) return malformed('files host')
-      return ports ? { ok: true, request: { op: 'machine.install', address, ...ports, ...(r.demo ? { demo: true } : {}), ...(filesHost ? { filesHost } : {}) } } : malformed('port')
+      if (r.imageTag !== undefined && (typeof r.imageTag !== 'string' || !IMAGE_TAG.test(r.imageTag))) return malformed('image tag')
+      const imageTag = r.imageTag as string | undefined
+      return ports
+        ? { ok: true, request: { op: 'machine.install', address, ...ports, ...(r.demo ? { demo: true } : {}), ...(filesHost ? { filesHost } : {}), ...(imageTag ? { imageTag } : {}) } }
+        : malformed('port')
     }
     case 'hq.filesAddress': {
       const host = text(r.host, 253)

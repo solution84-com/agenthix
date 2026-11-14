@@ -80,7 +80,7 @@ describe('the compose projects', () => {
   it("runs hq's relay (adr-0153) beside hq-server, dialling it over the private network, with the secret they share, and publishing nothing @SC-1594", () => {
     const names = namesFor('agenthix')
     const h = hqProject(names, { ...hq, filesOrigin: 'https://files.hq.acme.example' }, secrets, 'hq-box', any(names), inst)
-    const relay = h.services.relay
+    const relay = h.services.relay!
     expect(relay.image).toBe('ghcr.io/solution84-com/agenthix-relay:0.2.0')
     expect(relay.networks).toEqual(['internal'])
     expect('ports' in relay).toBe(false)
@@ -99,7 +99,7 @@ describe('the compose projects', () => {
   it("lets the relay's secret leave no other service's environment, and an uploads-only HQ give the relay no files origin @SC-1594", () => {
     const names = namesFor('agenthix')
     const h = hqProject(names, hq, secrets, 'hq-box', any(names), inst)
-    expect(h.services.relay.environment.FILES_ORIGIN).toBe('')
+    expect(h.services.relay!.environment.FILES_ORIGIN).toBe('')
     expect(JSON.stringify(h.services['hq-web'])).not.toContain(secrets.relaySecret)
     expect(JSON.stringify(h.services['hq-db'])).not.toContain(secrets.relaySecret)
   })
@@ -107,7 +107,19 @@ describe('the compose projects', () => {
   it('runs the relay as the image pinned when its signature was checked @SC-1594', () => {
     const pinned = 'ghcr.io/solution84-com/agenthix-relay@sha256:' + 'b'.repeat(64)
     const h = hqProject(namesFor('agenthix'), { ...hq, images: { relay: pinned } }, secrets, 'hq-box', any(namesFor('agenthix')), inst)
-    expect(h.services.relay.image).toBe(pinned)
+    expect(h.services.relay!.image).toBe(pinned)
+  })
+
+  it('runs a version published before the relay without one, as the host service of its day did, and its site without the executor', () => {
+    const names = namesFor('agenthix')
+    const h = hqProject(names, { ...hq, version: '0.1.0-alpha.3' }, secrets, 'hq-box', any(names), inst)
+    expect(Object.keys(h.services)).toEqual(['hq-db', 'hq-server', 'hq-web'])
+    expect(h.services['hq-server'].environment).not.toHaveProperty('HQ_RELAY_SECRET')
+    expect(h.services['hq-server'].environment).not.toHaveProperty('PREVIEW_PATTERN')
+    expect(h.services['hq-web'].environment).toMatchObject({ PREVIEW_DOMAIN: '' })
+    expect(h.services['hq-web'].environment).not.toHaveProperty('PREVIEW_PATTERN')
+    expect(Object.keys(hqProject(names, { ...hq, version: '0.1.0-alpha.4' }, secrets, 'hq-box', any(names), inst).services)).toContain('relay')
+    expect(defaultSiteProject(names, { ...site, version: '0.1.0-alpha.3' }, secrets, paths, any(names), inst).services.site.environment).not.toHaveProperty('EXECUTOR_IMAGE')
   })
 
   it('derives every stored name from the recorded namespace, not the product name @SC-821 @SC-1155', () => {

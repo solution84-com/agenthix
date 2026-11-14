@@ -160,6 +160,12 @@ export class Docker {
     return mounts.find(m => m.Destination === destination)?.Source ?? null
   }
 
+  /** The id of the image a container runs (`sha256:…`); null when there is no such container. */
+  async containerImage(container: string): Promise<string | null> {
+    const r = await this.run(['container', 'inspect', '--format', '{{.Image}}', container], { timeoutMs: 30_000 })
+    return r.code === 0 ? r.stdout.trim() || null : null
+  }
+
   /** A container's environment, as its `docker run` or compose project set it; null when there is no such container. */
   async containerEnv(container: string): Promise<Record<string, string> | null> {
     const r = await this.run(['container', 'inspect', '--format', '{{json .Config.Env}}', container], { timeoutMs: 30_000 })

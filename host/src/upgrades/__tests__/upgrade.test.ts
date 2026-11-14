@@ -160,9 +160,11 @@ describe('an upgrade a restart cut short @SC-835', () => {
     })
   }
 
-  it('is finished when HQ comes up as the new version', async () => {
+  it('is finished when HQ and its site come up as the new version', async () => {
     await cutShort()
     hqAnswers('0.2.1')
+    // As the switch left it: the site's container started as the new version.
+    m.containerEnvs.set('agenthix-site-server', ['APP_VERSION=0.2.1'])
     expect(await finishUnderWay(m.ctx)).toEqual({ version: '0.2.1', rolledBack: false })
     expect(readUpgrades(m.ctx.state).underWay).toBeNull()
   })

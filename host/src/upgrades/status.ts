@@ -12,6 +12,29 @@ import { readSwitch } from '../launcher/journal'
 import { readUpgrades, windowText } from './settings'
 import { compare, isFixOf, newest } from './versions'
 
+/**
+ * An upgrade that has not ended: `stopping`, it stopped what it upgrades and had not yet taken its backup; `underWay`,
+ * it took its backup and switched, and was not yet checked healthy or put back. `problem`: why the last try to end it
+ * failed, in words, once one did.
+ */
+export type UpgradePartway = {
+  target: 'hq' | 'site'
+  to: string
+  from: string
+  stage: 'stopping' | 'underWay'
+  backupTakenAt: string | null
+  problem: string | null
+  /** A development build's upgrade to images built here: their tag; `to` is then `dev`. */
+  built: string | null
+}
+
+export function upgradePartway(ctx: Context): UpgradePartway | null {
+  const { underWay: u, stopping: s } = readUpgrades(ctx.state)
+  if (u) return { target: u.target, to: u.to, from: u.from, stage: 'underWay', backupTakenAt: u.backupTakenAt, problem: u.problem ?? null, built: u.built?.tag ?? null }
+  if (s) return { target: s.target, to: s.to, from: s.from, stage: 'stopping', backupTakenAt: null, problem: null, built: s.built ?? null }
+  return null
+}
+
 export type UpgradesStatus = {
   auto: boolean
   /** `Sunday 02:00–04:00`. */
@@ -40,6 +63,8 @@ export type UpgradesStatus = {
   checkedAt: string | null
   /** The last upgrade, when it was rolled back in the past week: when, and why. */
   rolledBackLately: { version: string; endedAt: string; reason: string } | null
+  /** An upgrade that has not ended, which `status` and `scheduled` say first. */
+  partway: UpgradePartway | null
 }
 
 const LATELY_MS = 7 * 24 * 3600_000
@@ -87,5 +112,6 @@ export function upgradesStatus(ctx: Context): UpgradesStatus {
     rolledBackLately: s.last?.rolledBack && s.last.target === target && s.last.reason && ctx.now().getTime() - Date.parse(s.last.endedAt) < LATELY_MS
       ? { version: s.last.to, endedAt: s.last.endedAt, reason: s.last.reason }
       : null,
+    partway: upgradePartway(ctx),
   }
 }

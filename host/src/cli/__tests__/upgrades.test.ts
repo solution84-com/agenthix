@@ -166,7 +166,7 @@ describe('the owner socket @SC-847', () => {
 describe('agenthix status, when an upgrade is ready @SC-836', () => {
   const status = (ready: UpgradesStatus['ready'], over: Partial<UpgradesStatus> = {}): UpgradesStatus => ({
     auto: true, window: 'Sunday 02:00–04:00', target: 'hq', current: '0.2.0', ready, hostService: null, launcher: true, hostSwitchFailed: null,
-    problem: null, checkedAt: null, rolledBackLately: null, ...over,
+    problem: null, checkedAt: null, rolledBackLately: null, partway: null, ...over,
   })
   const fix = { version: '0.2.1', fix: true, hostServiceFirst: false, rolledBack: false, scheduledAt: null }
 

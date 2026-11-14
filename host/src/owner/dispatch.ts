@@ -28,7 +28,7 @@ import { backupsStatus } from '../backups/status'
 import { cancelScheduled, changeScheduled, listScheduled, scheduleChange } from '../scheduled/scheduler'
 import { upgradesOperation } from '../upgrades/operations'
 import { upgrade } from '../upgrades/upgrade'
-import { upgradesStatus } from '../upgrades/status'
+import { upgradePartway, upgradesStatus } from '../upgrades/status'
 import { runNow } from '../lifecycle/changes'
 import { restoreFromBin } from '../lifecycle/bin'
 import { lifecycleStatus } from '../lifecycle/status'
@@ -45,11 +45,13 @@ import { isDemoInstallation } from '../state/installation'
 import { resetDemo } from '../demo/reset'
 import { nextDemoReset } from '@agenthix/core'
 import { CLOUD_NOT_AVAILABLE, cloudFeatureOn } from '../cloud/flag'
+import { hqServicesOf } from '../images/partsOfVersion'
 
 /** The owner socket is the CLI's, so whoever asks through it is the machine admin. */
 const MACHINE_ADMIN = { kind: 'machineAdmin' } as const
 
-const SERVICES = { hq: ['hq-db', 'hq-server', 'relay', 'hq-web'], site: ['site-db', 'site'] } as const
+/** The services whose logs are read: HQ's are its version's (`partsOfVersion.ts`). */
+const servicesOf = (target: 'hq' | 'site', version: string): string[] => (target === 'hq' ? hqServicesOf(version) : ['site-db', 'site'])
 
 function opOf(data: unknown): string | null {
   const op = data && typeof data === 'object' ? (data as { op?: unknown }).op : undefined
@@ -112,7 +114,7 @@ export async function hostOperation(ctx: Context, request: HostRequest, progress
       return collectFigures(ctx)
     case 'logs.read': {
       const p = project(ctx, request.target)
-      const services: readonly string[] = SERVICES[request.target]
+      const services = servicesOf(request.target, p.settings.version)
       if (request.service && !services.includes(request.service)) {
         throw new Refusal('malformed', `There is no part called ${request.service}; there are ${services.join(', ')}.`)
       }
@@ -227,11 +229,11 @@ async function operation(ctx: Context, request: OwnerRequest, progress: (p: Prog
     case 'frontDoor.installation':
       return frontDoorInstallation(ctx, request.namespace, request.remove === true, progress)
     case 'scheduled.list':
-      return { machine: ctx.machine.name, changes: listScheduled(ctx) }
+      return { machine: ctx.machine.name, changes: listScheduled(ctx), upgradePartway: upgradePartway(ctx) }
     case 'host.version':
       return { version: ctx.machine.hostServiceVersion }
     case 'machine.install':
-      return install(ctx, { address: request.address, hqPort: request.hqPort, consolePort: request.consolePort, demo: request.demo === true, filesHost: request.filesHost }, progress)
+      return install(ctx, { address: request.address, hqPort: request.hqPort, consolePort: request.consolePort, demo: request.demo === true, filesHost: request.filesHost, imageTag: request.imageTag }, progress)
     case 'hq.filesAddress':
       return setFilesAddress(ctx, request.host, progress)
     case 'hq.inviteAdmin':
@@ -254,7 +256,8 @@ async function operation(ctx: Context, request: OwnerRequest, progress: (p: Prog
     case 'upgrades.hostService':
     case 'upgrades.hostSwitch':
     case 'upgrades.set':
-      return upgradesOperation(ctx, request)
+    case 'upgrades.built':
+      return upgradesOperation(ctx, request, progress)
     default:
       return hostOperation(ctx, request, progress)
   }

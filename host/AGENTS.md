@@ -74,6 +74,15 @@ switch: the journal marks it `built`, and the launcher starts the new one by the
 that image and answers `dev`. Each side refuses it on a published host service, and refuses a published image (by its
 name or its registry digests); a development build is never switched to a published version this way.
 
+**A development build also installs and upgrades HQ and its site to images built on the machine under one tag**
+(`agenthix install --image-tag <tag>`, `agenthix hq upgrade --image-tag <tag>`, `site upgrade --image-tag`;
+`src/upgrades/builtUpgrade.ts`): `<image name>:<tag>` for each part, and the published upgrade's backup, stop, start,
+health check and put-back, without the signature and the fetch. The health check counts hq-server and the site only
+while their containers run the new images. A published host service refuses both. Unlike the host service's own switch,
+a published image's content tagged here under a local name is taken, since a release candidate is tested that way;
+a published image's own name never is. The upgrade test
+(`scripts/upgrade-test/run.sh`) drives it.
+
 The launcher's other mode is `agenthix uninstall`'s last step (`src/launcher/uninstall.ts`), run as
 `<namespace>-host-uninstall`: once the host service has removed everything else, it removes the host service's own
 container and empties its state folder of what it wrote, leaving a folder that holds anything else whole. It is given

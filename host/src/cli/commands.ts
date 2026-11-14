@@ -20,11 +20,12 @@ import { cloudFeatureOn } from '../cloud/flag'
 import { addressProblem } from '../install/address'
 import type { PortChoice } from '../install/ports'
 import { portOptions } from './portOptions'
+import { IMAGE_TAG } from '../upgrades/builtUpgrade'
 import { product } from './words'
 
 export type Command =
   | { kind: 'help'; topic?: string }
-  | ({ kind: 'install'; address?: string; yes: boolean; demo?: true; filesHost?: string } & PortChoice)
+  | ({ kind: 'install'; address?: string; yes: boolean; demo?: true; filesHost?: string; imageTag?: string } & PortChoice)
   | { kind: 'status' }
   | { kind: 'inviteAdmin'; yes: boolean }
   | { kind: 'resetPassword'; user: string }
@@ -55,7 +56,8 @@ export const HELP: HelpRow[] = [
   { group: 'machine', usage: 'install', does: 'Install HQ and its site',
     detail: 'Asks one question, where people will open HQ, then starts HQ and its site on this machine and prints one link for the first account. Running it again starts what is stopped and changes nothing that is set. --address <address> answers the question; --yes takes the answer in brackets. HQ is published on the port its address names, or --hq-port <port> for an https address (7800 by default), and the Fleet Console on --console-port <port> (7801 by default); each from 1024 to 32767, kept from then on. ' +
       '--demo installs a public demo instead: HQ and its site with every agent run scripted and no model called, the site without Docker, no Fleet Console and no nightly backup, reset every 6 hours. Only a first install chooses it; install it under an installation of its own (INSTALL_NAMESPACE) beside another HQ. ' +
-      "--files <host> serves uploaded files from that host instead of files.<HQ's host>, such as a domain of their own; hq files-address changes it later." },
+      "--files <host> serves uploaded files from that host instead of files.<HQ's host>, such as a domain of their own; hq files-address changes it later. " +
+      'On a development build, --image-tag <tag> runs the images built on this machine as agenthix-<part>:<tag>, as hq upgrade --image-tag does.' },
   { group: 'machine', usage: 'status', does: 'The HQ and the site here, and what to do next',
     detail: 'Every HQ and site on this machine, each in a sentence that ends in what to do next.' },
   { group: 'machine', usage: 'capacity [set …]', does: 'Show or set what each agent may use',
@@ -95,7 +97,7 @@ export const HELP: HelpRow[] = [
   { group: 'hq', usage: 'hq reset-password <user>', does: "A one-time link to set a person's password",
     detail: "A one-time link for that person to set a new password, valid for an hour. HQ does not send it: give it to them yourself. The other organisation admins are told." },
   { group: 'hq', usage: 'hq upgrade [<version>]', does: 'Upgrade now, after a backup',
-    detail: "Upgrades HQ and its site to the newest published version, or to the one named. It starts in 5 minutes: HQ tells everyone at once, starts no new runs, and runs going pause after their current step; schedule cancel <id> calls it off before then. Every new image's signature is checked before anything stops; then HQ and its site stop, a sealed backup is taken, and the new version starts. If HQ does not answer as the new version, or its site does not connect, within 10 minutes, the host service goes back to the version before, from that backup, by itself; status says so afterwards. It asks first; --yes answers for a script. --at <time> schedules it for a later time instead. A version newer than the host service's own moves the host service to it first, through its launcher; with the launcher off, this says how to switch it by hand." },
+    detail: "Upgrades HQ and its site to the newest published version, or to the one named. It starts in 5 minutes: HQ tells everyone at once, starts no new runs, and runs going pause after their current step; schedule cancel <id> calls it off before then. Every new image's signature is checked before anything stops; then HQ and its site stop, a sealed backup is taken, and the new version starts. If HQ does not answer as the new version, or its site does not connect, within 10 minutes, the host service goes back to the version before, from that backup, by itself; status says so afterwards. It asks first; --yes answers for a script. --at <time> schedules it for a later time instead. A version newer than the host service's own moves the host service to it first, through its launcher; with the launcher off, this says how to switch it by hand. On a development build, --image-tag <tag> upgrades at once to the images built on this machine as agenthix-<part>:<tag>, with the same backup, health check and put-back, and no signature check and nobody told first." },
   { group: 'hq', usage: 'hq logs [<part>]', does: 'Show recent logs',
     detail: "HQ's recent log lines: hq-server, relay, hq-web and hq-db, or one of them. --lines <n> shows more or fewer (200 by default)." },
   { group: 'site', usage: 'site schedule <change> --at <time>', does: 'Schedule an upgrade, resize, suspend, resume or move of the site for later',
@@ -103,7 +105,7 @@ export const HELP: HelpRow[] = [
       "site schedule move --at <time> asks the Fleet Console for a one-time code, for 1 hour, that moves the site to a new machine: on that machine, which must run nothing yet, run console connect <hq address> <code>; once a fleet admin confirms it in the Fleet Console, the site moves at that time. It keeps its credential and its workspaces, and takes the new machine's name; this machine stops it for the final backup, and removes its copy and leaves the fleet once the site answers from the new machine. If it does not, the site starts here again. " +
       "On HQ's machine, hq schedule move --at <time> [--address <new address>] does the same for HQ, its site and the Fleet Console beside them: HQ is read-only from the moment the backup starts, tells its sites and machines a new address first, and removes its copy here once it answers on the new machine; if it does not, HQ starts here again." },
   { group: 'site', usage: 'site upgrade [<version>]', does: 'Upgrade the site now, after a backup',
-    detail: "As for HQ, for the site alone, in 5 minutes after notice to the people whose projects run there: the site stops, a sealed backup is taken, and the new version starts; if it does not connect to HQ, it goes back to the version before, from that backup. On HQ's machine the site goes no further than HQ. --at <time> schedules it for a later time instead; --yes answers for a script." },
+    detail: "As for HQ, for the site alone, in 5 minutes after notice to the people whose projects run there: the site stops, a sealed backup is taken, and the new version starts; if it does not connect to HQ, it goes back to the version before, from that backup. On HQ's machine the site goes no further than HQ. --at <time> schedules it for a later time instead; --yes answers for a script. On a development build, --image-tag <tag> upgrades at once to the images built on this machine under that tag." },
   { group: 'hq', usage: 'hq suspend | resume', does: 'Stop it and keep everything; start it again',
     detail: "suspend stops HQ and its site and keeps everything: the data, the backups and the credentials. HQ tells everyone first, as for any planned maintenance; runs pause, and nothing new starts until it is resumed. resume starts both again. --at <time> does either later, in this machine's time zone." },
   { group: 'hq', usage: 'hq erase [--on <date>]', does: 'Erase at once, or on a date with notice; kept 30 days, then purged',
@@ -208,13 +210,15 @@ export function parseCommand(argv: string[]): Command {
     if ('problem' in ports) return { kind: 'usage', message: ports.problem }
     const files = option(ports.rest, '--files')
     if (files.bad) return { kind: 'usage', message: "install --files needs the host uploaded files are served from, such as files.example.com." }
-    const address = option(files.rest, '--address')
+    const tag = option(files.rest, '--image-tag')
+    if (tag.bad || (tag.value !== undefined && !IMAGE_TAG.test(tag.value))) return { kind: 'usage', message: 'install --image-tag needs an image tag, such as candidate.' }
+    const address = option(tag.rest, '--address')
     if (address.value === '') return { kind: 'usage', message: 'install --address needs an address, such as https://hq.example.com. It was empty.' }
     if (address.bad || address.rest.length > 0) {
-      return { kind: 'usage', message: 'install takes --address <address>, --files <host>, --hq-port <port>, --console-port <port>, --demo and --yes, nothing else.' }
+      return { kind: 'usage', message: 'install takes --address <address>, --files <host>, --hq-port <port>, --console-port <port>, --demo, --image-tag <tag> and --yes, nothing else.' }
     }
     return {
-      kind: 'install', address: address.value, yes: yes.set, ...(demo.set ? { demo: true as const } : {}), ...(files.value ? { filesHost: files.value.toLowerCase() } : {}), ...ports.ports,
+      kind: 'install', address: address.value, yes: yes.set, ...(demo.set ? { demo: true as const } : {}), ...(files.value ? { filesHost: files.value.toLowerCase() } : {}), ...(tag.value ? { imageTag: tag.value } : {}), ...ports.ports,
     }
   }
   if (first === 'status' && !second) return { kind: 'status' }

@@ -15,7 +15,9 @@ import { consoleHere, startLocalConsole } from './console'
 import { joinLocalConsole } from '../link/localConsole'
 import { checkImages, fetchImages, type ImagePins } from '../images/images'
 import { siteImagesWanted, sitePins, siteRefs } from '../images/siteImages'
-import { POSTGRES_IMAGE } from '../images/published'
+import { hqImagesWanted, hqPins, hqRefs } from '../images/hqImages'
+import { builtPins } from '../upgrades/builtUpgrade'
+import { isPublishedVersion, POSTGRES_IMAGE } from '../images/published'
 import { installSecrets } from '../state/secrets'
 import { installed, type Context, type StoredHq, type StoredSite } from '../service/context'
 import type { HqStatusData } from '../hq/control'
@@ -53,21 +55,28 @@ async function waitFor<T>(ctx: Context, limitMs: number, probe: () => Promise<T 
  * The CLI board's image lines: every signature checked before anything is fetched, then HQ's images and the
  * site's, each by the digest its signature covers.
  */
-async function getImages(progress: (p: Progress) => void, ctx: Context, hq: StoredHq, site: StoredSite, withConsole: boolean): Promise<{ hq: ImagePins; site: ImagePins; console: ImagePins }> {
-  const pins = await step(progress, `Checking the images are signed by ${product}`, async () => {
-    const { pins, checked } = await checkImages(ctx, [
-      { part: 'hq-server', version: hq.version }, { part: 'hq-web', version: hq.version }, { part: 'relay', version: hq.version },
-      ...siteImagesWanted(site.version),
-      ...(withConsole ? [{ part: 'console' as const, version: hq.version }] : []),
-    ])
-    return { value: pins, outcome: checked ? 'passes' : 'not checked: images built here (development build)' }
-  })
-  await step(progress, `Pulling HQ ${hq.version} (4 images)`, async () => {
-    await fetchImages(ctx, [POSTGRES_IMAGE, pins['hq-server']!, pins['hq-web']!, pins.relay!])
+async function getImages(
+  progress: (p: Progress) => void, ctx: Context, hq: StoredHq, site: StoredSite, withConsole: boolean, imageTag?: string,
+): Promise<{ hq: ImagePins; site: ImagePins; console: ImagePins }> {
+  const wanted = [
+    ...hqImagesWanted(hq.version),
+    ...siteImagesWanted(site.version),
+    ...(withConsole ? [{ part: 'console' as const, version: hq.version }] : []),
+  ]
+  const pins = imageTag
+    ? await step(progress, `Finding the images tagged ${imageTag} on this machine`, async () =>
+      ({ value: (await builtPins(ctx, wanted.map(w => w.part), imageTag)).pins, outcome: 'found: images built here (development build)' }))
+    : await step(progress, `Checking the images are signed by ${product}`, async () => {
+      const { pins, checked } = await checkImages(ctx, wanted)
+      return { value: pins, outcome: checked ? 'passes' : 'not checked: images built here (development build)' }
+    })
+  const hqImages = [POSTGRES_IMAGE, ...hqRefs(pins, hq.version)]
+  await step(progress, `Pulling HQ ${hq.version} (${hqImages.length} images)`, async () => {
+    await fetchImages(ctx, hqImages)
     return { value: undefined, outcome: 'done' }
   })
   await step(progress, `Pulling the site ${site.version}, the agent image and the workflow executor`, async () => {
-    await fetchImages(ctx, siteRefs(pins))
+    await fetchImages(ctx, siteRefs(pins, site.version))
     return { value: undefined, outcome: 'done' }
   })
   if (withConsole) {
@@ -77,7 +86,7 @@ async function getImages(progress: (p: Progress) => void, ctx: Context, hq: Stor
     })
   }
   return {
-    hq: { 'hq-server': pins['hq-server'], 'hq-web': pins['hq-web'], relay: pins.relay },
+    hq: hqPins(pins),
     site: sitePins(pins),
     console: { console: pins.console },
   }
@@ -87,9 +96,9 @@ let busy = false
 
 /**
  * What an install is asked: HQ's address, the ports its machine admin chose, when they chose them, `demo` for
- * `install --demo`, and `filesHost` for `install --files <host>`.
+ * `install --demo`, `filesHost` for `install --files <host>`, and `imageTag` for a development build's `install --image-tag`.
  */
-export type InstallAsk = PortChoice & { address: string; demo?: boolean; filesHost?: string }
+export type InstallAsk = PortChoice & { address: string; demo?: boolean; filesHost?: string; imageTag?: string }
 
 export async function install(ctx: Context, ask: InstallAsk, progress: (p: Progress) => void): Promise<InstallResult> {
   if (busy) throw new Refusal('busy', 'An install is already running on this machine. Wait for it to finish.')
@@ -119,6 +128,9 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
   const { address } = ask
   const problem = addressProblem(address)
   if (problem) throw new Refusal('malformed', `HQ cannot be at ${address}: ${problem}.`)
+  if (ask.imageTag && isPublishedVersion(ctx.machine.hostServiceVersion)) {
+    throw new Refusal('conflict', `This host service is ${ctx.machine.hostServiceVersion}, a published version: it installs only its own published, signed images, never --image-tag. Nothing was changed.`)
+  }
   refuseWhileReceiving(ctx)
 
   const before = installed(ctx)
@@ -162,7 +174,7 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
   // Every machine carries one site, always named after the machine (spec §6).
   const keptSite: StoredSite = { ...(before.site?.settings ?? { version, installedAt: at }), name: ctx.machine.name }
   // Before anything is written: an image that fails its check leaves the machine as it was.
-  const images = await getImages(progress, ctx, keptHq, keptSite, !demo)
+  const images = await getImages(progress, ctx, keptHq, keptSite, !demo, ask.imageTag)
   const hq: StoredHq = { ...keptHq, images: images.hq }
   const site: StoredSite = { ...keptSite, images: images.site }
 

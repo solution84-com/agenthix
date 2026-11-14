@@ -44,7 +44,7 @@ export async function restoreSiteInPlace(ctx: Context, { header, manifest, recor
     if (!paths) throw new Refusal('failed', 'The host service cannot find its state folder on this machine, so it cannot restore.')
     const { pins } = await step('Checking the images are signed', async () => {
       const checked = await checkImages(ctx, siteImagesWanted(manifest.site.version))
-      await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(checked.pins)])
+      await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(checked.pins, manifest.site.version)])
       return checked
     }, 'passes')
     await step(`Stopping the site ${now.settings.name}`, () => stopTarget(ctx, 'site'))

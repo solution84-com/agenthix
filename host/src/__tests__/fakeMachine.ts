@@ -42,7 +42,10 @@ export type FakeMachine = {
   agentContainers: string[]
   /** Every other container on the machine, as `docker inspect` reads it for the port check; none by default. */
   machineContainers: MachineContainer[]
-  /** Containers' environments, by container name, as `docker container inspect` reads them; none by default. */
+  /**
+   * Containers' environments, by container name, as `docker container inspect` reads them. Without one, a running
+   * site's container has the environment its compose file gives it, and any other none.
+   */
   containerEnvs: Map<string, string[]>
   /** Ports a program outside Docker holds, as the port check's bind probe finds them; none by default. */
   heldPorts: Set<number>
@@ -124,8 +127,12 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
       return row && drop(images, row) ? ok() : { code: 1, stdout: '', stderr: `Error: No such image: ${ref}` }
     }
     if (args[0] === 'container' && args[1] === 'inspect' && args.includes('{{json .Config.Env}}')) {
-      const env = containerEnvs.get(args[args.length - 1])
+      const env = containerEnvs.get(args[args.length - 1]) ?? composedEnv(args[args.length - 1])
       return env ? ok(JSON.stringify(env)) : { code: 1, stdout: '', stderr: `Error: No such container: ${args[args.length - 1]}` }
+    }
+    if (args[0] === 'container' && args[1] === 'inspect' && args.includes('{{.Image}}')) {
+      const image = composedImage(args[args.length - 1])
+      if (image) return ok(`${image}\n`)
     }
     if (args[0] === 'container' && args[1] === 'inspect') return ok(JSON.stringify([{ Source: '/home/sam/.agenthix', Destination: '/state' }]))
     if (args[0] === 'image') return missingImages.has(args[args.length - 1]) ? { code: 1, stdout: '', stderr: 'No such image' } : ok('sha256:1')
@@ -194,6 +201,21 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
       return answer ? ok(`${JSON.stringify(answer)}\n`) : { code: 3, stdout: '', stderr: '' }
     }
     return { code: 1, stdout: '', stderr: `unexpected docker ${args.join(' ')}` }
+  }
+  const composedEnv = (container: string): string[] | undefined => {
+    const file = state.path('site', 'compose.json')
+    if (container !== `${ns}-site-server` || !up.has(`${ns}-site`) || !fs.existsSync(file)) return undefined
+    const env = (JSON.parse(fs.readFileSync(file, 'utf8')) as { services: { site: { environment: Record<string, string> } } }).services.site.environment
+    return Object.entries(env).map(([k, v]) => `${k}=${v}`)
+  }
+  // The image a running hq-server or site container runs: its compose file's, by the id the containers stand-in gives it.
+  const composedImage = (container: string): string | undefined => {
+    const role = container === `${ns}-hq-server` ? 'hq' : container === `${ns}-site-server` ? 'site' : null
+    const file = role && state.path(role, 'compose.json')
+    if (!role || !file || !up.has(`${ns}-${role}`) || !fs.existsSync(file)) return undefined
+    const services = (JSON.parse(fs.readFileSync(file, 'utf8')) as { services: Record<string, { image: string }> }).services
+    const ref = services[role === 'hq' ? 'hq-server' : 'site'].image
+    return containers.refs.get(ref) ?? ref
   }
   // What compose would make of a project's networks: those it declares with a subnet, unless one of that name exists.
   const joinNetworks = (file: string) => {

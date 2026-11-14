@@ -108,6 +108,7 @@ async function main(): Promise<void> {
     now: () => new Date(),
     waits: { hqMs: 10 * 60_000, siteMs: 3 * 60_000, pollMs: 3_000 },
     backupIO: dockerBackupIO(new DockerStreams(dockerCli, dockerStream, names.hostContainer), state),
+    log: line => console.warn(line),
   }
   // This machine's own keys, made once, before anything can ask for them (spec §6).
   await hostKeys(state)

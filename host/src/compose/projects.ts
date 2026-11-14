@@ -1,6 +1,6 @@
 /**
  * The compose projects the host service writes into its state folder and runs (host-management spec §6): hq
- * (hq-db, hq-server, relay, hq-web) and its default site (site-db, site). Every stored name comes from the recorded
+ * (hq-db, hq-server, the relay from the version that has one, hq-web) and its default site (site-db, site). Every stored name comes from the recorded
  * namespace; every image name from the branding module's `imageName`. Each image is the one install checked and
  * fetched (`images/images.ts`), fixed by its digest, and compose never fetches one itself (`pull_policy: never`).
  *
@@ -16,6 +16,7 @@ import { cloudSettings, type CloudSettings } from '../config'
 import { ipam, type InstallSubnets } from './subnets'
 import { installationLabels, type Installation } from '../state/installation'
 import { isLocalAddress } from '../install/address'
+import { hasPart } from '../images/partsOfVersion'
 
 /** Where the host service's state folder is on the machine, which bind mounts must name (the CLI runs inside). */
 export type MachinePaths = { state: string }
@@ -155,6 +156,40 @@ export function hqPortOf(installation: Installation): number {
 }
 
 /**
+ * hq's relay (adr-0153) carries the bytes of every file a browser opens: a site's, and hq's own uploads, which it
+ * reads from hq's storage volume mounted read-only. It dials hq-server on the private network, is reached by
+ * hq-web alone, and publishes nothing: hq-web sends it the tickets (on the files address, or under the bare
+ * prefix on HQ's own) and the line sites dial.
+ */
+function relayService(names: InstallNames, hq: HqSettings, secrets: InstallSecrets, installation: Installation) {
+  return {
+    image: image(hq, 'relay'),
+    pull_policy: 'never',
+    container_name: names.container('relay'),
+    environment: {
+      RELAY_HQ_ADDRESS: `http://hq-server:${SERVICE_PORTS.hq.server}`,
+      HQ_RELAY_SECRET: secrets.relaySecret,
+      HQ_URL: hq.address,
+      FILES_ORIGIN: hq.filesOrigin ?? '',
+      PREVIEW_PATTERN: previewPatternOf(hq),
+      RELAY_PORT: String(SERVICE_PORTS.relay.server),
+      HQ_UPLOADS_ROOT: '/hq-storage',
+      // A demo's relay serves every file as a download, so a visitor's upload never shows as a page.
+      ...demoEnv(installation),
+    },
+    volumes: ['storage:/hq-storage:ro'],
+    networks: ['internal'],
+    depends_on: ['hq-server'],
+    healthcheck: {
+      test: ['CMD', 'node', '-e', `fetch('http://127.0.0.1:${SERVICE_PORTS.relay.server}/health').then(r => process.exit(r.status === 200 ? 0 : 1), () => process.exit(1))`],
+      interval: '10s', timeout: '5s', retries: 5, start_period: '10s',
+    },
+    restart: 'unless-stopped',
+    labels: labels(names, 'hq', installation, hq.version),
+  }
+}
+
+/**
  * `machineName`: this machine's, which HQ names its own site after. A label only. `cloud`: on a machine Agenthix Cloud
  * runs, HQ is told so, and talks to the same Cloud as this host service. `subnets`: each network's, from
  * `chooseSubnets` (compose/subnets.ts), given to every network a project makes rather than one an external.
@@ -165,6 +200,9 @@ export function hqProject(
   installation: Installation, cloud: CloudSettings | null = cloudSettings(),
 ) {
   const dbUrl = `postgresql://postgres:${secrets.hqDbPassword}@hq-db:${CONTAINER_DATABASE_PORT}/${names.hqDatabase}`
+  // A version published before the relay (`partsOfVersion.ts`) runs as its own host service ran it: hq-server serves
+  // the files itself, and hq-web takes the preview setting of its day, empty, so live apps are off.
+  const relayed = hasPart('relay', hq.version)
   return withDemoLogs(installation, {
     name: names.hqProject,
     services: {
@@ -184,11 +222,11 @@ export function hqProject(
           SECRETS_MASTER_KEY: secrets.hqMasterKey,
           HQ_PAIRING_SECRET: secrets.pairingSecret,
           HQ_CONSOLE_PAIRING_SECRET: secrets.consolePairingSecret,
-          HQ_RELAY_SECRET: secrets.relaySecret,
+          ...(relayed ? { HQ_RELAY_SECRET: secrets.relaySecret } : {}),
           HQ_MACHINE_NAME: machineName,
           HQ_CONTROL_SOCKET,
           FILES_ORIGIN: hq.filesOrigin ?? '',
-          PREVIEW_PATTERN: previewPatternOf(hq),
+          ...(relayed ? { PREVIEW_PATTERN: previewPatternOf(hq) } : {}),
           ...(cloud ? { HQ_RUN_BY_CLOUD: 'true', [CLOUD_URL_SETTING]: cloud.url } : {}),
           ...versionEnv('APP_VERSION', hq.version),
           ...demoEnv(installation),
@@ -199,35 +237,7 @@ export function hqProject(
         restart: 'unless-stopped',
         labels: labels(names, 'hq', installation, hq.version),
       },
-      // hq's relay (adr-0153) carries the bytes of every file a browser opens: a site's, and hq's own uploads, which it
-      // reads from hq's storage volume mounted read-only. It dials hq-server on the private network, is reached by
-      // hq-web alone, and publishes nothing: hq-web sends it the tickets (on the files address, or under the bare
-      // prefix on HQ's own) and the line sites dial.
-      relay: {
-        image: image(hq, 'relay'),
-        pull_policy: 'never',
-        container_name: names.container('relay'),
-        environment: {
-          RELAY_HQ_ADDRESS: `http://hq-server:${SERVICE_PORTS.hq.server}`,
-          HQ_RELAY_SECRET: secrets.relaySecret,
-          HQ_URL: hq.address,
-          FILES_ORIGIN: hq.filesOrigin ?? '',
-          PREVIEW_PATTERN: previewPatternOf(hq),
-          RELAY_PORT: String(SERVICE_PORTS.relay.server),
-          HQ_UPLOADS_ROOT: '/hq-storage',
-          // A demo's relay serves every file as a download, so a visitor's upload never shows as a page.
-          ...demoEnv(installation),
-        },
-        volumes: ['storage:/hq-storage:ro'],
-        networks: ['internal'],
-        depends_on: ['hq-server'],
-        healthcheck: {
-          test: ['CMD', 'node', '-e', `fetch('http://127.0.0.1:${SERVICE_PORTS.relay.server}/health').then(r => process.exit(r.status === 200 ? 0 : 1), () => process.exit(1))`],
-          interval: '10s', timeout: '5s', retries: 5, start_period: '10s',
-        },
-        restart: 'unless-stopped',
-        labels: labels(names, 'hq', installation, hq.version),
-      },
+      ...(relayed ? { relay: relayService(names, hq, secrets, installation) } : {}),
       'hq-web': {
         image: image(hq, 'hq-web'),
         pull_policy: 'never',
@@ -235,7 +245,7 @@ export function hqProject(
         // hq-web's browser app takes HQ's address when it starts (adr-0111).
         environment: {
           HQ_URL: hq.address, HQ_TRUSTED_PROXIES: String(hq.trustedProxies), FILES_ORIGIN: hq.filesOrigin ?? '',
-          PREVIEW_PATTERN: previewPatternOf(hq),
+          ...(relayed ? { PREVIEW_PATTERN: previewPatternOf(hq) } : { PREVIEW_DOMAIN: '' }),
         },
         ports: [`${hq.bind}:${hqPortOf(installation)}:${HQ_WEB_PORT}`],
         networks: ['internal', 'edge', 'link'],
@@ -293,7 +303,7 @@ export function siteProject(
           HOST_NAMESPACE: names.namespace,
           AGENT_NETWORK_RANGE: installation.agentRange,
           AGENT_IMAGE: image(site, 'agent'),
-          EXECUTOR_IMAGE: image(site, 'executor'),
+          ...(hasPart('executor', site.version) ? { EXECUTOR_IMAGE: image(site, 'executor') } : {}),
           HQ_URL: hq.hqUrl,
           HQ_PAIRING_SECRET: hq.credential,
           SECRETS_MASTER_KEY: secrets.siteMasterKey,

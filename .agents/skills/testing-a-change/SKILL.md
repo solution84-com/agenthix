@@ -32,7 +32,11 @@ reaches — a module's dependents too; any path it has not seen selects everythi
 - the image start test (`scripts/images/start-test-all.sh`) for each image part whose content key changed
   (`node scripts/images/keys.mjs`), and, when any did, the install test (`scripts/install-test/run.sh`: it installs from
   those images at the machine's network address and walks through it in a browser, beside any installation already
-  there).
+  there);
+- the migration check (`scripts/migration-check/run.sh`, under a minute) when `hq/migrations/` or `site/migrations/`
+  changed, and the upgrade test (`scripts/upgrade-test/run.sh`, about 14 minutes: the previous release installed,
+  rows seeded, upgraded to these images and put back from a forced failure, every row checked) when a migration or the
+  host service's upgrade changed, and in the full regression.
 
 **The full regression** is every module, every suite and every image, plus **one run of the end-to-end and cross-app
 suites with every flag on** (`TEST_ALL_FEATURES=1`; [feature flags](../../../docs/architecture/feature-flags.md)).

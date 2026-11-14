@@ -9,6 +9,7 @@ import type { HqControl } from '../hq/control'
 import type { HqSettings, SiteSettings } from '../compose/projects'
 import type { BlockedPart } from './portsBlocked'
 import { readSiteReport, siteContainerOf, type SiteCause, type SiteMove, type SiteReport } from './siteControl'
+import { hqServicesOf } from '../images/partsOfVersion'
 
 /** How a compose project's containers are: all running, some, none, or not there at all. */
 export type PartState = 'running' | 'starting' | 'stopped' | 'missing'
@@ -65,8 +66,8 @@ export type Installed = {
   site: { settings: SiteSettings & { installedAt: string }; file: string; project: string } | null
 }
 
-/** hq-db, hq-server, relay and hq-web; site-db and site. */
-export const HQ_SERVICES = 4
+/** hq-db, hq-server, the relay where its version has one, and hq-web; site-db and site. */
+export const hqServiceCount = (version: string) => hqServicesOf(version).length
 export const SITE_SERVICES = 2
 
 export async function machineStatus(
@@ -81,7 +82,7 @@ export async function machineStatus(
   let hqAnswers = false
   if (installed.hq) {
     const { settings, file, project, port } = installed.hq
-    const containers = partState(await docker.composePs(project, file), HQ_SERVICES)
+    const containers = partState(await docker.composePs(project, file), hqServiceCount(settings.version))
     const answer = containers === 'missing' || containers === 'stopped' ? null : await hqControl.status()
     if (answer) {
       hqAnswers = true

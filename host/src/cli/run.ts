@@ -21,6 +21,7 @@ import { statusText, type StatusWithBackups } from './statusText'
 import { backupCommand } from './backups'
 import { cmd, product, wrap } from './words'
 import type { ScheduledChange } from '@agenthix/core'
+import type { UpgradePartway } from '../upgrades/status'
 import { atTime, resizeRequest, scheduleCancelled, scheduleChanged, scheduledDone, scheduledText } from './scheduled'
 import { upgradeCommand } from './upgrades'
 import { lifecycleCommand } from './lifecycle'
@@ -127,7 +128,7 @@ async function install(send: Send, io: Io, command: Extract<Command, { kind: 'in
   }
   io.out('')
   const ports = { ...(command.hqPort === undefined ? {} : { hqPort: command.hqPort }), ...(command.consolePort === undefined ? {} : { consolePort: command.consolePort }) }
-  const result = await call<InstallResult>(send, io, { op: 'machine.install', address, ...ports, ...(command.demo ? { demo: true } : {}), ...(command.filesHost ? { filesHost: command.filesHost } : {}) })
+  const result = await call<InstallResult>(send, io, { op: 'machine.install', address, ...ports, ...(command.demo ? { demo: true } : {}), ...(command.filesHost ? { filesHost: command.filesHost } : {}), ...(command.imageTag ? { imageTag: command.imageTag } : {}) })
   io.out('')
   io.out(installDone(result, machine))
   return 0
@@ -191,8 +192,8 @@ function logLines(lines: LogLineFigure[]): string {
 
 async function scheduled(command: Extract<Command, { kind: 'scheduled' | 'scheduleCancel' | 'scheduleChange' | 'schedule' }>, send: Send, io: Io, now: Date): Promise<number> {
   if (command.kind === 'scheduled') {
-    const r = await call<{ machine: string; changes: ScheduledChange[] }>(send, io, { op: 'scheduled.list' })
-    io.out(scheduledText(r.changes, r.machine, now))
+    const r = await call<{ machine: string; changes: ScheduledChange[]; upgradePartway?: UpgradePartway | null }>(send, io, { op: 'scheduled.list' })
+    io.out(scheduledText(r.changes, r.machine, now, r.upgradePartway))
     return 0
   }
   if (command.kind === 'scheduleCancel') {
@@ -266,6 +267,7 @@ export async function runCommand(command: Command, send: Send, io: Io, version: 
       case 'schedule':
         return await scheduled(command, send, io, now())
       case 'upgrade':
+      case 'upgradeBuilt':
       case 'upgrades':
       case 'upgradesHost':
         return await upgradeCommand(command, request => call(send, io, request), { ...io, confirm: (q, yes) => confirmOrLeave(io, q, yes) }, now())

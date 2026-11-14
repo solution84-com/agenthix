@@ -50,7 +50,7 @@ async function run(ctx: Context, request: { version: string }, pin: ConsolePin, 
   const version = kept?.version ?? request.version
   progress({ event: 'step', step: `Checking the images are signed by ${product}` })
   const { pins } = await checkImages(ctx, siteImagesWanted(version))
-  await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(pins)])
+  await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(pins, version)])
   progress({ event: 'stepDone', outcome: 'passes' })
 
   const site: StoredSite = {

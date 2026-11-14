@@ -13,9 +13,14 @@ import type { UpgradesStatus } from '../upgrades/status'
 import { builtHostCommand } from './builtSwitch'
 import { atTime, scheduledDone } from './scheduled'
 import { cmd, nextStep, wrap } from './words'
+import { partwayLines } from './partwayText'
+import { IMAGE_TAG, builtText } from '../upgrades/builtUpgrade'
+import type { UpgradeOutcome } from '../upgrades/upgrade'
 
 export type UpgradeCommand =
   | { kind: 'upgrade'; target: 'hq' | 'site'; version?: string; at?: string; yes: boolean }
+  /** A development build's upgrade to the images built here under `tag`, at once. */
+  | { kind: 'upgradeBuilt'; target: 'hq' | 'site'; tag: string; yes: boolean }
   | { kind: 'upgrades'; auto?: boolean; window?: string }
   | { kind: 'upgradesHost'; launcher?: boolean; image?: string; yes: boolean }
 
@@ -34,9 +39,14 @@ function take(args: string[], name: string): { value?: string; rest: string[]; b
   return { value, rest: [...args.slice(0, i), ...args.slice(i + 2)] }
 }
 
-/** `hq upgrade [<version>] [--at <time>] [--yes]`, and the same for the site. */
+/** `hq upgrade [<version>] [--at <time>] [--yes]`, `hq upgrade --image-tag <tag> [--yes]`, and the same for the site. */
 export function parseUpgrade(target: 'hq' | 'site', args: string[]): UpgradeCommand | Usage {
   const yes = args.includes('--yes')
+  const tag = take(args.filter(a => a !== '--yes'), '--image-tag')
+  if (tag.bad || (tag.value !== undefined && (tag.rest.length || !IMAGE_TAG.test(tag.value)))) {
+    return { kind: 'usage', message: `${target} upgrade --image-tag takes one image tag, such as candidate, and nothing else but --yes.` }
+  }
+  if (tag.value !== undefined) return { kind: 'upgradeBuilt', target, tag: tag.value, yes }
   const at = take(args.filter(a => a !== '--yes'), '--at')
   if (at.bad) return { kind: 'usage', message: `Say when, in this machine's time: ${cmd(`${target} upgrade --at "Sun 18 Oct 04:00"`)}` }
   const [version, ...extra] = at.rest
@@ -76,8 +86,9 @@ const lineOf = (v: string) => v.split('.').slice(0, 2).join('.')
 
 /** The lines `status` puts under HQ, or under the site on a machine without HQ; none while nothing is ready. */
 export function upgradeLines(u: UpgradesStatus | null | undefined, target: 'hq' | 'site', now = new Date()): string[] {
-  if (!u || u.target !== target) return []
-  const lines: string[] = []
+  if (!u) return []
+  const lines: string[] = u.partway?.target === target ? partwayLines(u.partway, now, IN) : []
+  if (u.target !== target) return lines
   const r = u.ready
   const again = cmd(`${target} upgrade`)
   const back = u.rolledBackLately
@@ -171,7 +182,23 @@ async function upgradeSoon(call: Ask, io: UpgradeIo, c: Extract<UpgradeCommand, 
   return 0
 }
 
+/** A development build's upgrade to images built here: asked, then run at once, its steps shown as they go. */
+async function upgradeBuilt(call: Ask, io: UpgradeIo, c: Extract<UpgradeCommand, { kind: 'upgradeBuilt' }>): Promise<number> {
+  const stops = c.target === 'hq' ? 'HQ and its site stop' : 'The site stops'
+  io.out(wrap(`Upgrading ${c.target === 'hq' ? 'HQ and its site' : 'the site'} to ${builtText(c.tag)}, built on this machine, now. ${stops} ` +
+    'for a few minutes, and nobody in HQ is told first: a sealed backup is taken, and if it does not come up healthy, everything is put back as it was.'))
+  if (!(await io.confirm('Go ahead?', c.yes))) return 1
+  const outcome = await call<UpgradeOutcome>({ op: 'upgrades.built', target: c.target, tag: c.tag })
+  if (outcome.rolledBack) {
+    io.err(wrap(outcome.reason))
+    return 1
+  }
+  io.out(wrap(`Upgraded to ${builtText(c.tag)}.`))
+  return 0
+}
+
 export async function upgradeCommand(command: UpgradeCommand, call: Ask, io: UpgradeIo, now: Date): Promise<number> {
+  if (command.kind === 'upgradeBuilt') return upgradeBuilt(call, io, command)
   if (command.kind === 'upgradesHost') {
     if (command.launcher !== undefined) {
       const u = await call<UpgradesStatus>({ op: 'upgrades.set', launcher: command.launcher })

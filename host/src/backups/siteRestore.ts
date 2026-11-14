@@ -99,7 +99,7 @@ export function restoreJoinedSite(ctx: Context, source: JoinedSource, pin: Conso
 
       const { pins } = await step(progress, 'Checking the images are signed', async () => {
         const checkedImages = await checkImages(ctx, siteImagesWanted(manifest.site.version))
-        await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(checkedImages.pins)])
+        await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(checkedImages.pins, manifest.site.version)])
         return checkedImages
       }, 'passes')
 

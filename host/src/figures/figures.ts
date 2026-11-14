@@ -7,7 +7,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import { parseHostCeilings } from '@agenthix/core'
 import type { BackupFigures, HostCeilings, HostFigures, InstallFigures } from '@agenthix/core'
-import { HQ_SERVICES, partState, SITE_SERVICES, type PartState } from '../status/machineStatus'
+import { hqServiceCount, partState, SITE_SERVICES, type PartState } from '../status/machineStatus'
 import { installed, STATE_MOUNT, type Context } from '../service/context'
 import { protectionFigures } from '../protections/protections'
 import { frontDoorFigures } from '../frontDoor/frontDoor'
@@ -72,7 +72,7 @@ export async function collectFigures(ctx: Context): Promise<HostFigures> {
   const { hq, site } = installed(ctx)
   const installs: InstallFigures[] = []
   if (hq) {
-    const state = partState(await ctx.docker.composePs(hq.project, hq.file), HQ_SERVICES)
+    const state = partState(await ctx.docker.composePs(hq.project, hq.file), hqServiceCount(hq.settings.version))
     const figure = installFigure('hq', hq.settings.version, hq.settings.installedAt, state)
     // What the Fleet Console shows of HQ: why it is not running, when another holds its port.
     const blocked = state === 'running' ? undefined : (await blockedParts(ctx)).find(b => b.part === 'hq')

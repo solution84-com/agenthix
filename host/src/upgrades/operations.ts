@@ -16,7 +16,10 @@ import { readyBuiltHostService, switchBuiltHostService } from './builtHostServic
 import { checkUpgrade, currentVersion, hostServiceBehind, whoText, type Target } from './rules'
 import { parseWindow, writeUpgrades } from './settings'
 import { upgradesStatus, type UpgradesStatus } from './status'
-import { upgrade } from './upgrade'
+import { upgrade, type UpgradeOutcome } from './upgrade'
+import { IMAGE_TAG } from './builtUpgrade'
+import { DEVELOPMENT } from '../images/ownVersion'
+import type { Progress } from '../sockets/lineServer'
 import { compare, newest } from './versions'
 
 export type UpgradesMachineRequest =
@@ -28,6 +31,8 @@ export type UpgradesMachineRequest =
   /** Switches the host service to its newest published version, or `version`, or `built`, through the launcher. */
   | { op: 'upgrades.hostSwitch'; version?: string; built?: string }
   | { op: 'upgrades.set'; auto?: boolean; window?: string; launcher?: boolean }
+  /** A development build's upgrade, at once, to the images built here under `tag` (`builtUpgrade.ts`). */
+  | { op: 'upgrades.built'; target: Target; tag: string }
 
 export type UpgradeCheckResult = {
   target: Target
@@ -74,6 +79,10 @@ export function parseUpgradesRequest(r: Record<string, unknown>): UpgradesMachin
       if (r.auto === undefined && r.window === undefined && r.launcher === undefined) return 'malformed'
       return { op: r.op, auto: r.auto as boolean | undefined, window: r.window as string | undefined, launcher: r.launcher as boolean | undefined }
     }
+    case 'upgrades.built': {
+      const t = target(r.target)
+      return t && typeof r.tag === 'string' && IMAGE_TAG.test(r.tag) ? { op: r.op, target: t, tag: r.tag } : 'malformed'
+    }
     default:
       return null
   }
@@ -95,8 +104,12 @@ async function check(ctx: Context, t: Target, wanted?: string): Promise<UpgradeC
   return { target: t, who: whoText(ctx, t, true), from, version: to, hostServiceFirst: hostServiceBehind(ctx, to), launcher: launcherOn(ctx) }
 }
 
-export async function upgradesOperation(ctx: Context, request: UpgradesMachineRequest): Promise<UpgradesStatus | UpgradeCheckResult | HostServiceReady | HostSwitchStarted> {
+export async function upgradesOperation(
+  ctx: Context, request: UpgradesMachineRequest, progress: (p: Progress) => void = () => {},
+): Promise<UpgradesStatus | UpgradeCheckResult | HostServiceReady | HostSwitchStarted | UpgradeOutcome> {
   switch (request.op) {
+    case 'upgrades.built':
+      return upgrade(ctx, request.target, DEVELOPMENT, progress, { built: request.tag })
     case 'upgrades.status':
       return upgradesStatus(ctx)
     case 'upgrades.check':

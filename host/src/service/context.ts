@@ -65,6 +65,8 @@ export type Context = {
   reach?: (address: string) => Promise<boolean>
   /** The machine's own IPv4 addresses with their prefixes, which no install network may overlap; the machine's when absent. */
   machineAddresses?: () => string[]
+  /** A line for the host service's own log (`docker logs`); nowhere when absent. Never given a secret. */
+  log?: (line: string) => void
 }
 
 export type StoredHq = HqSettings & { installedAt: string }
