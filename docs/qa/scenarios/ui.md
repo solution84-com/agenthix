@@ -138,3 +138,10 @@ The hq screens that use these pieces are in [`hq.md`](hq.md) (**SC-1929** to **S
 Written at the close of the unit *a live demo of hq*, from the finished code. What the guard refuses is in [`hq.md`](hq.md) (**SC-1967**).
 
 - **SC-2000** — The demo's refusal is recognised by the answer carrying `demo: true`, and is final: a failure handed to `useAttentionWhen` with it, or its words handed to the dialog, has *Close* only and no *Try again*, while any other failure keeps *Try again*; a refusal from the server is said in the server's words (a phone's pairing code). · fulfils AC-473a · tests `ui/src/attention/__tests__/demoRefusal.test.tsx`, `hq/src/mobile/pages/ConnectMobilePage.demo.test.tsx`
+
+## Failures said in words (added 2026-11-14)
+
+Written at the close of the unit *what agents can do*, from the finished code. hq's own use is in [`hq.md`](hq.md) (**SC-2152**).
+
+- **SC-2153** — `failureWords` says a failure for the server asked: no answer (the network, a timeout, or a gateway's 502, 503 or 504 with no words of the server's own) is *<Server> did not answer.*, the server's own 5xx with no words of its own is *Something went wrong in <Server>.*, and any answer the server wrote words for is those words; never the request's address or a status line. `FailureServer`, set once at an app's root (*HQ* in hq, *the Fleet Console* in the Fleet Console's screens), makes everything handed to `useAttentionWhen` and the nudges say it that way, the server's name starting a sentence with a capital; words and nodes are shown as given, even ones that look like a status line, and outside a `FailureServer` a failure keeps its message. · fulfils AC-494a, AC-494b · tests `ui/src/attention/__tests__/failureWords.test.ts`, `ui/src/attention/__tests__/failureServer.test.tsx`
+

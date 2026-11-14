@@ -18,7 +18,7 @@ const mixed = capabilityList({
 })
 const row = (name: string) => within(screen.getByRole('listitem', { name }))
 
-describe('What agents can do', () => {
+describe('What agents can do @SC-2135 @SC-2139', () => {
   it('draws each capability with its mark read out, and what agents use', () => {
     render(<WhatAgentsCanDo capabilities={mixed} onAction={vi.fn()} />)
     expect(row('Thinking').getByText('Agents can do it')).toBeTruthy()
@@ -28,7 +28,7 @@ describe('What agents can do', () => {
     expect(row('Web search').getByText('Only some agents can do it')).toBeTruthy()
   })
 
-  it('lists the runtimes under Web search when more than one is in use', () => {
+  it('lists the runtimes under Web search when more than one is in use @SC-2137', () => {
     render(<WhatAgentsCanDo capabilities={mixed} onAction={vi.fn()} />)
     expect(row('Web search').getByText('Some agents can search.')).toBeTruthy()
     expect(row('Web search').getByText('Claude Code')).toBeTruthy()
@@ -36,7 +36,7 @@ describe('What agents can do', () => {
     expect(row('Web search').getByText('needs a search key')).toBeTruthy()
   })
 
-  it('opens the help under the "?" of Web search', () => {
+  it('opens the help under the "?" of Web search @SC-2137', () => {
     render(<WhatAgentsCanDo capabilities={mixed} onAction={vi.fn()} />)
     const help = screen.getByRole('button', { name: 'What is a runtime?' })
     expect(help.getAttribute('aria-expanded')).toBe('false')
@@ -55,7 +55,7 @@ describe('What agents can do', () => {
     expect(onAction.mock.calls).toEqual([['thinking', 'change'], ['web_search', 'add_key']])
   })
 
-  it('a default whose provider stopped: ! read out as "needs attention", with Open its provider and Change beside it', () => {
+  it('a default whose provider stopped: ! read out as "needs attention", with Open its provider and Change beside it @SC-2136', () => {
     const stopped = capabilityList({
       providers: [provider('openrouter')],
       defaults: { conversation: { providerId: 'p-anthropic', model: 'm', text: 'Claude Sonnet 5 · via Anthropic', notWorking: true }, stt: null, tts: null },

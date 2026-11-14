@@ -56,7 +56,7 @@ describe('the admin area menu @SC-1189', () => {
   })
 })
 
-describe('Models and billing in the admin menu', () => {
+describe('Models and billing in the admin menu @SC-2150 @SC-1189', () => {
   it('reads AI, Billing profiles and Usage, with AI marked on the AI page', () => {
     ops.role = 'ADMIN'
     show('/admin/ai')

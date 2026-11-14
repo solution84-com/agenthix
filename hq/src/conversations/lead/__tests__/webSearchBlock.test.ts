@@ -41,7 +41,7 @@ const claude = { runtime: CLAUDE_SDK_RUNTIME, permission: 'always', searchKey: f
 const openCodeKey = { runtime: OPENCODE_RUNTIME, permission: 'always', searchKey: true } as const
 const openCodeNoKey = { runtime: OPENCODE_RUNTIME, permission: 'always', searchKey: false } as const
 
-describe("the turn's web search block (W1, W2)", () => {
+describe("the turn's web search block (W1, W2) @SC-2158", () => {
   it("can search in Claude Code, and in OpenCode with a key, at Always or Ask; never at Never; not in OpenCode without a key", () => {
     expect(canSearchInBackground(claude)).toBe(true)
     expect(canSearchInBackground(openCodeKey)).toBe(true)
@@ -98,7 +98,7 @@ describe("the turn's web search block (W1, W2)", () => {
   })
 })
 
-describe('what background work from a turn would get (W1, W2)', () => {
+describe('what background work from a turn would get (W1, W2) @SC-2158', () => {
   beforeEach(() => {
     resolved.choice = null
     resolved.key = false

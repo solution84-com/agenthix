@@ -30,7 +30,7 @@ const settings = { conversation: null, stt: null, tts: null, choices: { models: 
 const use = (providers: Q, defaults: Q, key: Q) => { h.q = { providers, settings: defaults, key } }
 const press = () => render(<CapabilitiesSection onAddProvider={vi.fn()} onOpenProvider={vi.fn()} />)
 
-describe('What agents can do, when reads do not come back', () => {
+describe('What agents can do, when reads do not come back @SC-2144', () => {
   it('says the providers read did not come back, instead of "Loading…" for ever', () => {
     use(down(), ok(settings), ok({ present: false }))
     press()

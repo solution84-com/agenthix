@@ -6,7 +6,7 @@ const KEY = 'exa-0123456789abcdef0123'
 
 afterEach(() => { vi.unstubAllGlobals() })
 
-describe('what an Exa answer says of a key', () => {
+describe('what an Exa answer says of a key @SC-2142', () => {
   it('works on a 2xx', () => {
     expect(exaVerdict(200, { results: [] }, KEY)).toEqual({ ok: true })
   })
@@ -23,7 +23,7 @@ describe('what an Exa answer says of a key', () => {
   })
 })
 
-describe('the check', () => {
+describe('the check @SC-2142', () => {
   it('sends Exa its smallest search with the key in x-api-key, and no page contents', async () => {
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ results: [] }), { status: 200 }))
     vi.stubGlobal('fetch', fetch)

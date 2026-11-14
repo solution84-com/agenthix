@@ -17,7 +17,7 @@ const run = (texts: string[], ...calls: Array<[name: string, input: Record<strin
 const EXPLAINED = 'I work in OpenCode, and this organisation hasn\'t added the search key, so I can\'t search the web. ' +
   'An organisation admin adds it in Manage organisation › AI, on the Web search line. Meanwhile I can answer from what I know, though it may be out of date.'
 
-describe('the no-search-key check', () => {
+describe('the no-search-key check @SC-2159', () => {
   it('sends the run the site\'s words and OpenCode\'s web_fetch, and no web_search; other runs get neither', () => {
     expect(JSON.stringify(taskRunContext(setup).system)).toContain(JSON.stringify(NO_WEB_SEARCH_INSTRUCTIONS).slice(1, -1))
     const tools = taskRunTools(setup).map(t => t.name)

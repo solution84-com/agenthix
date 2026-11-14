@@ -5,7 +5,7 @@ import {
   webSearchWithheldInstructions,
 } from '../webSearchInstructions.js'
 
-describe("web search withheld by the agent's tools", () => {
+describe("web search withheld by the agent's tools @SC-2157", () => {
   it('says the tools do not allow it, where an admin allows it, and offers what it knows; never blames a key', () => {
     expect(WEB_SEARCH_NOT_ALLOWED_WORDS).toContain("My tools don't allow me to search the web here")
     for (const words of [WEB_SEARCH_NOT_ALLOWED_WORDS, WEB_SEARCH_NEEDS_APPROVAL_WORDS]) {

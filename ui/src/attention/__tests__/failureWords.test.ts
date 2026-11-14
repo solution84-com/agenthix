@@ -5,7 +5,7 @@ import { failureWords } from '../failureWords'
 const named = (name: string, message: string) => Object.assign(new Error(message), { name })
 const http = (statusCode: number, message: string, data?: unknown) => Object.assign(new Error(message), { statusCode, data })
 
-describe('failureWords', () => {
+describe('failureWords @SC-2153', () => {
   it('no answer, or a network error: "HQ did not answer.", never the request’s address', () => {
     expect(failureWords(named('NetworkError', 'Request failed due to a network error: POST http://localhost:4101/operations/x'), 'HQ')).toBe('HQ did not answer.')
     expect(failureWords(named('TimeoutError', 'Request timed out: POST http://localhost:4101/operations/x'), 'HQ')).toBe('HQ did not answer.')

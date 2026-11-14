@@ -8,7 +8,7 @@ import { resolveEffectivePermissions } from '../permissions/effectivePermissions
 
 const stateOf = (list: { name: string; state: string }[], name: string) => list.find(p => p.name === name)?.state
 
-describe('the default tool permissions', () => {
+describe('the default tool permissions @SC-2154', () => {
   it('put web_fetch and web_search at Ask, and bash at Never', () => {
     expect(stateOf(DEFAULT_TOOL_PERMISSIONS, 'web_fetch')).toBe('ask')
     expect(stateOf(DEFAULT_TOOL_PERMISSIONS, 'web_search')).toBe('ask')

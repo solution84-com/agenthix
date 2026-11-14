@@ -18,7 +18,7 @@ const turnText = (setup: CheckSetup): string => JSON.stringify(contextOf(setup).
 const STARTED = run(["I'm looking that up on the web now — I'll tell you what I find."], ['start_work', { boundary: 'WEB', title: 'Newest Node.js release', brief: SEARCH_ASK }])
 const EXPLAINED = `${NO_WEB_SEARCH_WORDS} Want me to tell you what I know?`
 
-describe('the checks of a conversation asked to search the web (W1, W2)', () => {
+describe('the checks of a conversation asked to search the web (W1, W2) @SC-2159', () => {
   it("sends the turn the web search block in the check's state, and nothing for a check without one", () => {
     expect(turnText(check('web-search-background').setup)).toContain('Work you do in the background can search the web')
     expect(turnText(check('web-search-background-key').setup)).toContain('in OpenCode, with this organisation')

@@ -46,7 +46,7 @@ const openLine = (name: string) => fireEvent.click(providerLine(name))
 beforeEach(() => { h.data = { getAiProviders: [anthropic, assembly, cloud, custom], getModelsSettings: settings, getWebSearchKeyStatus: { present: false } } })
 afterEach(() => { cleanup(); h.data = {}; h.actions = {} })
 
-describe('the AI page @SC-1178', () => {
+describe('the AI page @SC-1178 @SC-2145 @SC-2146', () => {
   it('is called AI, and holds What agents can do, Your providers and Which models may run, in that order', () => {
     show()
     expect(screen.getByRole('heading', { level: 1, name: 'AI' })).toBeTruthy()
@@ -124,7 +124,7 @@ describe('the AI page @SC-1178', () => {
   })
 })
 
-describe('a link to the AI page @SC-1178', () => {
+describe('a link to the AI page @SC-1178 @SC-2147', () => {
   it('opens the provider\'s line it names, and marks only it', () => {
     show('/admin/ai#provider-p2')
     expect(document.getElementById('provider-p2')?.getAttribute('aria-current')).toBe('true')
@@ -166,7 +166,7 @@ describe('a link to the AI page @SC-1178', () => {
   })
 })
 
-describe('what agents can do, on the AI page', () => {
+describe('what agents can do, on the AI page @SC-2135 @SC-2136', () => {
   it('shows the four capabilities with what agents use', () => {
     show()
     expect(line('Thinking').getByText('Claude Sonnet 5 · via Anthropic')).toBeTruthy()
@@ -203,7 +203,7 @@ describe('what agents can do, on the AI page', () => {
     expect(await screen.findByText('The default was not changed')).toBeTruthy()
   })
 
-  it('opens Web search for OpenCode from Add a key when OpenCode is in use with no key', () => {
+  it('opens Web search for OpenCode from Add a key when OpenCode is in use with no key @SC-2141', () => {
     h.data = { ...h.data, getAiProviders: [anthropic, openrouter] }
     show()
     expect(line('Web search').getByText('needs a search key')).toBeTruthy()
@@ -220,7 +220,7 @@ describe('what agents can do, on the AI page', () => {
   })
 })
 
-describe('which models may run, on the AI page', () => {
+describe('which models may run, on the AI page @SC-2148 @SC-1202', () => {
   it('is folded, with its one line visible, and unfolds into the list editor', () => {
     show()
     const toggle = screen.getByRole('button', { name: /Which models may run/ })
@@ -232,7 +232,7 @@ describe('which models may run, on the AI page', () => {
   })
 })
 
-describe('the words on the AI page', () => {
+describe('the words on the AI page @SC-2140', () => {
   it('names capabilities Thinking, Hearing and Speaking, never Voice, Listening, LLM, STT or TTS', () => {
     h.data = { ...h.data, getAiProviders: [anthropic, assembly, cloud, custom, openrouter] }
     show()

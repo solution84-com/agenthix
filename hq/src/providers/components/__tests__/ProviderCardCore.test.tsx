@@ -15,7 +15,7 @@ const provider = (vendor: AiProviderVendor, state: AiProviderState = 'works', st
 const card = (p: ReturnType<typeof provider>, extra: Partial<React.ComponentProps<typeof ProviderCardCore>> = {}) =>
   render(<ProviderCardCore provider={p} {...extra} />)
 
-describe('the provider card core', () => {
+describe('the provider card core @SC-2138 @SC-2151', () => {
   it('says its state in words, with the place\'s note after it', () => {
     card(provider('inworld'), { stateNote: 'Added by you.' })
     expect(screen.getByText('Works. Added by you.')).toBeTruthy()

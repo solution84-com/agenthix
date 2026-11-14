@@ -147,7 +147,7 @@ describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
     expect(screen.getByTestId('sign-in-preview').contains(footers[0])).toBe(true)
   })
 
-  it('shows on the last look one AI row with what works and Kernel speaking as the voice, and no defaults of its own @SC-1849', () => {
+  it('shows on the last look one AI row with what works and Kernel speaking as the voice, and no defaults of its own @SC-2139 @SC-1849', () => {
     queries({ getAiProviders: THREE })
     setup(undefined, {}, '/setup?step=review')
     expect(screen.queryByRole('region', { name: 'Thinking' })).toBeNull()
@@ -267,7 +267,7 @@ describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
     expect(screen.getByText(/Asia\/Tokyo/)).toBeTruthy()
   })
 
-  it('says on the last look what works, with a way back to the AI step @SC-1849', async () => {
+  it('says on the last look what works, with a way back to the AI step @SC-2139 @SC-1849', async () => {
     queries({ getAiProviders: [provider('anthropic', 'Anthropic', ['llm'])] })
     setup(undefined, {}, '/setup?step=review')
     expect(screen.getByText('Anthropic')).toBeTruthy()
@@ -277,13 +277,13 @@ describe('Setup @SC-710 @SC-1184 @SC-1187 @SC-1935', () => {
     expect(await screen.findByRole('heading', { name: 'Connect AI' })).toBeTruthy()
   })
 
-  it('says on the last look that the model is not set yet while a provider offers models but no default model exists @SC-1849', async () => {
+  it('says on the last look that the model is not set yet while a provider offers models but no default model exists @SC-2139 @SC-1849', async () => {
     queries({ getAiProviders: [provider('inworld', 'Inworld', ['llm', 'tts'])], getSetupDefaults: { ...DEFAULTS, conversation: null } })
     setup(undefined, {}, '/setup?step=review')
     expect(marks()).toMatchObject({ Thinking: 'would_add', Speaking: 'can' })
   })
 
-  it('says on the last look when nothing is set up, and a model-less or voice-less set, then finishes @SC-1849 @SC-1845', async () => {
+  it('says on the last look when nothing is set up, and a model-less or voice-less set, then finishes @SC-2139 @SC-1849 @SC-1845', async () => {
     setup(undefined, {}, '/setup?step=review')
     expect(screen.getByText('Not set up.')).toBeTruthy()
     expect(marks()).toEqual({ Thinking: 'would_add', Hearing: 'would_add', Speaking: 'would_add', 'Web search': 'would_add' })

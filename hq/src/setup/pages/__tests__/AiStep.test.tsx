@@ -109,7 +109,7 @@ describe('the AI step @SC-1184', () => {
     expect(onNext).toHaveBeenCalled()
   })
 
-  it('keeps setup\'s order, the providers then what agents can do, and one line open at a time', () => {
+  it('keeps setup\'s order, the providers then what agents can do, and one line open at a time @SC-2151', () => {
     show([base, assembly])
     const providers = screen.getByRole('region', { name: 'Your providers' })
     expect(providers.compareDocumentPosition(screen.getByRole('region', { name: 'What agents can do' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -166,7 +166,7 @@ describe('the AI step @SC-1184', () => {
     await vi.waitFor(() => expect(h.refetchProviders).toHaveBeenCalled())
   })
 
-  it('lists Thinking, Hearing, Speaking and Web search, and says OpenCode needs a key', () => {
+  it('lists Thinking, Hearing, Speaking and Web search, and says OpenCode needs a key @SC-2139 @SC-2137', () => {
     show([base])
     const list = within(screen.getByRole('region', { name: 'What agents can do' }))
     for (const name of ['Thinking', 'Hearing', 'Speaking', 'Web search']) expect(list.getByRole('listitem', { name })).toBeTruthy()
@@ -174,7 +174,7 @@ describe('the AI step @SC-1184', () => {
     expect(list.getByRole('button', { name: 'Add a key: Web search' })).toBeTruthy()
   })
 
-  it('Change opens the default picker under its line', () => {
+  it('Change opens the default picker under its line @SC-2139 @SC-1844', () => {
     show([base])
     fireEvent.click(screen.getByRole('button', { name: 'Change: Speaking' }))
     const line = within(screen.getByRole('listitem', { name: 'Speaking' }))
@@ -183,7 +183,7 @@ describe('the AI step @SC-1184', () => {
     expect(line.queryByRole('button', { name: 'Done' })).toBeNull()
   })
 
-  it('a key added in setup is saved through the pop-up, the list is read again, and Continue stays', async () => {
+  it('a key added in setup is saved through the pop-up, the list is read again, and Continue stays @SC-2139 @SC-2141', async () => {
     show([base])
     fireEvent.click(screen.getByRole('button', { name: 'Add a key: Web search' }))
     const dialog = within(screen.getByRole('dialog', { name: 'Web search for OpenCode' }))
@@ -194,7 +194,7 @@ describe('the AI step @SC-1184', () => {
     await vi.waitFor(() => expect(screen.queryByRole('dialog', { name: 'Web search for OpenCode' })).toBeNull())
   })
 
-  it('a refused key stays in the pop-up and does not block setup', async () => {
+  it('a refused key stays in the pop-up and does not block setup @SC-2139 @SC-2142', async () => {
     h.saveKey.mockRejectedValue(Object.assign(new Error('That key was refused'), { statusCode: 400 }))
     show([base])
     fireEvent.click(screen.getByRole('button', { name: 'Add a key: Web search' }))
@@ -208,7 +208,7 @@ describe('the AI step @SC-1184', () => {
     expect(onNext).toHaveBeenCalled()
   })
 
-  it('a default whose provider stopped is marked ! and Open its provider opens and marks that provider’s line', () => {
+  it('a default whose provider stopped is marked ! and Open its provider opens and marks that provider’s line @SC-2136', () => {
     const scrolled: string[] = []
     const was = Element.prototype.scrollIntoView
     Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this.id) }
@@ -233,7 +233,7 @@ describe('the AI step @SC-1184', () => {
     }
   })
 
-  it('web search never changes Continue or Skip for now', () => {
+  it('web search never changes Continue or Skip for now @SC-2139 @SC-1845', () => {
     show([base], DEFAULTS, false)
     expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy()
     cleanup()

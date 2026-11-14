@@ -14,7 +14,7 @@ const list = (providers: ReturnType<typeof provider>[], defaults: CapabilityDefa
   capabilityList({ providers, defaults, webSearchKey })
 const of = (caps: Capability[], id: Capability['id']) => caps.find(c => c.id === id)!
 
-describe('the capability list', () => {
+describe('the capability list @SC-2135', () => {
   it('lists Thinking, Hearing, Speaking and Web search, in that order, always', () => {
     expect(list([]).map(c => c.name)).toEqual(['Thinking', 'Hearing', 'Speaking', 'Web search'])
   })
@@ -46,7 +46,7 @@ describe('the capability list', () => {
       expect(of(list([provider('openrouter')]), 'thinking')).toMatchObject({ mark: 'would_add', line: 'Not chosen yet.', action: 'change' })
     })
 
-    it('! "needs attention" with Open its provider, when the default’s provider has stopped working', () => {
+    it('! "needs attention" with Open its provider, when the default’s provider has stopped working @SC-2136', () => {
       const stopped: ChoiceView = { providerId: 'anthropic-1', model: 'm', text: 'Claude Sonnet 5 · via Anthropic', notWorking: true }
       const hears: ChoiceView = { providerId: 'assembly-1', model: 'u', text: 'Universal · via AssemblyAI', notWorking: true }
       const speaks: ChoiceView = { providerId: 'inworld-1', model: 't', text: 'Inworld TTS · Ashley · via Inworld', notWorking: true }
@@ -60,7 +60,7 @@ describe('the capability list', () => {
       expect(MARK_WORDS.attention).toBe('Needs attention')
     })
 
-    it('! also when the stopped provider was the only one of its kind: the fix is that provider', () => {
+    it('! also when the stopped provider was the only one of its kind: the fix is that provider @SC-2136', () => {
       const stopped: ChoiceView = { providerId: 'assembly-1', model: 'u', text: 'Universal · via AssemblyAI', notWorking: true }
       expect(of(list([provider('assemblyai', 'key_refused')], { ...none, stt: stopped }), 'hearing'))
         .toMatchObject({ mark: 'attention', action: 'open_provider', providerId: 'assembly-1' })
@@ -71,7 +71,7 @@ describe('the capability list', () => {
     })
   })
 
-  describe('Web search', () => {
+  describe('Web search @SC-2137', () => {
     it('○ "Comes with your first model provider." before any model provider exists', () => {
       for (const providers of [[], [provider('assemblyai')]]) {
         expect(of(list(providers), 'web_search')).toMatchObject({ mark: 'would_add', line: 'Comes with your first model provider.', runtimes: [], action: null })
@@ -124,7 +124,7 @@ describe('the capability list', () => {
   })
 })
 
-describe('runtimes', () => {
+describe('runtimes @SC-2138', () => {
   it('names the runtime a provider’s models run on, and none for one that only hears or speaks', () => {
     expect(providerRuntimes(provider('anthropic'))).toEqual(['claude-sdk'])
     expect(providerRuntimes(provider('openai'))).toEqual(['opencode'])

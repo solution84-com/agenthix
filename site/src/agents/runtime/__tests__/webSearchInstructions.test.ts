@@ -15,7 +15,7 @@ const run = (state: ToolPermissionState | null, over: { webSearchKey?: string; a
   ...over,
 })
 
-describe("web search withheld by the agent's tools (W2)", () => {
+describe("web search withheld by the agent's tools (W2) @SC-2156", () => {
   it('is withheld at Never in every run, and at Ask only in a run nobody can approve', () => {
     expect(webSearchWithheldBy(run('never'))).toBe('never')
     expect(webSearchWithheldBy(run('never', { approvedManifest: undefined }))).toBe('never')
@@ -37,7 +37,7 @@ describe("web search withheld by the agent's tools (W2)", () => {
     }
   })
 
-  it('tells an OpenCode run with no key why, and tells a run that can search nothing', () => {
+  it('tells an OpenCode run with no key why, and tells a run that can search nothing @SC-2155', () => {
     expect(webSearchInstructions(run('ask', { webSearchKey: undefined }), 'opencode')).toBe(NO_WEB_SEARCH_INSTRUCTIONS)
     expect(webSearchInstructions(run('ask', { webSearchKey: undefined }), 'claude')).toBeNull()
     expect(webSearchInstructions(run('ask'), 'opencode')).toBeNull()

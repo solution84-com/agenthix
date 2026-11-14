@@ -12,7 +12,7 @@ const MANIFEST = { tools: [], bashPatterns: [] } as unknown as ApprovedManifest
 const withSearch = (state: 'always' | 'ask' | 'never', attended = true) =>
   buildClaudeStart(claudeTestContext({ allowedTools: [{ name: 'web_search', state }], approvedManifest: attended ? MANIFEST : undefined }), null)
 
-describe("a Claude Code run and its agent's web search permission", () => {
+describe("a Claude Code run and its agent's web search permission @SC-2156", () => {
   it("at Never: WebSearch is not offered, and the instructions say the agent's tools don't allow it", () => {
     const start = withSearch('never')
     expect(start.options.tools).not.toContain('WebSearch')

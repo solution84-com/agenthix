@@ -34,7 +34,7 @@ async function refusal(args: { secret: string; unchecked?: boolean }): Promise<H
 beforeEach(() => { h.stored = []; asked.length = 0 })
 afterEach(() => useWebSearchKeyCheck(null))
 
-describe('saving the web search key', () => {
+describe('saving the web search key @SC-2142', () => {
   it('accepted by Exa: saved', async () => {
     exa({ ok: true })
     expect(await setWebSearchKey({ secret: ` ${KEY} ` }, context)).toEqual({ ok: true })

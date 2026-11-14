@@ -16,7 +16,7 @@ function said(text: unknown, server: string | null = 'HQ', kind: 'alert' | 'nudg
   return kind === 'alert' ? screen.getByTestId('attention-text').textContent : screen.getByRole('status').textContent
 }
 
-describe('a failure handed to the attention dialog', () => {
+describe('a failure handed to the attention dialog @SC-2153', () => {
   it('no answer: "HQ did not answer.", never the request’s address', () => {
     expect(said(named('NetworkError', 'Request failed due to a network error: POST http://localhost/operations/x'))).toBe('HQ did not answer.')
   })

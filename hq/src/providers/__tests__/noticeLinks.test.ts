@@ -13,7 +13,7 @@ import type { ProviderRow } from '../store'
 
 const row = { id: 'p2', name: 'AssemblyAI', vendor: 'assemblyai', state: 'key_refused', stateDetail: 'invalid API key' } as unknown as ProviderRow
 
-describe('where a provider notice links', () => {
+describe('where a provider notice links @SC-2147 @SC-1177', () => {
   it('opens the line of a provider that is not working, saying what depends on it in the capability words', async () => {
     const n = await notWorkingNotice(row, [row])
     expect(n?.actionUrl).toBe('/admin/ai#provider-p2')

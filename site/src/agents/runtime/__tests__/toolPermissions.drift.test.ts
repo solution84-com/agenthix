@@ -71,7 +71,7 @@ describe('site/agents/runtime/toolPermissions.ts ↔ hq/agents/toolPermissions.t
 
 // The defaults an agent with no saved list runs with: hq shows and mints from its copy, the site gates and offers
 // tools from its own, so a default changed in one alone would show a tool the run never gets (walkthrough finding W2).
-describe('DEFAULT_TOOL_PERMISSIONS drift', () => {
+describe('DEFAULT_TOOL_PERMISSIONS drift @SC-2154', () => {
   it('is byte-identical in both files', () => {
     const marker = 'export const DEFAULT_TOOL_PERMISSIONS: ToolPermission[] = ['
     expect(extractArrayBody(siteSource, marker)).toBe(extractArrayBody(hqSource, marker))

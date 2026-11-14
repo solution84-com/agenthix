@@ -18,7 +18,7 @@ const typeKey = (value: string) => fireEvent.change(screen.getByLabelText(/Exa A
 beforeEach(() => { h.save.mockReset().mockResolvedValue({ ok: true }); h.remove.mockReset().mockResolvedValue({ ok: true }) })
 afterEach(cleanup)
 
-describe('the Web search for OpenCode pop-up', () => {
+describe('the Web search for OpenCode pop-up @SC-2141', () => {
   it('says what the key is for, that it stays in HQ, that Claude Code does not need it, and links to Exa', () => {
     render(<WebSearchKeyDialog open stored={false} onClose={vi.fn()} />)
     expect(screen.getByRole('dialog', { name: 'Web search for OpenCode' })).toBeTruthy()
@@ -71,7 +71,7 @@ describe('the Web search for OpenCode pop-up', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('says a key Exa refused under the field, and does not save it', async () => {
+  it('says a key Exa refused under the field, and does not save it @SC-2142', async () => {
     const words = 'Exa refused this key. Check that you copied all of it and that the account has credit, then try again.'
     h.save.mockRejectedValue(Object.assign(new Error(words), { statusCode: 422, data: { message: words, data: { code: 'refused_by_vendor' } } }))
     const onClose = vi.fn()
@@ -83,7 +83,7 @@ describe('the Web search for OpenCode pop-up', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('when Exa did not answer, says the key could not be checked and offers Save without checking', async () => {
+  it('when Exa did not answer, says the key could not be checked and offers Save without checking @SC-2142', async () => {
     const words = 'Exa did not answer, so the key could not be checked.'
     h.save.mockRejectedValueOnce(Object.assign(new Error(words), { statusCode: 502, data: { message: words, data: { code: 'not_checked' } } }))
     const onClose = vi.fn()
@@ -98,7 +98,7 @@ describe('the Web search for OpenCode pop-up', () => {
     expect(h.save.mock.calls).toEqual([[{ secret: 'exa-123' }], [{ secret: 'exa-123', unchecked: true }]])
   })
 
-  it('with a key saved, says so without showing it, takes a replacement and offers Remove key', async () => {
+  it('with a key saved, says so without showing it, takes a replacement and offers Remove key @SC-2143', async () => {
     const onClose = vi.fn()
     render(<WebSearchKeyDialog open stored onClose={onClose} />)
     expect(screen.getByText(/A key is saved. It is never shown again/)).toBeTruthy()
@@ -110,7 +110,7 @@ describe('the Web search for OpenCode pop-up', () => {
     expect(h.remove).toHaveBeenCalled()
   })
 
-  it('asks before removing the key, and Cancel keeps it', async () => {
+  it('asks before removing the key, and Cancel keeps it @SC-2143', async () => {
     render(<WebSearchKeyDialog open stored onClose={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Remove key' }))
     expect(await screen.findByText('Remove the search key?')).toBeTruthy()
@@ -119,7 +119,7 @@ describe('the Web search for OpenCode pop-up', () => {
     expect(screen.queryByText('Remove the search key?')).toBeNull()
   })
 
-  it('says a removal that failed in the attention dialog', async () => {
+  it('says a removal that failed in the attention dialog @SC-2143', async () => {
     h.remove.mockRejectedValue(Object.assign(new Error('Request failed with status code 500 Internal Server Error'), { statusCode: 500 }))
     render(<WebSearchKeyDialog open stored onClose={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Remove key' }))

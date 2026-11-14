@@ -77,7 +77,7 @@ describe('web_search', () => {
     expect(JSON.stringify(r)).not.toContain(KEY)
   })
 
-  it('says so when the org has no key, and calls nothing', async () => {
+  it('says so when the org has no key, and calls nothing @SC-2155', async () => {
     const search = vi.fn<WebSearchService['search']>()
     const r = await serve({ context: turn({ webSearchKey: undefined }), openCode: true, webSearch: { search } }).get('web_search')!({ query: 'q' })
     expect(r).toEqual({ content: [{ type: 'text', text: 'Web search is not set up for this organisation: it has no search key.' }], isError: true })

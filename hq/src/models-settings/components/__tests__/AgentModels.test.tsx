@@ -49,7 +49,7 @@ describe('an agent’s Models @SC-1201', () => {
     await waitFor(() => expect(state.set).toHaveBeenCalledWith({ agentId: 'ag', conversation: null }))
   })
 
-  it('names its rows Thinking, Hearing and Speaking, never Voice, Listening, LLM, STT or TTS', () => {
+  it('names its rows Thinking, Hearing and Speaking, never Voice, Listening, LLM, STT or TTS @SC-2140', () => {
     state.data = data
     render(<AgentModels agentId="ag" agentName="Kernel" />)
     for (const name of ['Thinking', 'Hearing and speaking']) expect(screen.getByRole('region', { name })).toBeTruthy()

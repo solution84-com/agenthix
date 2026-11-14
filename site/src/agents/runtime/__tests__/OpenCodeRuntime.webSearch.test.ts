@@ -29,7 +29,7 @@ beforeEach(() => {
   resetGateRunsForTests()
 })
 
-describe('an OpenCode turn and the organisation\'s search key', () => {
+describe('an OpenCode turn and the organisation\'s search key @SC-2155', () => {
   it('without the key, denies web_search in the session\'s rules and says in the instructions that web search isn\'t set up', async () => {
     const { servers, relays } = scripted(replyAndIdle)
     await collect(new OpenCodeRuntime({ servers, store: memoryStore(), stageSkills: noSkills }).run(context({ webSearchKey: undefined })))
@@ -73,7 +73,7 @@ describe('an OpenCode turn and the organisation\'s search key', () => {
   })
 })
 
-describe("an OpenCode turn whose agent's tools withhold web search (W2)", () => {
+describe("an OpenCode turn whose agent's tools withhold web search (W2) @SC-2156", () => {
   const tools = (state: 'never' | 'ask') => ({ allowedTools: [{ name: 'web_search', state }] })
 
   it("at Never, with the key, is told its tools don't allow it, not that a key is missing", async () => {

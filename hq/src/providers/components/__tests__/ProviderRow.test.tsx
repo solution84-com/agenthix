@@ -18,7 +18,7 @@ function Row({ p }: { p: ReturnType<typeof provider> }) {
   return <ul><ProviderRow provider={p} open={open} onToggle={() => setOpen(o => !o)}><p>The details</p></ProviderRow></ul>
 }
 
-describe('a provider\'s line', () => {
+describe('a provider\'s line @SC-2146 @SC-2138', () => {
   it('says the name, its kinds in the capability words, the runtime and the state', () => {
     render(<Row p={provider('inworld')} />)
     const line = screen.getByRole('button', { expanded: false })

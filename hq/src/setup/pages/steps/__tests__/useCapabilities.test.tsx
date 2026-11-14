@@ -22,7 +22,7 @@ function List() {
   return <WhatAgentsCanDo capabilities={capabilities} unread={unread} onAction={vi.fn()} />
 }
 
-describe('setup: what agents can do', () => {
+describe('setup: what agents can do @SC-2139 @SC-2144', () => {
   it('says the key read did not come back, on the Web search line, instead of "needs a search key"', () => {
     h.key = { data: undefined, error: new Error('HQ did not answer'), dataUpdatedAt: 0, refetch: vi.fn() }
     render(<List />)

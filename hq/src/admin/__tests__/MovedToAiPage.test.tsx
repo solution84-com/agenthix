@@ -24,7 +24,7 @@ const open = (url: string) => render(
 
 afterEach(cleanup)
 
-describe('the old addresses open the AI page', () => {
+describe('the old addresses open the AI page @SC-2149', () => {
   it.each([
     ['/admin/providers', '/admin/ai#providers'],
     ['/admin/models', '/admin/ai#which-models-may-run'],
@@ -40,7 +40,7 @@ describe('the old addresses open the AI page', () => {
   })
 })
 
-describe('links into the AI page', () => {
+describe('links into the AI page @SC-2147', () => {
   it('open Your providers, or one provider\'s line', () => {
     expect(PROVIDERS_URL).toBe('/admin/ai#providers')
     expect(providerLineUrl('p 1')).toBe('/admin/ai#provider-p%201')
