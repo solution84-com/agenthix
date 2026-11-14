@@ -184,3 +184,20 @@ renamed words everywhere.
 | 5 | The owner's walk was cut to two steps (a real Exa key; an agent asked to search), with the keyboard check by the lead | The screenshot board already showed every screen and state; only what it faked was left to walk |
 | 5 | Walk finding W1, lane L: a conversation's reply is told whether its background work can search and hands a web lookup to it, or says why not (decision 10) | The reply is HQ's own turn with no web search, and told the person it couldn't reach the web |
 | 5 | Walk finding W2, lane M: web tools default to Ask; the reply, the run and the Web search help say when an agent's tools withhold search (decision 9) | Every agent defaulted to Never, so no agent could search however the key was set, and the run blamed the key |
+| 1, 2, 4 | None | — |
+
+## Closing note (14 Nov 2026)
+
+- **Accepted** by the owner after a short walk on the dev stack (a real Exa key saved; an agent asked to search in a
+  conversation, approved, and searched through Exa), with the screenshot board scanned and spot-checked before it.
+- **Open items:** 30 closed in the unit with evidence (the triage, and the full regression for the two end-to-end
+  specs never run and a channel test once unreliable). Deferred as issues, none critical and none blocking a release:
+  agenthix#277–#289. Found alongside and raised: agenthix#276 (pictures not cached on a remote HQ); a conversation's
+  reply searching the web itself is planned separately.
+- **Full regression** on the branch rebased onto main: 37 steps, all passing after one fix (an import in a core test).
+- **QA:** the unit's stories and scenarios are written (US-491–US-495, SC-2135–SC-2159) and their tests tagged; stale
+  scenarios naming the old Providers and Models pages are corrected. No QA audit ran: these entries await the audit
+  before `v0.1.0`.
+- **Decision records:** ADR-0160 (setup never blocks on AI) still holds, and the unit kept it: Web search never blocks
+  setup. No record was created.
+- The release that ships this is `0.1.0-alpha.5`, cut separately after the merge.
