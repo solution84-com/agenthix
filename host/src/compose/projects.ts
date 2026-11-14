@@ -32,6 +32,11 @@ export type HqSettings = {
   /** Uploaded files' own origin (adr-0114); null where HQ's address can have no subdomain, so uploads are downloads only. */
   filesOrigin?: string | null
   /**
+   * Set when a person named the files host (`install --files`, `hq files-address`, `front-door on --files`) rather than
+   * taking `files.<HQ's host>`: kept through a new address, a move and a front door turned on without one.
+   */
+  filesChosen?: true
+  /**
    * Live apps' preview domain (live preview spec section 5): every app is answered at `p-<id>.<it>` by hq's relay.
    * Absent or null: live apps are off on an https address.
    */

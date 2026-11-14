@@ -20,8 +20,9 @@ import { installSecrets } from '../state/secrets'
 import { installed, type Context, type StoredHq, type StoredSite } from '../service/context'
 import type { HqStatusData } from '../hq/control'
 import { Refusal, type InstallResult } from '../owner/results'
-import { filesOriginKept } from '../frontDoor/given'
-import { addressProblem, listenerFor } from './address'
+import { filesKept } from '../frontDoor/given'
+import { addressProblem, chosenFiles, listenerFor, type FilesSettings } from './address'
+import { chosenFilesProblem } from './filesAddress'
 import { forgetSuspended } from '../lifecycle/suspend'
 import { cmd, product } from '../cli/words'
 import { installSubnets } from '../compose/subnets'
@@ -85,10 +86,10 @@ async function getImages(progress: (p: Progress) => void, ctx: Context, hq: Stor
 let busy = false
 
 /**
- * What an install is asked: HQ's address, the ports its machine admin chose, when they chose them, and `demo` for
- * `install --demo`.
+ * What an install is asked: HQ's address, the ports its machine admin chose, when they chose them, `demo` for
+ * `install --demo`, and `filesHost` for `install --files <host>`.
  */
-export type InstallAsk = PortChoice & { address: string; demo?: boolean }
+export type InstallAsk = PortChoice & { address: string; demo?: boolean; filesHost?: string }
 
 export async function install(ctx: Context, ask: InstallAsk, progress: (p: Progress) => void): Promise<InstallResult> {
   if (busy) throw new Refusal('busy', 'An install is already running on this machine. Wait for it to finish.')
@@ -98,6 +99,20 @@ export async function install(ctx: Context, ask: InstallAsk, progress: (p: Progr
   } finally {
     busy = false
   }
+}
+
+/** The files host `install --files` names, checked before anything is fetched; null when none is named. */
+function filesAsked(ctx: Context, ask: InstallAsk, before: StoredHq | undefined): FilesSettings | null {
+  if (ask.filesHost === undefined) return null
+  const host = ask.filesHost.trim().toLowerCase()
+  if (before) {
+    const now = before.filesOrigin ? new URL(before.filesOrigin).hostname : null
+    if (now === host) return null
+    throw new Refusal('already_installed', `HQ is already installed here, and its files are served from ${now ?? 'no address of their own'}. To serve them from ${host}: ${cmd(`hq files-address ${host}`)} Nothing was changed.`)
+  }
+  const problem = chosenFilesProblem(ctx, ask.address, host)
+  if (problem) throw new Refusal('malformed', `${problem} Nothing was changed.`)
+  return chosenFiles(ask.address, host)
 }
 
 async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => void): Promise<InstallResult> {
@@ -119,6 +134,7 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
   if (demo && ask.consolePort !== undefined) {
     throw new Refusal('malformed', 'A demo has no Fleet Console, so --console-port has nothing to choose. Nothing was changed.')
   }
+  const files = filesAsked(ctx, ask, before.hq?.settings)
   // Chosen once, then read back: a re-run asking for other ports is refused rather than ignored.
   const recorded = readInstallation(ctx.state)?.ports ?? { hq: null, console: null }
   if (before.hq) refuseOtherPort('hq', ask.hqPort, recorded.hq)
@@ -142,7 +158,7 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
 
   const at = ctx.now().toISOString()
   const version = ctx.machine.hostServiceVersion
-  const keptHq: StoredHq = before.hq?.settings ?? { address, ...listenerFor(address), filesOrigin: filesOriginKept(ctx.state, address), version, installedAt: at }
+  const keptHq: StoredHq = before.hq?.settings ?? { address, ...listenerFor(address), ...(files ?? filesKept(ctx.state, address)), version, installedAt: at }
   // Every machine carries one site, always named after the machine (spec §6).
   const keptSite: StoredSite = { ...(before.site?.settings ?? { version, installedAt: at }), name: ctx.machine.name }
   // Before anything is written: an image that fails its check leaves the machine as it was.
@@ -212,6 +228,7 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
     siteConnected: connected,
     users: status.users,
     firstAccountLink: link,
+    filesOrigin: hq.filesOrigin ?? null,
     ...(demo ? { demo: true as const } : {}),
   }
 }

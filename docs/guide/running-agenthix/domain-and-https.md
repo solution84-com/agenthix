@@ -50,6 +50,19 @@ answered by **HQ's relay**, a small part of HQ that runs on HQ's machine and car
 holds it. Point that name at the machine too, with a certificate, as for HQ's own address; the host service's front door
 below does both.
 
+To serve files from another host, such as a domain of their own, name it when installing, or change it later:
+
+```sh
+agenthix install --address https://demo.example.com --files demo-files.example.com
+agenthix hq files-address demo-files.example.com
+```
+
+It can't be HQ's own host. HQ keeps it through an upgrade, a new address, a move to another machine and a demo's reset.
+This is how a demo served by another installation's front door gets a files address a certificate can cover: a certificate
+for `*.example.com` covers `demo-files.example.com`, but not `files.demo.example.com`. With this installation's own front
+door on, it gets the new host's certificate itself. When another installation's front door serves this one, run
+`agenthix front-door add-installation <namespace>` there again afterwards, so it serves the new host.
+
 An address with no name to put `files.` in front of, such as `http://192.168.1.20:7800`, has no files address. HQ then
 carries files on its own address, where it never shows a file inline. Everything still works, with two differences:
 

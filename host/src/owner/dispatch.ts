@@ -10,6 +10,7 @@ import { collectFigures } from '../figures/figures'
 import { setCapacity } from '../figures/capacity'
 import { protectionFigures } from '../protections/protections'
 import { install } from '../install/install'
+import { setFilesAddress } from '../install/filesAddress'
 import { machineStatus } from '../status/machineStatus'
 import { blockedParts } from '../status/portsBlocked'
 import { unchangedSince } from '../upgrades/unchangedSince'
@@ -230,7 +231,9 @@ async function operation(ctx: Context, request: OwnerRequest, progress: (p: Prog
     case 'host.version':
       return { version: ctx.machine.hostServiceVersion }
     case 'machine.install':
-      return install(ctx, { address: request.address, hqPort: request.hqPort, consolePort: request.consolePort, demo: request.demo === true }, progress)
+      return install(ctx, { address: request.address, hqPort: request.hqPort, consolePort: request.consolePort, demo: request.demo === true, filesHost: request.filesHost }, progress)
+    case 'hq.filesAddress':
+      return setFilesAddress(ctx, request.host, progress)
     case 'hq.inviteAdmin':
       return hqLink(ctx, 'invite-admin', [])
     case 'erased.restore':

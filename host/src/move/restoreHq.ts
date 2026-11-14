@@ -17,7 +17,7 @@ import { openBackup, WrongKey } from '../backups/seal'
 import { compareVersions } from '../backups/restoreSource'
 import { restoreImages, writeRestoredConsole } from '../backups/restore'
 import type { HostKeys } from '@agenthix/core/host-crypto'
-import { filesOriginFor, listenerFor } from '../install/address'
+import { filesOfAddress, listenerFor } from '../install/address'
 import { consoleHere } from '../install/console'
 import { identityHolder } from './restoreSite'
 import { installSubnets } from '../compose/subnets'
@@ -68,7 +68,7 @@ export async function restoreMovedHq(ctx: Context, file: string, keys: HostKeys,
     const address = newAddress ?? restored.address
     const hq: StoredHq = address === restored.address
       ? restored
-      : { ...restored, address, ...listenerFor(address), filesOrigin: filesOriginFor(address) }
+      : { ...restored, address, ...listenerFor(address), ...filesOfAddress(address, restored) }
 
     const subnets = await installSubnets(ctx)
     keepAgentSlice(ctx.state, agentSlice)

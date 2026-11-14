@@ -18,7 +18,7 @@ import { startDatabases, startTarget, stopTarget, writeProjects } from '../upgra
 import { frontDoorSettings } from '../frontDoor/frontDoor'
 import { readPin, writePin } from '../link/pin'
 import type { Told } from '../cli/hqAddressWords'
-import { filesOriginKept } from '../frontDoor/given'
+import { filesKept } from '../frontDoor/given'
 import { addressProblem, listenerFor } from './address'
 import { localHqAddress, consoleHere, writeAndStartConsole } from './console'
 import { installSecrets } from '../state/secrets'
@@ -97,7 +97,7 @@ async function run(
     }
   })
 
-  const moved: StoredHq = { ...before, address, ...listenerFor(address), filesOrigin: filesOriginKept(ctx.state, address) }
+  const moved: StoredHq = { ...before, address, ...listenerFor(address), ...filesKept(ctx.state, address, before) }
   await step(progress, `Starting HQ at ${address}`, async () => {
     try {
       recordPorts(ctx.state, { hq: port.now })

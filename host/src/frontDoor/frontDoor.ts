@@ -16,7 +16,7 @@ import { installed, type Context, type StoredHq } from '../service/context'
 import { Refusal } from '../owner/results'
 import { cmd } from '../cli/words'
 import {
-  caddyfile, FRONT_DOOR_FILES, FRONT_DOOR_IMAGE, frontDoorCompose, frontDoorHosts, frontDoorProject, GIVEN_FILES, hostNameProblem, hostOf,
+  caddyfile, FRONT_DOOR_FILES, FRONT_DOOR_IMAGE, frontDoorCompose, frontDoorHosts, frontDoorProject, filesHostProblem, GIVEN_FILES, hostNameProblem, hostOf,
   type FrontDoorSettings,
 } from './config'
 import { givenCertificateProblem, readGivenCertificate, writeGiven, type GivenCertificate } from './given'
@@ -25,6 +25,7 @@ import { installSubnets } from '../compose/subnets'
 import { previewDomainProblem } from '@agenthix/core'
 import { checkPreviews } from '../previews/previewChecks'
 import { EVERY_ADDRESS, portProblems } from '../install/portCheck'
+import { chosenFiles } from '../install/address'
 import { findNeighbours } from './neighbours'
 import { isDemoInstallation } from '../state/installation'
 
@@ -89,7 +90,7 @@ function refusalOf(ctx: Context, c: FrontDoorCheck, given: boolean): FrontDoorCh
   if (c.problem) return { code: 'conflict', message: `${c.problem} Nothing changed.` }
   // With a certificate given and no files host, files are downloads only (ADR-0114): there is no host to check.
   const filesProblem = !c.filesHost ? (given ? null : 'it has none')
-    : c.filesHost === hostOf(c.address) ? "it is HQ's own host, and files need an address of their own" : hostNameProblem(c.filesHost)
+    : filesHostProblem(c.filesHost, c.address)
   if (filesProblem) return { code: 'malformed', message: `Files cannot be served from ${c.filesHost}: ${filesProblem}. Nothing changed.` }
   if (c.busy.length === 0) return null
   return {
@@ -214,6 +215,8 @@ async function turnOn(
   const before = frontDoorSettings(ctx)
   const kept = snapshot(ctx)
   const filesOrigin = filesHost ? `https://${filesHost}` : null
+  // A host named here is a person's choice, kept as `install --files` and `hq files-address` keep theirs; one Cloud gives is kept by `given`.
+  const filesChosen = given ? undefined : requestedFiles && filesHost ? chosenFiles(hq.address, filesHost).filesChosen : hq.filesChosen
   const filesChanged = (hq.filesOrigin ?? null) !== filesOrigin
   const hqChanged = filesChanged || (!given && (hq.previewDomain ?? null) !== previewDomain)
   const project = frontDoorProject(ctx.names)
@@ -228,8 +231,8 @@ async function turnOn(
     throw new Refusal('failed', `Rolled back. ${now}, and HQ is as it was. ${why}`)
   }
 
-  if (hqChanged) {
-    const next: StoredHq = { ...hq, filesOrigin, ...(given ? {} : { previewDomain }) }
+  if (hqChanged || hq.filesChosen !== filesChosen) {
+    const next: StoredHq = { ...hq, filesOrigin, filesChosen, ...(given ? {} : { previewDomain }) }
     ctx.state.writeJson(['hq', 'settings.json'], next)
     ctx.state.writePrivate(['hq', 'compose.json'], composeJson(hqProject(ctx.names, next, installSecrets(ctx.state), ctx.machine.name, await installSubnets(ctx), installationOf(ctx.state))))
   }

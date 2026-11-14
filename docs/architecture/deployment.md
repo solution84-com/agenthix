@@ -329,7 +329,9 @@ installation's front door:
 docker exec -it agenthix-host agenthix front-door add-installation demo      # and remove-installation demo
 ```
 
-DNS for the demo's address and its files host must already point at the machine. The command joins the front door to the
+DNS for the demo's address and its files host must already point at the machine. A demo whose default files host would be two levels
+under the domain, beyond a wildcard certificate's reach, names its own (`install --demo --files <host>`, or `hq files-address <host>` later; run
+`add-installation` again after a change). The command joins the front door to the
 demo's edge network, adds a block for each name, gets their certificates and rolls everything back if it cannot
 (`host/src/frontDoor/installations.ts`, `neighbours.ts`). The demo's files host answers every file as a download and
 never as a page (`Content-Disposition: attachment`, `nosniff`), so the demo cannot show a visitor's upload as a page
@@ -388,7 +390,12 @@ stay on `127.0.0.1`, or a caller reaching hq-web around it could claim any addre
 
 **Files have their own origin**, `FILES_ORIGIN` ([ADR-0114](../adr/adr-0114-uploaded-files-are-served-from-their-own-origin.md);
 `filesOriginFor`, `host/src/install/address.ts`): `files.localhost` on hq's own port for a local address,
-`files.<hq's host>` for a domain, and none for a bare network address. hq's relay answers there, never hq-server
+`files.<hq's host>` for a domain, and none for a bare network address — unless a person named another host, with
+`install --files <host>`, `hq files-address <host>` or `front-door on --files <host>` (`host/src/install/filesAddress.ts`).
+A named host is checked as the front door checks its hosts and is never hq's own; it takes hq's scheme and port, and is
+recorded in hq's settings (`filesChosen`), so it is kept through an upgrade, a demo reset, a new address, a move's restore
+and a front door turned on without `--files`. A neighbour's front door reads the new host from the installation's hq-web
+when `front-door add-installation` runs again. hq's relay answers there, never hq-server
 ([below](#hqs-relay)). On a bare address tickets are opened on hq's own address under `/relay/`, where every answer is a
 download (a picture keeps its type, so an image tag still draws it, and text is read and drawn by the page), so PDF
 preview needs a files address.

@@ -11,6 +11,8 @@ export type InstallResult = {
   /** How many people HQ has; the link for the first account is made only when it has none. */
   users: number
   firstAccountLink: string | null
+  /** Where uploaded files are served from; null when they are offered only as downloads. */
+  filesOrigin?: string | null
   /** Set for `install --demo`, whose HQ seeds its own sample organisation and gives no one a first account. */
   demo?: true
 }

@@ -9,6 +9,7 @@ import { parseUpgrade, parseUpgrades, type UpgradeCommand } from './upgrades'
 import { LIFECYCLE_VERBS, parseLifecycle, type LifecycleCommand } from './lifecycle'
 import { parseHqConsole, parseConsole, type ConsoleCommand } from './console'
 import { parseHqAddress, type HqAddressCommand } from './hqAddress'
+import { parseFilesAddress, type FilesAddressCommand } from './filesAddress'
 import { parseHqMove, type MoveCommand } from './move'
 import { parseCloud, parseCloudConsole, type CloudCommand } from './cloud'
 import { parseUninstall, type UninstallCommand } from './uninstall'
@@ -23,7 +24,7 @@ import { product } from './words'
 
 export type Command =
   | { kind: 'help'; topic?: string }
-  | ({ kind: 'install'; address?: string; yes: boolean; demo?: true } & PortChoice)
+  | ({ kind: 'install'; address?: string; yes: boolean; demo?: true; filesHost?: string } & PortChoice)
   | { kind: 'status' }
   | { kind: 'inviteAdmin'; yes: boolean }
   | { kind: 'resetPassword'; user: string }
@@ -41,6 +42,7 @@ export type Command =
   | LifecycleCommand
   | ConsoleCommand
   | HqAddressCommand
+  | FilesAddressCommand
   | MoveCommand
   | CloudCommand
   | UninstallCommand
@@ -52,7 +54,8 @@ export type HelpRow = { group: 'machine' | 'hq' | 'site' | 'console' | 'cloud'; 
 export const HELP: HelpRow[] = [
   { group: 'machine', usage: 'install', does: 'Install HQ and its site',
     detail: 'Asks one question, where people will open HQ, then starts HQ and its site on this machine and prints one link for the first account. Running it again starts what is stopped and changes nothing that is set. --address <address> answers the question; --yes takes the answer in brackets. HQ is published on the port its address names, or --hq-port <port> for an https address (7800 by default), and the Fleet Console on --console-port <port> (7801 by default); each from 1024 to 32767, kept from then on. ' +
-      '--demo installs a public demo instead: HQ and its site with every agent run scripted and no model called, the site without Docker, no Fleet Console and no nightly backup, reset every 6 hours. Only a first install chooses it; install it under an installation of its own (INSTALL_NAMESPACE) beside another HQ.' },
+      '--demo installs a public demo instead: HQ and its site with every agent run scripted and no model called, the site without Docker, no Fleet Console and no nightly backup, reset every 6 hours. Only a first install chooses it; install it under an installation of its own (INSTALL_NAMESPACE) beside another HQ. ' +
+      "--files <host> serves uploaded files from that host instead of files.<HQ's host>, such as a domain of their own; hq files-address changes it later." },
   { group: 'machine', usage: 'status', does: 'The HQ and the site here, and what to do next',
     detail: 'Every HQ and site on this machine, each in a sentence that ends in what to do next.' },
   { group: 'machine', usage: 'capacity [set …]', does: 'Show or set what each agent may use',
@@ -65,7 +68,7 @@ export const HELP: HelpRow[] = [
       'certificate each on first open; point *.<domain> at this machine first, and prefer a domain of their own to one under HQ\'s. ' +
       'If a certificate cannot be had, everything is put back as it was. off: stops it and frees the ports.' },
   { group: 'machine', usage: 'front-door add-installation | remove-installation <namespace>', does: "Serve another installation's HQ through this front door, or stop",
-    detail: "Only one front door can hold ports 80 and 443, so on a machine that carries a second installation — a demo beside another HQ — this front door serves the other's address and files host too. It reads them from that installation's own HQ, which must be at an https address, joins its edge network, and gets each a certificate, putting everything back if one cannot be had. A demo's files are served as downloads only. The front door must be on. remove-installation stops serving it." },
+    detail: "Only one front door can hold ports 80 and 443, so on a machine that carries a second installation — a demo beside another HQ — this front door serves the other's address and files host too. It reads them from that installation's own HQ, which must be at an https address, joins its edge network, and gets each a certificate, putting everything back if one cannot be had. A demo's files are served as downloads only. The front door must be on. Run add-installation again after that installation's files host changes, to serve the new one. remove-installation stops serving it." },
   { group: 'machine', usage: 'backup [export]', does: 'Take a sealed backup now, or export one',
     detail: 'Takes a sealed backup of everything the site here holds, HQ included on HQ\'s machine, as the nightly one does. With export, takes one and seals it to a key made for it alone, shown once: the file is useless without it. The file is written to the exports folder in the state folder, or to --to <folder> on this machine.' },
   { group: 'machine', usage: 'backup location [<path>]', does: 'Show or choose the folder for backup copies',
@@ -113,6 +116,8 @@ export const HELP: HelpRow[] = [
     detail: "erase takes a final sealed backup, then removes the site, its workspaces and its agent containers from this machine, after asking for the site's name. HQ says it has gone. The backup is kept for 30 days, during which site restore brings it back; then it is purged. On HQ's machine the site goes only with HQ: hq erase." },
   { group: 'hq', usage: 'hq address <address>', does: "Move HQ to a new address on this machine",
     detail: "Changing HQ's address is a move. HQ tells every connected site and host service, and the Fleet Console, the new address over the connection each already has, and tells everyone in HQ; then it stops, a sealed backup is taken, and it starts again at the new address. Each switches once the new address passes its check, and keeps the old one until then. A site or machine that was offline is pointed afterwards on its own machine, with console hq-address and site hq-address. If HQ does not answer at the new address, it is put back at the old one. With the front door on, turn it off first. It asks first; --yes answers for a script." },
+  { group: 'hq', usage: 'hq files-address <host>', does: 'Serve uploaded files from another host',
+    detail: "Uploaded files are served from a host of their own, so none can act as HQ: files.<HQ's host> unless another was chosen. This serves them from <host> instead, such as a domain of their own, or a name a certificate for one level under the domain covers. It must not be HQ's own host. HQ starts again with it, keeps it through a new address, an upgrade, a demo reset and a move, and with the front door on, the front door gets its certificate and is put back if it cannot. Behind another installation's front door, run front-door add-installation for this one there again." },
   { group: 'hq', usage: 'hq move recover', does: 'Start HQ here again after a move that ended on neither machine',
     detail: "For one case only: HQ was moving to a new machine, this machine handed it over, but the new machine gave it back, so HQ runs on neither. First make sure HQ is not running on the new machine. It asks first, then starts HQ, its site and the Fleet Console if it ran here again from what this machine kept, and records that the move did not complete. Refused before the new machine's time to take over has passed, while this machine reaches HQ at its new address, and once the move completed. --yes answers for a script." },
   { group: 'hq', usage: 'hq fleet-admin [--remove] <user>', does: 'Give a person the fleet admin role, or take it away',
@@ -201,12 +206,16 @@ export function parseCommand(argv: string[]): Command {
     const demo = flag(yes.rest, '--demo')
     const ports = portOptions(demo.rest, ['--hq-port', '--console-port'])
     if ('problem' in ports) return { kind: 'usage', message: ports.problem }
-    const address = option(ports.rest, '--address')
+    const files = option(ports.rest, '--files')
+    if (files.bad) return { kind: 'usage', message: "install --files needs the host uploaded files are served from, such as files.example.com." }
+    const address = option(files.rest, '--address')
     if (address.value === '') return { kind: 'usage', message: 'install --address needs an address, such as https://hq.example.com. It was empty.' }
     if (address.bad || address.rest.length > 0) {
-      return { kind: 'usage', message: 'install takes --address <address>, --hq-port <port>, --console-port <port>, --demo and --yes, nothing else.' }
+      return { kind: 'usage', message: 'install takes --address <address>, --files <host>, --hq-port <port>, --console-port <port>, --demo and --yes, nothing else.' }
     }
-    return { kind: 'install', address: address.value, yes: yes.set, ...(demo.set ? { demo: true as const } : {}), ...ports.ports }
+    return {
+      kind: 'install', address: address.value, yes: yes.set, ...(demo.set ? { demo: true as const } : {}), ...(files.value ? { filesHost: files.value.toLowerCase() } : {}), ...ports.ports,
+    }
   }
   if (first === 'status' && !second) return { kind: 'status' }
   if (first === 'demo') return parseDemo([second, ...rest].filter((a): a is string => a !== undefined))
@@ -245,6 +254,7 @@ export function parseCommand(argv: string[]): Command {
     if (second === 'logs') return logs('hq', rest)
     if (second === 'console-code' || second === 'fleet-admin') return parseHqConsole(second, rest)
     if (second === 'address') return parseHqAddress('hq', rest)
+    if (second === 'files-address') return parseFilesAddress(rest)
     if (second === 'move') return parseHqMove(rest)
   }
   if ((first === 'site' || first === 'console') && second === 'hq-address') return parseHqAddress(first, rest)

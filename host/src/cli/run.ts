@@ -26,6 +26,7 @@ import { upgradeCommand } from './upgrades'
 import { lifecycleCommand } from './lifecycle'
 import { consoleCommand } from './console'
 import { hqAddressCommand } from './hqAddress'
+import { filesAddressCommand } from './filesAddress'
 import { moveCommand, moveRecoverCommand } from './move'
 import { cloudCommand } from './cloud'
 import { providerCommand, type ProviderAnswer } from './provider'
@@ -126,7 +127,7 @@ async function install(send: Send, io: Io, command: Extract<Command, { kind: 'in
   }
   io.out('')
   const ports = { ...(command.hqPort === undefined ? {} : { hqPort: command.hqPort }), ...(command.consolePort === undefined ? {} : { consolePort: command.consolePort }) }
-  const result = await call<InstallResult>(send, io, { op: 'machine.install', address, ...ports, ...(command.demo ? { demo: true } : {}) })
+  const result = await call<InstallResult>(send, io, { op: 'machine.install', address, ...ports, ...(command.demo ? { demo: true } : {}), ...(command.filesHost ? { filesHost: command.filesHost } : {}) })
   io.out('')
   io.out(installDone(result, machine))
   return 0
@@ -281,6 +282,8 @@ export async function runCommand(command: Command, send: Send, io: Io, version: 
       case 'consoleCode':
       case 'fleetAdmin':
         return await consoleCommand(command, request => call(send, io, request), { ...io, confirm: (q, yes) => confirmOrLeave(io, q, yes) }, now())
+      case 'hqFilesAddress':
+        return await filesAddressCommand(command, request => call(send, io, request), io.out)
       case 'hqAddress':
       case 'siteHqAddress':
       case 'consoleHqAddress':

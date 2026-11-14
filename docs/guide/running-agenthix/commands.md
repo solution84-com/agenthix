@@ -24,13 +24,13 @@ Times are in the machine's own time zone. `agenthix help` lists the commands, an
 
 | Command | What it does |
 |---|---|
-| `install` | Installs HQ and its site here. It asks where people will open HQ, starts both and prints one link for the first account. Run again, it starts what is stopped and changes nothing that is set. `--address <address>` answers the question. `--demo` installs a public demo instead: scripted agents, no Docker socket for the site, no Fleet Console, no nightly backup, and a reset every 6 hours |
+| `install` | Installs HQ and its site here. It asks where people will open HQ, starts both and prints one link for the first account. Run again, it starts what is stopped and changes nothing that is set. `--address <address>` answers the question. `--files <host>` serves uploaded files from that host instead of `files.` followed by HQ's host ([The files address](domain-and-https.md#the-files-address)). `--demo` installs a public demo instead: scripted agents, no Docker socket for the site, no Fleet Console, no nightly backup, and a reset every 6 hours |
 | `demo reset [--yes]` | On a demo installation only: wipes the demo's data now and starts it again from the sample, as the scheduled reset does. It asks first |
 | `status` | Every HQ and site on this machine, each in a sentence that ends in what to do next. Each part shows the version it runs, and "unchanged since" an earlier version when its image has not changed since that release |
 | `capacity` | Shows what each agent may use: memory, processors and processes per container, and how many containers run at once |
 | `capacity set` | Changes them, with `--memory <size>`, `--processors <n>`, `--processes <n>` and `--containers <n>`. They must fit the machine. HQ and projects may narrow them for a run, never raise them |
 | `front-door [on \| off]` | Shows, turns on or turns off the host service's own *front door*, the program that serves HQ over HTTPS with its certificates. See [Address and front door](domain-and-https.md) |
-| `front-door add-installation <namespace>` and `remove-installation <namespace>` | Has this front door also serve another installation on the machine, such as a public demo installed with `install --demo`, or stops serving it. Needs the front door on and DNS pointing at both of that installation's addresses. Remove it before erasing that installation |
+| `front-door add-installation <namespace>` and `remove-installation <namespace>` | Has this front door also serve another installation on the machine, such as a public demo installed with `install --demo`, or stops serving it. Needs the front door on and DNS pointing at both of that installation's addresses. Run it again after that installation's files address changes. Remove it before erasing that installation |
 | `backup` | Takes a backup now, *sealed*: encrypted, so only its key opens it |
 | `backup export` | Takes one and seals it to a key made for that file alone, shown once. `--to <folder>` chooses where it is written |
 | `backup location [<path>]` | Shows the folder for backup copies, or chooses one |
@@ -56,6 +56,7 @@ Times are in the machine's own time zone. `agenthix help` lists the commands, an
 | `hq schedule move --at <time> [--address <new address>]` | Moves HQ, its site and the Fleet Console to a new machine |
 | `hq move recover` | Starts HQ here again after a move that ended with it on neither machine |
 | `hq address <address>` | Moves HQ to a new address. See [Address and front door](domain-and-https.md#change-hqs-address) |
+| `hq files-address <host>` | Serves uploaded files from another host and starts HQ again with it. See [The files address](domain-and-https.md#the-files-address) |
 | `hq suspend` and `hq resume` | Stops HQ and its site, keeping everything; starts them again. `--at <time>` does either later |
 | `hq erase [--on <date>]` | Takes a final backup, then removes HQ and its site from this machine. The backup is kept for 30 days, then purged. With `--on`, everyone in HQ sees a countdown |
 | `hq restore` | Brings back an HQ erased here, within its 30 days |

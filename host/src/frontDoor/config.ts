@@ -52,6 +52,11 @@ export function hostNameProblem(host: string): string | null {
 
 export const hostOf = (address: string) => new URL(address).hostname.toLowerCase()
 
+/** Why uploaded files cannot be served from `host` beside HQ at `address`, in words a person reads; null when they can. */
+export function filesHostProblem(host: string, address: string): string | null {
+  return host === hostOf(address) ? "it is HQ's own host, and files need an address of their own" : hostNameProblem(host)
+}
+
 /** The front door's project and container, both derived from the recorded namespace. */
 export const frontDoorProject = (names: InstallNames) => `${names.namespace}-front-door`
 

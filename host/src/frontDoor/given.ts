@@ -7,7 +7,7 @@
  */
 import { X509Certificate, createPrivateKey } from 'node:crypto'
 import fs from 'node:fs'
-import { filesOriginFor } from '../install/address'
+import { filesOfAddress, type FilesSettings } from '../install/address'
 import type { StateFolder } from '../state/folder'
 import { GIVEN_FILES, type FrontDoorSettings } from './config'
 
@@ -51,9 +51,10 @@ export function readGivenCertificate(state: StateFolder): string | null {
 
 /**
  * Where files are served from at `address`: the files host Cloud gave, or none (downloads only) when it gave
- * none, kept through a new address and an install, never reset to `files.<HQ's host>` (ADR-0114); otherwise the default.
+ * none, kept through a new address and an install, never reset to `files.<HQ's host>` (ADR-0114); otherwise the host a
+ * person chose, which `before` recorded, or the default (`filesOfAddress`).
  */
-export function filesOriginKept(state: StateFolder, address: string): string | null {
+export function filesKept(state: StateFolder, address: string, before?: FilesSettings): FilesSettings {
   const given = (state.readJson('front-door', 'settings.json') as FrontDoorSettings | null)?.given
-  return given ? given.filesOrigin : filesOriginFor(address)
+  return given ? { filesOrigin: given.filesOrigin, filesChosen: undefined } : filesOfAddress(address, before)
 }

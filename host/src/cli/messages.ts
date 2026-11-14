@@ -43,7 +43,7 @@ export function shortcutLines(machine: string): string {
 
 function serving(r: InstallResult): string | null {
   const at = `${r.listen.bind}:${r.listen.port}`
-  const files = filesOriginFor(r.address)
+  const files = r.filesOrigin !== undefined ? r.filesOrigin : filesOriginFor(r.address)
   if (r.address.startsWith('https://')) {
     return [
       wrap(`HQ listens on ${at}. To serve it at ${r.address}, point this machine's web server at ${at} ` +

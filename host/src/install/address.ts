@@ -57,3 +57,32 @@ export function filesOriginFor(address: string): string | null {
   if (host === 'localhost' || host.endsWith('.localhost')) return `${url.protocol}//files.localhost${port}`
   return hasSubdomains(host) ? `${url.protocol}//files.${host}${port}` : null
 }
+
+/** Uploaded files' origin at `host`, on HQ's scheme and port: https only when HQ's address is https. */
+export function filesOriginAt(address: string, host: string): string {
+  const url = new URL(address)
+  return `${url.protocol}//${host.toLowerCase()}${url.port ? `:${url.port}` : ''}`
+}
+
+/** What HQ's settings record of its files host. `filesChosen` only when a person named one other than the default. */
+export type FilesSettings = Pick<HqSettings, 'filesOrigin' | 'filesChosen'>
+
+/** A files host a person named for HQ at `address`, recorded as chosen unless it is the default one. */
+export function chosenFiles(address: string, host: string): FilesSettings {
+  const byDefault = filesOriginFor(address)
+  const chosen = !byDefault || new URL(byDefault).hostname !== host.toLowerCase()
+  return { filesOrigin: filesOriginAt(address, host), filesChosen: chosen ? true : undefined }
+}
+
+/**
+ * The files host HQ keeps at `address`, from what `before` recorded: a chosen host is kept, on the new address's
+ * scheme and port, unless it is the new address's own host or the address is this machine's own; otherwise the
+ * default. Used whenever HQ's settings are written for an address (an install, a new address, a move's restore).
+ */
+export function filesOfAddress(address: string, before?: FilesSettings): FilesSettings {
+  if (before?.filesChosen && before.filesOrigin && !isLocalAddress(address)) {
+    const host = new URL(before.filesOrigin).hostname.toLowerCase()
+    if (host !== new URL(address).hostname.toLowerCase()) return chosenFiles(address, host)
+  }
+  return { filesOrigin: filesOriginFor(address), filesChosen: undefined }
+}

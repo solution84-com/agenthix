@@ -70,6 +70,18 @@ describe('front-door add-installation @SC-1998', () => {
     expect(read('front-door', 'Caddyfile')).toContain('reverse_proxy demo-hq-web:4100')
   })
 
+  it('serves its new files host when add-installation runs again after the installation changed it', async () => {
+    demoHqWeb()
+    await turnOn()
+    await add()
+    m.containerEnvs.set('demo-hq-web', ['HQ_URL=https://demo.acme.example', 'FILES_ORIGIN=https://demo-files.acme.example'])
+    certs.set('demo-files.acme.example', valid)
+    expect(await add()).toMatchObject({ ok: true, result: { installations: ['demo'] } })
+    const caddy = read('front-door', 'Caddyfile')
+    expect(caddy).toContain('demo.acme.example, demo-files.acme.example {\n\t@files host demo-files.acme.example')
+    expect(caddy).not.toContain('files.demo.acme.example')
+  })
+
   it('stops serving it with remove-installation', async () => {
     demoHqWeb()
     await turnOn()
