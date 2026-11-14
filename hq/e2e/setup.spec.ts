@@ -6,7 +6,7 @@ import { answerSpeechProviders } from './fixtures/voiceProviders'
 // Setup, once per HQ, for its first admin: the one-time link /invite/<code> makes the account (setup's first step)
 // and sends the person to /setup, which opens at the first step whose need is unmet: Your organisation, with its time
 // zone. Then one AI step: the list of providers, an Add a provider pop-up that lists every provider (Agenthix Cloud
-// among them, disabled as *not available yet*), and what agents use. This walk adds a model provider and Inworld (one
+// among them, disabled as *not available yet*), and what agents can do. This walk adds a model provider and Inworld (one
 // key covers hearing and speaking), then a last look. The step can be skipped (ADR-0160). The step is kept in the
 // address, so a refresh and Back both stay on it.
 //
@@ -95,7 +95,7 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
   })
 
   test('Inworld adds hearing and speaking on one key, and a type nothing covers is not a fault', async () => {
-    await expect(page.getByText('Not set. Add a provider that speaks.')).toBeVisible()
+    await expect(page.getByText('Add a provider that speaks.')).toBeVisible()
     await page.getByRole('button', { name: /Add a provider/ }).click()
     await page.getByRole('button', { name: /^Inworld/ }).click()
     await expect(page.getByRole('heading', { name: 'Where do I get an Inworld key?' })).toBeVisible()
@@ -104,7 +104,7 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
     await page.getByRole('dialog').getByRole('button', { name: /^save$/i }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(page.getByRole('region', { name: 'Your providers' }).getByText('Speaking')).toBeVisible()
-    await expect(page.getByText('Not set. Add a provider that speaks.')).toHaveCount(0)
+    await expect(page.getByText('Add a provider that speaks.')).toHaveCount(0)
   })
 
   test('Continue goes to the last look, and Back returns to the AI step with both providers still there', async () => {
@@ -123,6 +123,7 @@ test.describe('the first admin sets up their HQ and lands on Home @SC-008 @SC-14
     await expect(page.getByRole('heading', { name: 'AI', exact: true })).toBeVisible()
     await expect(page.getByText('Inworld', { exact: true })).toBeVisible()
     await expect(page.getByText('Defaults for everyone')).toHaveCount(0)
+    for (const name of ['Thinking', 'Hearing', 'Speaking', 'Web search']) await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Acme Corp').first()).toBeVisible()
     await expect(page.getByText('Europe/London').first()).toBeVisible()
     // Setup chooses a voice by default, so the first agent is shown speaking as it.

@@ -6,13 +6,14 @@ import { render, screen, fireEvent, cleanup, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router'
 import type { AiProviderSummary } from '@agenthix/core'
 
-const h = vi.hoisted(() => ({ queries: {} as Record<string, unknown>, refetchDefaults: vi.fn(), refetchProviders: vi.fn(), remove: vi.fn() }))
+const h = vi.hoisted(() => ({ queries: {} as Record<string, unknown>, refetchDefaults: vi.fn(), refetchProviders: vi.fn(), remove: vi.fn(), saveKey: vi.fn(), refetchKey: vi.fn() }))
 vi.mock('wasp/client/operations', () => ({
   getSetupDefaults: 'getSetupDefaults', setModelDefaults: 'setModelDefaults', getHqCloudConnection: 'getHqCloudConnection',
   connectHqToCloud: 'connectHqToCloud', disconnectHqFromCloud: 'disconnectHqFromCloud', addAiProvider: 'addAiProvider',
   getAiProviderImpact: 'getAiProviderImpact', removeAiProvider: 'removeAiProvider',
-  useAction: (fn: string) => (fn === 'removeAiProvider' ? h.remove : vi.fn()),
-  useQuery: (op: string) => ({ data: h.queries[op], error: undefined, refetch: op === 'getSetupDefaults' ? h.refetchDefaults : vi.fn() }),
+  getWebSearchKeyStatus: 'getWebSearchKeyStatus', setWebSearchKey: 'setWebSearchKey', deleteWebSearchKey: 'deleteWebSearchKey',
+  useAction: (fn: string) => (fn === 'removeAiProvider' ? h.remove : fn === 'setWebSearchKey' ? h.saveKey : vi.fn()),
+  useQuery: (op: string) => ({ data: h.queries[op], error: undefined, refetch: op === 'getSetupDefaults' ? h.refetchDefaults : op === 'getWebSearchKeyStatus' ? h.refetchKey : vi.fn() }),
 }))
 vi.mock('../../../features/useFeature', async () => {
   const { isFeatureOn } = await import('@agenthix/core')
@@ -41,8 +42,8 @@ const base: AiProviderSummary = {
 const assembly: AiProviderSummary = { ...base, id: 'a', name: 'AssemblyAI', vendor: 'assemblyai', types: ['stt'] }
 
 const onNext = vi.fn()
-const show = (providers: AiProviderSummary[], defaults: unknown = DEFAULTS) => {
-  h.queries = { getSetupDefaults: defaults, getHqCloudConnection: CLOUD_OFF }
+const show = (providers: AiProviderSummary[], defaults: unknown = DEFAULTS, keyPresent = false) => {
+  h.queries = { getSetupDefaults: defaults, getHqCloudConnection: CLOUD_OFF, getWebSearchKeyStatus: { present: keyPresent } }
   return render(
     <MemoryRouter>
       <AiStep position={{ step: 3, total: 4 }} side={<div />} providers={providers} onProvidersChanged={h.refetchProviders} onNext={onNext} onBack={vi.fn()} />
@@ -50,7 +51,7 @@ const show = (providers: AiProviderSummary[], defaults: unknown = DEFAULTS) => {
   )
 }
 
-beforeEach(() => { onNext.mockReset(); h.refetchDefaults.mockReset(); h.refetchProviders.mockReset(); h.remove.mockReset().mockResolvedValue({}) })
+beforeEach(() => { onNext.mockReset(); h.refetchDefaults.mockReset(); h.refetchProviders.mockReset(); h.remove.mockReset().mockResolvedValue({}); h.saveKey.mockReset().mockResolvedValue({ ok: true }); h.refetchKey.mockReset() })
 afterEach(cleanup)
 
 describe('the AI step @SC-1184', () => {
@@ -59,7 +60,9 @@ describe('the AI step @SC-1184', () => {
     expect(screen.getByText(/^Step 3 of 4/)).toBeTruthy()
     expect(screen.getByText('None yet')).toBeTruthy()
     expect(screen.getByRole('button', { name: /Add a provider/ })).toBeTruthy()
-    expect(screen.getByText('Model, hearing and speaking. Chosen for you once a provider is added.')).toBeTruthy()
+    const list = within(screen.getByRole('region', { name: 'What agents can do' }))
+    expect(list.getByText('Add a provider that offers models.')).toBeTruthy()
+    expect(list.getByText('Comes with your first model provider.')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
     expect(onNext).toHaveBeenCalled()
@@ -94,20 +97,21 @@ describe('the AI step @SC-1184', () => {
     const card = within(screen.getByText('Inworld', { selector: 'span' }).closest('li')!)
     for (const chip of ['Thinking', 'Hearing', 'Speaking']) expect(card.getByText(chip)).toBeTruthy()
     expect(card.getByText(/Works\. Added by you\./)).toBeTruthy()
+    expect(card.getByText('Agents run its models on')).toBeTruthy()
     expect(card.getByRole('button', { name: 'Remove Inworld' })).toBeTruthy()
     expect(screen.getByText('Claude Sonnet 5.5 · via Inworld')).toBeTruthy()
-    expect(screen.getAllByText('Hearing')).toHaveLength(2) // the chip and the row
+    expect(screen.getAllByText('Hearing')).toHaveLength(2) // the chip and the line
     expect(screen.getAllByText('Speaking')).toHaveLength(2)
-    expect(screen.queryByText(/^Not set\./)).toBeNull()
+    expect(screen.queryByText('Not chosen yet.')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Skip for now' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(onNext).toHaveBeenCalled()
   })
 
-  it('D: only a hearing provider leaves model and speaking Not set, with what to add, and Continue is there @SC-1844 @SC-1845', () => {
+  it('D: only a hearing provider leaves thinking and speaking as a note, with what to add, and Continue is there @SC-1844 @SC-1845', () => {
     show([assembly], { ...DEFAULTS, conversation: null, tts: null, tts_options: [] })
-    expect(screen.getByText('Not set. Add a provider that offers models.')).toBeTruthy()
-    expect(screen.getByText('Not set. Add a provider that speaks.')).toBeTruthy()
+    expect(screen.getByText('Add a provider that offers models.')).toBeTruthy()
+    expect(screen.getByText('Add a provider that speaks.')).toBeTruthy()
     expect(screen.queryByText(/outage|down/i)).toBeNull()
     expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy()
     expect(within(screen.getByText('AssemblyAI', { selector: 'span' }).closest('li')!).queryByText('Thinking')).toBeNull()
@@ -142,5 +146,63 @@ describe('the AI step @SC-1184', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
     await vi.waitFor(() => expect(h.remove).toHaveBeenCalledWith({ id: 'p' }))
     await vi.waitFor(() => expect(h.refetchProviders).toHaveBeenCalled())
+  })
+
+  it('lists Thinking, Hearing, Speaking and Web search, and says OpenCode needs a key', () => {
+    show([base])
+    const list = within(screen.getByRole('region', { name: 'What agents can do' }))
+    for (const name of ['Thinking', 'Hearing', 'Speaking', 'Web search']) expect(list.getByRole('listitem', { name })).toBeTruthy()
+    expect(list.getByText('OpenCode needs a search key.')).toBeTruthy()
+    expect(list.getByRole('button', { name: 'Add a key: Web search' })).toBeTruthy()
+  })
+
+  it('Change opens the default picker under its line', () => {
+    show([base])
+    fireEvent.click(screen.getByRole('button', { name: 'Change: Speaking' }))
+    const line = within(screen.getByRole('listitem', { name: 'Speaking' }))
+    expect(line.getByRole('button', { name: 'Done' })).toBeTruthy()
+    fireEvent.click(line.getByRole('button', { name: 'Done' }))
+    expect(line.queryByRole('button', { name: 'Done' })).toBeNull()
+  })
+
+  it('a key added in setup is saved through the pop-up, the list is read again, and Continue stays', async () => {
+    show([base])
+    fireEvent.click(screen.getByRole('button', { name: 'Add a key: Web search' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'Web search for OpenCode' }))
+    fireEvent.change(dialog.getByLabelText(/Exa API key/), { target: { value: 'exa-1' } })
+    fireEvent.click(dialog.getByRole('button', { name: 'Save key' }))
+    await vi.waitFor(() => expect(h.saveKey).toHaveBeenCalledWith({ secret: 'exa-1' }))
+    await vi.waitFor(() => expect(h.refetchKey).toHaveBeenCalled())
+    await vi.waitFor(() => expect(screen.queryByRole('dialog', { name: 'Web search for OpenCode' })).toBeNull())
+  })
+
+  it('a refused key stays in the pop-up and does not block setup', async () => {
+    h.saveKey.mockRejectedValue(Object.assign(new Error('That key was refused'), { statusCode: 400 }))
+    show([base])
+    fireEvent.click(screen.getByRole('button', { name: 'Add a key: Web search' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'Web search for OpenCode' }))
+    fireEvent.change(dialog.getByLabelText(/Exa API key/), { target: { value: 'bad' } })
+    fireEvent.click(dialog.getByRole('button', { name: 'Save key' }))
+    expect(await dialog.findByText('That key was refused')).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Web search for OpenCode' })).toBeTruthy()
+    fireEvent.click(dialog.getByRole('button', { name: 'Not now' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(onNext).toHaveBeenCalled()
+  })
+
+  it('web search never changes Continue or Skip for now', () => {
+    show([base], DEFAULTS, false)
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy()
+    cleanup()
+    show([base], DEFAULTS, true)
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy()
+    expect(screen.queryByText('OpenCode needs a search key.')).toBeNull()
+    cleanup()
+    show([], NONE, false)
+    expect(screen.getByRole('button', { name: 'Skip for now' })).toBeTruthy()
+    cleanup()
+    show([], NONE, true)
+    expect(screen.getByRole('button', { name: 'Skip for now' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull()
   })
 })
