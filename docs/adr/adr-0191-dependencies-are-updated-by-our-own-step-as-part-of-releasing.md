@@ -6,7 +6,7 @@ description: Outside dependencies stay pinned and take their minor and patch upd
 # ADR-0191: Dependencies Are Updated by Our Own Step, as Part of Releasing
 
 **Date:** 2026-11-15
-**Status:** Accepted
+**Status:** Superseded by adr-0192
 
 ## Context
 

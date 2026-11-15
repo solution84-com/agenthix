@@ -12,8 +12,8 @@ commit sets a version: every `package.json` stays at `0.0.0`. A push to `main` r
 screenshots, no tag.
 
 **A release ships what `main` holds; it makes no dependency updates.** The monthly dependency updates are made and
-tested on the dev machine, on their own branch, proved by the full regression and merged before a release
-([dependencies.md](../../../docs/architecture/dependencies.md#the-monthly-dependency-updates)). Release's stage
+tested on the dev machine, on their own branch, proved by the full regression with the upgrade test, and merged before
+a release ([dependencies.md](../../../docs/architecture/dependencies.md#the-monthly-dependency-updates)). Release's stage
 **0. The monthly dependency updates and the security alerts** stops, starting nothing, when this month's updates
 aren't done (`scripts/deps/due.mjs` reads the month in `scripts/deps/taken.json`, Australia/Sydney time) or a critical
 or high security alert in shipped code is past its 7 days with no decision (`scripts/deps/security.mjs`). A dry run,
@@ -22,6 +22,7 @@ and a patch on a release branch, skip stage 0.
   *Release* again.
 - **Stage 0 stops on an alert**: decide it — fix it, dismiss it in GitHub with a reason, or defer it to a named month
   in `scripts/deps/deferred.json` — then run *Release* again. `node scripts/deps/security.mjs --triage` lists them.
+  Stage 0 also stops when the alerts can't be read (the job's token needs `vulnerability-alerts: read`).
 - **A major version** is never part of the monthly dependency updates: it is its own change, everywhere at once,
   proved by a dry run.
 

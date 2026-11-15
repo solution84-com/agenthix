@@ -19,7 +19,7 @@ description: Use when deciding which tests to run and when — while working, be
 | **While working** | The tests of the files you touched and the typecheck of their modules; the e2e specs for screens you changed; a module's integration suite when you changed a server operation or the data it reads; the cross-app suite when you changed what hq and a site say to each other |
 | **Before a pull request** | The suites of every module it touched |
 | **Before a unit of work merges to `main`** | The regression for what it reaches (below) |
-| **The full regression** | For a unit that changes core's protocol shapes, a database migration, a Dockerfile, the host service or the install, and in every release rehearsal |
+| **The full regression** | For a unit that changes core's protocol shapes, a database migration, a Dockerfile, the host service or the install; in every release rehearsal; and for the monthly dependency updates, with the upgrade test (`--full --upgrade-test`) |
 
 **The regression for what a change reaches.** `node scripts/affected.mjs main` names the modules and suites the change
 reaches — a module's dependents too; any path it has not seen selects everything. Run:

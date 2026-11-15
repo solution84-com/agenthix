@@ -3,7 +3,7 @@
 Agenthix is built from outside software: npm packages, base images and workflow actions. Each is pinned to an exact
 version, so a release is exactly what was tested, and each moves only when we move it: once a month, in **the monthly
 dependency updates**, made and tested on the dev machine, under rules that keep every package within what the others
-require of it. The rules are [ADR-0191](../adr/adr-0191-dependencies-are-updated-by-our-own-step-as-part-of-releasing.md)'s;
+require of it. The decision is [ADR-0192](../adr/adr-0192-dependencies-are-updated-locally-once-a-month-and-every-security-alert-is-decided.md);
 this document is how it works today.
 
 ## What we depend on, and how each is pinned
@@ -44,7 +44,8 @@ by choosing versions that agree.
 `node scripts/deps/check.mjs` (plain Node, no install needed) is the job **Dependencies follow the rules** in Checks.
 It is selected whenever a change touches a file it reads: a `package.json`, a lockfile, an `.npmrc`, a `tsconfig`,
 a Dockerfile, `.nvmrc`, a workflow or `scripts/deps/` (`scripts/affected.mjs`). The same job runs the tests of the
-check and of the update scripts. In a checkout it reads only files Git tracks.
+check and of the update scripts. In a checkout it reads only files Git tracks. On the dev machine, the full regression runs
+the same two (its step `dependency-rules`, [below](#what-the-full-regression-proves-locally)).
 
 It prints nothing and passes when every rule holds; otherwise it prints one line per failure, `module: file: rule`,
 and fails:
@@ -87,9 +88,9 @@ Once a month, on the dev machine, and tested there before anything is pushed:
      Australia/Sydney time), and what moved, by module, version to version. With nothing to update, the run is still
      recorded and the epoch still raised.
    - It prints what moved, then every open security alert to decide ([below](#security-alerts)).
-3. **The full regression, with the upgrade test** (`scripts/regression/run.mjs --full --upgrade-test`, the
-   `testing-a-change` skill: the updates move the images an installation runs), which this change
-   touches every module of. Fix what fails on the branch (usually a link between files that move together: a version
+3. **The full regression, with the upgrade test**: `node scripts/regression/run.mjs --full --upgrade-test` (the
+   `testing-a-change` skill). The updates touch every module and move the images an installation runs, so the upgrade
+   test is asked for, whatever changed; `update.sh` ends by saying so. Fix what fails on the branch (usually a link between files that move together: a version
    named in two places, a type a new release tightened). An update that still fails after two attempts is held back
    for the month (its range pinned in that module, said in the commit) rather than worked around.
 4. **Every open security alert decided** ([below](#security-alerts)).
@@ -107,10 +108,13 @@ Australia/Sydney, wherever the check runs, so the dev machine and GitHub's runne
 | From | Where | What it says or does |
 |---|---|---|
 | The 1st of a month not done | every dev start (`scripts/dev/fresh.sh`) and the top of the full and affected regressions' output | "Dependency updates for December aren't done: run the monthly dependency updates." |
-| The 8th | the same places, saying *overdue* in place of *aren't done*; nothing else changes, because Checks does not enforce the month | "Dependency updates for December are overdue: run the monthly dependency updates." |
+| The 8th | the same places, saying *overdue* in place of *aren't done* | "Dependency updates for December are overdue: run the monthly dependency updates." |
 | Any day of a month not done | Release's stage 0 stops, starting nothing | "Dependency updates for December aren't done: run the monthly dependency updates first." |
 
-Release's stage 0 is the only enforcement. A patch on a release branch is not stopped, and neither is a Release dry run.
+A reminder never fails a dev start or a regression. **Release's stage 0 is the only enforcement**: Checks does not
+check the month, since a failing Checks on `main` would only stop Release, which stage 0 already does, and would hold
+up contributors' pull requests for something not theirs. A patch on a release branch is not stopped, and neither is a
+Release dry run.
 
 ## Exact installs
 
@@ -123,7 +127,8 @@ What runs is what was committed. Everywhere a module is installed for CI, an ima
   fails if the lockfile differs at the end. A plain `npm install` in hq before the first compile takes them at their
   newest. A new checkout installs as [CONTRIBUTING.md](../CONTRIBUTING.md#set-up) says.
 - **The lockfile hold**: every CI job that installs runs `scripts/deps/held.sh` after its installs, which fails when an
-  install changed a committed lockfile. Commit each lockfile from a clean install of its module.
+  install changed a committed lockfile; every regression runs it too (`lockfiles-held`), after its own installs.
+  Commit each lockfile from a clean install of its module.
 
 ## Local copies
 
@@ -153,34 +158,78 @@ decision**; the count is never the goal, the exposure is:
 
 A fix is never a workaround, and no check is switched off to clear an alert.
 
-**How soon:** a **critical or high alert in shipped code** (a runtime dependency of a module an image installs, so not
-the root's tools or the cross-app suite) is decided within **7 days** of GitHub opening it: warned about from the day GitHub
-opens it, at every dev start and at the top of the full and affected regressions, and after day 7 Release stops. Any other alert (medium or low, or development-only) is decided in the
-next monthly dependency updates.
+**How soon:** a **critical or high alert in shipped code** is decided within **7 days** of GitHub opening it: warned
+about from that day, at every dev start and at the top of the full and affected regressions, and after day 7 Release
+stops. *Shipped* is what GitHub calls a runtime dependency, in any module but the root's tools and the cross-app suite,
+which no image installs; GitHub reports `site/opencode-plugin` as development. Any other alert (medium or low, or
+development-only) is decided in the next monthly dependency updates; the reminder line counts them only while those
+updates are due.
 
 `scripts/deps/security.mjs` reads the open alerts with `gh api` (your own GitHub login on the dev machine; in Release,
-the workflow's token with `vulnerability-alerts: read`), leaves out those deferred until their month, and
-says which need a decision and by when:
+the workflow's token with `vulnerability-alerts: read`), leaves out those deferred until their month, and says which
+need a decision and by when. A dismissed alert is no longer open, so it is not read again:
 
 - `--line`, at every dev start: "2 security alerts need a decision (high: undici in hq, 3 days left)." Silent when
   the alerts can't be read (no login, no network).
 - `--release`, in Release's stage 0: stops past the 7 days, and when the alerts can't be read.
-- `--triage`, at the end of `update.sh`: every open alert by package and module, with its severity, whether it ships,
-  the version that fixes it and when it must be decided, then the deferred ones.
+- `--triage`, at the end of `update.sh` and whenever an alert is to be decided: every open alert by package and module,
+  with its severity, whether it ships, the version that fixes all of them and when they must be decided, then the
+  deferred ones.
 
-A deferral in `deferred.json`, one entry per package and module:
+**A deferral** in `deferred.json` is one entry per package and module: the alert numbers it covers, the reason, and
+the month to look again (`lookAgain`). Those alerts are left out until that month, in Sydney time, and come back from
+its first day. The two entries today:
 
 ```json
 [
   {
-    "package": "toml",
+    "package": "morgan",
+    "module": "hq",
+    "alerts": [84, 122, 125],
+    "reason": "Wasp's generated server pins morgan ~1.10.0; the fix (1.12.1) needs Wasp's next version. Risk: log forging in hq's own request log, no data exposure.",
+    "lookAgain": "2026-12"
+  },
+  {
+    "package": "@opencode-ai/plugin (toml, zod, effect)",
     "module": "site/opencode-plugin",
-    "alerts": [188, 189, 190, 193],
-    "reason": "Fixed only in the next OpenCode release, which is a major taken on its own",
-    "lookAgain": "2027-01"
+    "alerts": [188, 189, 190, 191, 192, 193],
+    "reason": "Development build of the site's OpenCode plugin; the versions come from OpenCode's plugin package, pinned to the OpenCode the agent image installs. Fixed by the next OpenCode version, its own change.",
+    "lookAgain": "2026-12"
   }
 ]
 ```
+
+**A dismissal** is made in GitHub, on the alert, with the reason GitHub asks for and a comment saying why: not used,
+not reachable from outside, or a tolerable risk. The repository keeps no copy of it.
+
+## What the full regression proves locally
+
+GitHub confirms; it is not where we find out. Every check a workflow makes that a dev machine can make is a step of
+the full regression (`node scripts/regression/run.mjs --full`, the `testing-a-change` skill), so a change proved there
+passes on GitHub first time. Beside each module's typecheck, unit and integration tests, the images, the install test,
+the end-to-end and cross-app suites and the guide's capture, it runs:
+
+| Step | What it proves | GitHub runs it in |
+|---|---|---|
+| `dependency-rules` | The rules above, and the tests of `scripts/deps/` | Checks |
+| `lockfiles-held` | No install changed a committed lockfile | Checks, in every job that installs |
+| `workflows-lint` | The workflows and their shell (`actionlint` with `shellcheck`; it fails, saying how to install them, when either is missing) | Lint workflows |
+| `scripts-tests`, `release-scripts-tests` | The regression map's, the robots bundle's and the contributor agreement's script tests; the release scripts' and the install test's stand-in model's | Checks; Release build; Install test |
+| `core-package` | core installs as an outside project would (`check:package`) and packs as the release packs it | Checks; Release build |
+| `host-build`, `console-build`, `console-web-build` | The builds, and the host service's bundles start (`check:bundles`) | Checks |
+| `guide-compare` | Each guide screenshot against the one its page links (`npm run guide:compare` in hq; the releases are read with `GH_TOKEN`, else `gh auth token`) | Guide screenshots |
+| `migration-check` | The migrations keep every row, from the newest release tag (`scripts/migration-check/run.sh`) | none: only here |
+| `upgrade-test` | An installation upgrades with its data, and is put back after a forced failure, from the newest release (`scripts/upgrade-test/run.sh`) | none: only here |
+
+The upgrade test runs only when what it proves changed since the base: a migration, the host service's upgrade
+(`host/src/upgrades/`), hq's or the site's images, or the Postgres image the host service names; and always with
+`--upgrade-test`. Its forced failure waits 90 seconds for hq (`UPGRADE_TEST_HQ_WAIT_SECONDS`), a setting only a
+development build of the host service reads (`HOST_DEV_HQ_WAIT_SECONDS`).
+
+The settings a CI job gives are the scripts' own, so both run the same thing: Wasp's telemetry off, hq's larger Node
+heap for its typecheck and compile, and the robots bundle's token for the image builds. What only GitHub can do
+(keyless signing, publishing, the contributor agreement on a pull request, the registry's cleanup) has its scripts'
+tests run here instead.
 
 ## Taking a major
 
