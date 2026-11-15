@@ -15,6 +15,8 @@ import type { LeadMessage, LeadToolCall, LeadToolDefinition, ModelAdapter, Promp
 import { PROPOSE_SKILL_SCHEMA } from '../tool'
 import { PROPOSE_SKILL_TOOL } from '../types'
 
+/** Its id for MODEL_CHECK_ONLY, as the lead's checks are named. */
+export const PROPOSE_SKILL_CHECK_ID = 'propose-skill'
 export const MAX_ROUNDS = 6
 export const RUN_TIME_LIMIT_MS = 3 * 60 * 1000
 

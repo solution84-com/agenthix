@@ -132,7 +132,7 @@ MODEL_CHECK_MODELS=~anthropic/claude-sonnet-latest MODEL_CHECK_RUNS=1 npm run te
 | `MODEL_CHECK_API_KEY` | The key for that vendor; from `.env.dev`'s `DEV_<VENDOR>_API_KEY` when not set. It is never logged or written |
 | `MODEL_CHECK_BASE_URL` | The endpoint, for `openai_compatible` only |
 | `MODEL_CHECK_RUNS` | How many times each check runs on each model; 3 if not set |
-| `MODEL_CHECK_ONLY` | The checks to run, by id, comma-separated; every check if not set |
+| `MODEL_CHECK_ONLY` | The checks to run, by id, comma-separated (the propose-skill check is `propose-skill`); every check if not set |
 
 Without the first three, every check is skipped with one line saying what to set, and no model is called.
 

@@ -6,11 +6,12 @@
  */
 import { describe, expect, it } from 'vitest'
 import { createModelAdapter } from '../../../conversations/model'
-import { checkAccess } from '../../../conversations/__modelchecks__/env'
-import { grade, runCheck } from './proposeSkillCheck'
+import { checkAccess, checkAsked } from '../../../conversations/__modelchecks__/env'
+import { PROPOSE_SKILL_CHECK_ID, grade, runCheck } from './proposeSkillCheck'
 
 describe('an agent asked to make a skill, with a real model', () => {
   it('proposes it with propose_skill and never writes its files', async ctx => {
+    if (!checkAsked(process.env, PROPOSE_SKILL_CHECK_ID)) return ctx.skip(`MODEL_CHECK_ONLY does not name ${PROPOSE_SKILL_CHECK_ID}`)
     const access = checkAccess(process.env)
     if ('skip' in access) return ctx.skip(access.skip)
     const adapter = createModelAdapter({ record: () => {}, maxRetries: 2 })
@@ -25,7 +26,7 @@ describe('an agent asked to make a skill, with a real model', () => {
           line = `failed: the model call failed: ${err instanceof Error ? err.message : 'unknown'}`
         }
         line = line.split(model.apiKey).join('[key]')
-        console.log(`${model.model} · propose-skill · run ${run}: ${line}`)
+        console.log(`${model.model} · ${PROPOSE_SKILL_CHECK_ID} · run ${run}: ${line}`)
         if (line !== 'passed') failures.push(`${model.model} run ${run}: ${line}`)
       }
     }

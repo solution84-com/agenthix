@@ -13,7 +13,7 @@ import type { CheckSetup } from '../setup'
 import { runTaskRunCheck } from '../taskRun/run'
 import { runCheck } from '../run'
 import { runModelChecks } from '../runner'
-import { SKIP_LINE, checkAccess } from '../env'
+import { SKIP_LINE, checkAccess, checkAsked } from '../env'
 import { summaryTable } from '../report'
 import { PROJECT, RELEASE_PAGE } from '../world'
 
@@ -119,6 +119,12 @@ describe('the model checks', () => {
     expect(await runModelChecks({}, { adapter, out: l => lines.push(l) })).toEqual({ skipped: SKIP_LINE })
     expect(lines).toEqual([SKIP_LINE])
     expect(checkAccess({ MODEL_CHECK_PROVIDER: 'openai_compatible', MODEL_CHECK_MODELS: 'm', MODEL_CHECK_API_KEY: 'k' })).toEqual({ skip: SKIP_LINE })
+  })
+
+  it('run only the checks MODEL_CHECK_ONLY names, and every check without it', () => {
+    expect(checkAsked({}, 'propose-skill')).toBe(true)
+    expect(checkAsked({ MODEL_CHECK_ONLY: 'in-reach, board-open' }, 'propose-skill')).toBe(false)
+    expect(checkAsked({ MODEL_CHECK_ONLY: 'in-reach, propose-skill' }, 'propose-skill')).toBe(true)
   })
 
   it('pass a check for a model only when every run does, and never show the key @SC-1445', async () => {
