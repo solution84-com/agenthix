@@ -16,7 +16,7 @@ cd site && npm install && npm run db:deploy && npm run dev   # server 4201
 In VS Code, **Run Task → `[dev] Start All`** does all of it. `hq/scripts/dev/start.sh` starts hq with extra
 checks (the agent container image) and the network modes below, and starts hq's relay beside it.
 
-hq needs Node.js 24.14.1 or later. Its Wasp CLI is pinned as a dev dependency (`@wasp.sh/wasp-cli`), so Wasp
+hq needs Node.js 24.22.3 or later. Its Wasp CLI is pinned as a dev dependency (`@wasp.sh/wasp-cli`), so Wasp
 runs as `npx wasp` from `hq/`; a global `wasp` of another version is never used. On a fresh clone, install `core`
 (`npm ci && npm run build`) and `ui` (`npm ci`), then run `hq/scripts/install.sh` once first: it installs exactly what
 hq's lockfile pins, sets up Wasp's own packages and compiles. A plain `npm install` in `hq/` before the first compile

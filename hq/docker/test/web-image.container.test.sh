@@ -30,7 +30,7 @@ fi
 check "builds once, with the placeholder in the built app" 0
 
 docker network create "$RUN" > /dev/null
-docker run -d --name "$RUN-server" --network "$RUN" --network-alias hq-server node:24.14.1-alpine3.23 \
+docker run -d --name "$RUN-server" --network "$RUN" --network-alias hq-server node:24.22.3-alpine3.23 \
   node -e "require('node:http').createServer((q, s) => { s.writeHead(q.url === '/health' ? 200 : 404, { 'content-type': 'text/plain' }); s.end(q.url === '/health' ? 'hq-server answers' : '') }).listen(4101)" > /dev/null
 
 out="$(docker run --rm "$IMAGE" 2>&1)"; code=$?

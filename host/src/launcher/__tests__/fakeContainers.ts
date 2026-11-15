@@ -14,7 +14,7 @@ export const OLD_ID = 'c'.repeat(64)
 /** What the old host service was started from: the install's `docker run`, by its version's tag. */
 export const OLD_REF = 'ghcr.io/solution84-com/agenthix-host:0.2.0'
 
-const IMAGE_ENV = ['PATH=/usr/local/bin:/usr/bin:/bin', 'NODE_VERSION=24.14.1', 'NODE_ENV=production']
+const IMAGE_ENV = ['PATH=/usr/local/bin:/usr/bin:/bin', 'NODE_VERSION=24.22.3', 'NODE_ENV=production']
 
 export class FakeContainers implements ContainerOps {
   containers = new Map<string, FakeContainer>()

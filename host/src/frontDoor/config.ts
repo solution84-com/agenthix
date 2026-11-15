@@ -16,7 +16,7 @@ import { downloadOnlyLines, neighbourBlock, type Neighbour } from './neighbours'
  * Caddy's official image, not ours to sign, so fixed by the digest of its multi-platform index as hq's database
  * is (images/published.ts). Moved forward deliberately, with a release.
  */
-export const FRONT_DOOR_IMAGE = 'caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d'
+export const FRONT_DOOR_IMAGE = 'caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0'
 
 /** What the state folder holds of the front door, beside its Caddyfile and compose project. */
 export type FrontDoorSettings = {

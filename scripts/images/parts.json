@@ -1,5 +1,5 @@
 {
-  "rebuildEpoch": 1,
+  "rebuildEpoch": 2,
   "parts": {
     "hq-server": { "dockerfile": "hq/docker/Dockerfile", "target": "server", "inputs": ["core/", "ui/", "hq/", "docs/guide/", "scripts/robots/", "demo/"] },
     "hq-web": { "dockerfile": "hq/docker/Dockerfile", "target": "web", "inputs": ["core/", "ui/", "hq/", "docs/guide/", "scripts/robots/", "demo/"] },

@@ -127,4 +127,4 @@ export const isDigest = (value: string) => /^sha256:[0-9a-f]{64}$/.test(value)
  * its multi-platform index: what runs is exactly the content this release was tested with, whatever the registry
  * later serves under the tag. Moved forward deliberately, with a release.
  */
-export const POSTGRES_IMAGE = 'postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea'
+export const POSTGRES_IMAGE = 'postgres:16-alpine@sha256:f377d590e5474681d4d7838635031a2b50647923b7abfa803ce9b5ff35d5c663'

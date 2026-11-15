@@ -29,10 +29,10 @@ if [ -z "$IMAGE" ]; then
 fi
 
 docker network create "$RUN" > /dev/null
-docker run -d --name "$RUN-server" --network "$RUN" --network-alias hq-server node:24.14.1-alpine3.23 \
+docker run -d --name "$RUN-server" --network "$RUN" --network-alias hq-server node:24.22.3-alpine3.23 \
   node -e "require('node:http').createServer((q, s) => { s.writeHead(200, { 'content-type': 'text/plain' }); s.end('hq-server ' + q.headers.host + q.url) }).listen(4101)" > /dev/null
 
-docker run -d --name "$RUN-relay" --network "$RUN" --network-alias relay node:24.14.1-alpine3.23 \
+docker run -d --name "$RUN-relay" --network "$RUN" --network-alias relay node:24.22.3-alpine3.23 \
   node -e "require('node:http').createServer((q, s) => { s.writeHead(200, { 'content-type': 'text/plain' }); s.end('relay ' + q.headers.host + q.url) }).listen(4401)" > /dev/null
 
 docker run -d --name "$RUN-web" --network "$RUN" -e HQ_URL="http://localhost:$PORT" -p "127.0.0.1:$PORT:4100" "$IMAGE" > /dev/null

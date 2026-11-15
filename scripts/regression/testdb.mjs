@@ -13,7 +13,7 @@ import { randomBytes } from 'node:crypto'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const IMAGE = 'postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea'
+const IMAGE = 'postgres:16-alpine@sha256:f377d590e5474681d4d7838635031a2b50647923b7abfa803ce9b5ff35d5c663'
 const PREFIX = 'regression-test-db-'
 export const SETTINGS = {
   fsync: 'off', synchronous_commit: 'off', full_page_writes: 'off', shared_buffers: '512MB', max_connections: '300',

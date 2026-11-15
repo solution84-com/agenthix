@@ -86,7 +86,7 @@ The execution layer — agent runtime, session drivers, workspace storage — li
 
 ## Local development
 
-You need Node.js 24.14.1 or later (`.nvmrc` names that exact version, so CI and the Dockerfiles stay on it, and a Node bump is a change to that file and the Dockerfiles together) and Docker.
+You need Node.js 24.22.3 or later (`.nvmrc` names that exact version, so CI and the Dockerfiles stay on it, and a Node bump is a change to that file and the Dockerfiles together) and Docker.
 
 ```bash
 docker compose up -d          # dev databases: hq on 4109, site on 4209
