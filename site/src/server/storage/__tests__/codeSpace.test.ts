@@ -13,7 +13,7 @@ import { promisify } from 'node:util'
 import { RepoWorkError } from '@agenthix/core'
 
 vi.mock('../../utils/logger', () => ({
-  Logger: vi.fn().mockImplementation(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), success: vi.fn() })),
+  Logger: vi.fn().mockImplementation(function () { return ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), success: vi.fn() }) }),
 }))
 
 import { repoConnect, repoState } from '../repoWorkMethods'

@@ -12,13 +12,13 @@ import { withFeature } from '@agenthix/core/testing'
 const registrations = vi.hoisted(() => new Map<string, (args: unknown) => Promise<unknown>>())
 
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
-  McpServer: vi.fn().mockImplementation(() => ({
+  McpServer: vi.fn().mockImplementation(function () { return ({
     tool: (...args: unknown[]) => {
       const name = args[0] as string
       const handler = args[args.length - 1] as (a: unknown) => Promise<unknown>
       registrations.set(name, handler)
     },
-  })),
+  }) }),
 }))
 
 const { mockCallHqData, FakeHqDataError } = vi.hoisted(() => {

@@ -5,7 +5,7 @@ import path from 'node:path'
 import type { PinnedMemoryItem, RunMemory } from '@agenthix/core'
 
 vi.mock('../../../server/utils/logger', () => ({
-  Logger: vi.fn().mockImplementation(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
+  Logger: vi.fn().mockImplementation(function () { return ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }),
 }))
 
 import { writePinnedMemory, pinnedMemoryText, releasePinnedMemory, homeIsShared, runMemoryText } from '../pinnedMemoryFiles'

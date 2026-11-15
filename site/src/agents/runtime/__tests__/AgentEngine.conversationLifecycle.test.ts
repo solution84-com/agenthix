@@ -47,10 +47,10 @@ vi.mock('../containerPrep', async () => ({
   prepareAgentContainer: h.prepareAgentContainer,
 }))
 vi.mock('../../AgentPromptBuilder', () => ({
-  AgentPromptBuilder: vi.fn().mockImplementation(() => ({
+  AgentPromptBuilder: vi.fn().mockImplementation(function () { return ({
     buildChatPrompt: vi.fn().mockResolvedValue({ systemPrompt: 'system prompt' }),
     buildTaskPrompt: vi.fn().mockResolvedValue({ systemPrompt: 'system prompt' }),
-  })),
+  }) }),
 }))
 vi.mock('../../../server/identity/runnerClaim', async (importOriginal) =>
   (await import('./runnerClaimMock')).withDerivedRunner(await importOriginal()))

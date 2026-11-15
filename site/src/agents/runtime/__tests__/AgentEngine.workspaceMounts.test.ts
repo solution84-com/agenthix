@@ -86,10 +86,10 @@ vi.mock('../../agentDiskPaths', () => ({
 }))
 
 vi.mock('../../AgentPromptBuilder', () => ({
-  AgentPromptBuilder: vi.fn().mockImplementation(() => ({
+  AgentPromptBuilder: vi.fn().mockImplementation(function () { return ({
     buildChatPrompt: vi.fn((arg: any) => { h.lastPromptArg = arg; return Promise.resolve({ systemPrompt: 'system prompt' }) }),
     buildTaskPrompt: vi.fn((arg: any) => { h.lastPromptArg = arg; return Promise.resolve({ systemPrompt: 'system prompt' }) }),
-  })),
+  }) }),
 }))
 
 // Spread the real module so exports added later (Task 12's runPackageColumns) stay real.
@@ -114,21 +114,21 @@ vi.mock('../SiteStreamEmitter', () => ({
 }))
 
 vi.mock('../selectRuntime', () => ({
-  selectRuntime: vi.fn().mockImplementation(() => ({
+  selectRuntime: vi.fn().mockImplementation(function () { return ({
     async sessionExists() { return true },
     async *run(context: any) {
       h.lastRunContext = context
       yield { type: 'status', status: 'completed' }
     },
-  })),
+  }) }),
 }))
 vi.mock('../ClaudeSDKRuntime', () => ({
-  ClaudeSDKRuntime: vi.fn().mockImplementation(() => ({
+  ClaudeSDKRuntime: vi.fn().mockImplementation(function () { return ({
     async sessionExists() { return true },
     async *run(_context: any) {
       yield { type: 'status', status: 'completed' }
     },
-  })),
+  }) }),
 }))
 
 // resolvePrimaryLocation is mocked per-test below via a settable ref, since

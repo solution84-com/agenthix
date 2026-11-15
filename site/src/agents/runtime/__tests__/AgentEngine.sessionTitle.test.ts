@@ -45,10 +45,10 @@ vi.mock('node:fs/promises', () => ({
 }))
 
 vi.mock('../../AgentPromptBuilder', () => ({
-  AgentPromptBuilder: vi.fn().mockImplementation(() => ({
+  AgentPromptBuilder: vi.fn().mockImplementation(function () { return ({
     buildChatPrompt: vi.fn().mockResolvedValue({ systemPrompt: 'system prompt' }),
     buildTaskPrompt: vi.fn().mockResolvedValue({ systemPrompt: 'system prompt' }),
-  })),
+  }) }),
 }))
 
 // Spread the real module so exports added later (Task 12's runPackageColumns) stay real.
@@ -80,22 +80,22 @@ vi.mock('../SiteStreamEmitter', () => ({
 // Emits real text so the run has a genuine reply —
 // AgentEngine.runToken.test.ts's runtime mock never emits text_delta.
 vi.mock('../selectRuntime', () => ({
-  selectRuntime: vi.fn().mockImplementation(() => ({
+  selectRuntime: vi.fn().mockImplementation(function () { return ({
     async sessionExists() { return true },
     async *run(_context: any) {
       if (h.renameDuringRun) h.siteRowTitle = h.renameDuringRun
       yield { type: 'text_delta', textDelta: 'The reply text.' }
       yield { type: 'status', status: 'completed', usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 } }
     },
-  })),
+  }) }),
 }))
 vi.mock('../ClaudeSDKRuntime', () => ({
-  ClaudeSDKRuntime: vi.fn().mockImplementation(() => ({
+  ClaudeSDKRuntime: vi.fn().mockImplementation(function () { return ({
     async sessionExists() { return true },
     async *run(_context: any) {
       yield { type: 'status', status: 'completed' }
     },
-  })),
+  }) }),
 }))
 
 import { agentEngine } from '../AgentEngine'

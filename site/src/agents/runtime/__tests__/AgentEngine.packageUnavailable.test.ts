@@ -40,10 +40,10 @@ vi.mock('../../agentDiskPaths', () => ({
 }))
 
 vi.mock('../../AgentPromptBuilder', () => ({
-  AgentPromptBuilder: vi.fn().mockImplementation(() => ({
+  AgentPromptBuilder: vi.fn().mockImplementation(function () { return ({
     buildChatPrompt: vi.fn().mockResolvedValue({ systemPrompt: 'system prompt' }),
     buildTaskPrompt: vi.fn().mockResolvedValue({ systemPrompt: 'system prompt' }),
-  })),
+  }) }),
 }))
 
 vi.mock('../../../server/identity/runnerClaim', async (importOriginal) =>
@@ -68,7 +68,7 @@ vi.mock('../SiteStreamEmitter', () => ({
 // Runtime selection is mocked: every run gets the stand-in below, and
 // ClaudeSDKRuntime is a safe stand-in too.
 vi.mock('../selectRuntime', () => ({
-  selectRuntime: vi.fn().mockImplementation(() => ({
+  selectRuntime: vi.fn().mockImplementation(function () { return ({
     async sessionExists() { return true },
     async *run(context: any) {
       h.capturedContext = context
@@ -78,16 +78,16 @@ vi.mock('../selectRuntime', () => ({
       h.midRunHolder = bearer ? resolveRunToken(bearer) : null
       yield { type: 'status', status: 'completed' }
     },
-  })),
+  }) }),
 }))
 vi.mock('../ClaudeSDKRuntime', () => ({
-  ClaudeSDKRuntime: vi.fn().mockImplementation(() => ({
+  ClaudeSDKRuntime: vi.fn().mockImplementation(function () { return ({
     async sessionExists() { return true },
     async *run(context: any) {
       h.capturedContext = context
       yield { type: 'status', status: 'completed' }
     },
-  })),
+  }) }),
 }))
 
 const packagesMock = vi.hoisted(() => ({ resolveRunPackageDirs: vi.fn() }))

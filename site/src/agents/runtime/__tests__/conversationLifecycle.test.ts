@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('../../../server/utils/logger', () => ({
-  Logger: vi.fn().mockImplementation(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), success: vi.fn() })),
+  Logger: vi.fn().mockImplementation(function () { return ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), success: vi.fn() }) }),
 }))
 vi.mock('../selectRuntime', () => ({ selectRuntime: vi.fn() }))
 vi.mock('../../../server/runtime/conversationTokens', () => ({ revokeConversationToken: vi.fn() }))

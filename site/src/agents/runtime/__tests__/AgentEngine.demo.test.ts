@@ -46,10 +46,10 @@ vi.mock('../containerPrep', async () => ({
 }))
 
 vi.mock('../../AgentPromptBuilder', () => ({
-  AgentPromptBuilder: vi.fn().mockImplementation(() => ({
+  AgentPromptBuilder: vi.fn().mockImplementation(function () { return ({
     buildChatPrompt: vi.fn().mockResolvedValue({ systemPrompt: 'system prompt' }),
     buildTaskPrompt: vi.fn().mockResolvedValue({ systemPrompt: 'system prompt' }),
-  })),
+  }) }),
 }))
 
 vi.mock('../../../server/identity/runnerClaim', async (importOriginal) =>
@@ -59,12 +59,12 @@ vi.mock('../../../server/siteConfig', () => ({ getAgentFacingSiteUrl: vi.fn(() =
 vi.mock('../SiteStreamEmitter', () => ({ siteStream: { stream: vi.fn(), status: vi.fn() } }))
 
 vi.mock('../selectRuntime', () => ({
-  selectRuntime: vi.fn().mockImplementation(() => ({
+  selectRuntime: vi.fn().mockImplementation(function () { return ({
     async sessionExists() { return true },
     async *run() {
       yield { type: 'status', status: 'completed' }
     },
-  })),
+  }) }),
 }))
 
 const packagesMock = vi.hoisted(() => ({
