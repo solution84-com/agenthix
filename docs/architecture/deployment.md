@@ -96,7 +96,9 @@ committed before the release. The rehearsal itself changes no file.
    platform digests.
 3. *Install test* (`install-test.yml`) installs the candidate's amd64 images by digest and walks through the product in
    a browser, so it proves the images the release ships; *Guide screenshots* captures the guide's screenshots and
-   keeps them as the set the tag takes the release's screenshots from.
+   keeps them as the set the tag takes the release's screenshots from. When *Release* calls the release build, it has
+   already captured them in the same run, before pinning the guide's pages, and the release build doesn't capture them
+   again.
 4. `@agenthix/core` is type-checked, built, checked and packed. `npm run check:package` installs the packed package
    into an empty project and loads every entry point with plain Node and TypeScript's Node module rules, as a project
    outside this repository will. Core is written with full `.js` import paths (`NodeNext`), since Node does not fill
@@ -128,7 +130,7 @@ too, and it refuses to run anywhere but at a tag:
    and the Postgres image the host service pins. It is a record for people and for rebuilding a release; a host service
    finds a version by its tag and its signature, and does not read it. Beside it are **the guide's screenshots this
    release carries**: exactly those whose links in the guide's pages and the README, at the tagged commit, name the tag,
-   taken from the release build's set for the commit; a screenshot the set lacks fails the run in its first step,
+   taken from the set the release build's run for the commit kept; a screenshot the set lacks fails the run in its first step,
    before anything is published. Which links name the upcoming tag is decided before the release is proved, by the pin
    step ([the guide's README](../guide/README.md#releasing-the-screenshots)).
 

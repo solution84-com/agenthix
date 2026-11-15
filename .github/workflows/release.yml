@@ -14,14 +14,15 @@ name: Release
 #    version is a release version and not yet tagged; no released flag outlives its minor release
 #    (scripts/release/flags-overdue.mjs); the Sigstore trust root hq carries is fresh enough to ship
 #    (scripts/release/trust-root.mjs). A real run also needs the commit's Checks passed.
-# 2. The guide's screenshots are captured for that commit (guide-screenshots.yml, its artifacts kept as pin-…).
+# 2. The guide's screenshots are captured for that commit (guide-screenshots.yml). Its set, guide-release-set, is the
+#    one the pin step reads and the tag takes: the pin commit changes only the guide's pages, so nothing captures again.
 # 3. They are pinned to the tag (hq/scripts/guide/pin-screenshots.mjs). When that changes the pages, the change is
 #    committed by github-actions[bot]; a real run pushes it to its branch and starts Checks for it, since a push made with
 #    a workflow's own token starts no workflow; a dry run pushes it only to a ref of its own outside the branches,
 #    refs/release-dry-runs/<run id>, which the jobs that follow fetch it by and the last job deletes. No change: the
 #    same commit goes on.
 # 4. The release build, for that commit (release-build.yml): every image built or reused, started and attested, the
-#    install test, the screenshots again (the set the tag takes) and core packed.
+#    install test and core packed; told the screenshots are captured, it doesn't capture them again.
 # 5. A real run, once Checks passed for that commit too, creates the tag v<version> on it and starts Publish release
 #    (publish-images.yml) at the tag, then follows it to the end: a tag pushed with a workflow's own token starts no
 #    workflow, and a publish called from here would be signed as Release's branch, not the tag a host service checks.
@@ -159,7 +160,6 @@ jobs:
       contents: read
     with:
       commit: ${{ needs.preflight.outputs.commit }}
-      artifact-prefix: pin-
 
   pin:
     name: "3. Pin the screenshots to the tag"
@@ -192,7 +192,7 @@ jobs:
           node-version-file: .nvmrc
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: pin-guide-release-set
+          name: guide-release-set
           path: ${{ runner.temp }}/guide-set
       # The pin step reads images with hq's pixelmatch and pngjs, and nothing built.
       - name: Install what the pin step reads
@@ -247,6 +247,7 @@ jobs:
       id-token: write
     with:
       commit: ${{ needs.pin.outputs.commit }}
+      screenshots-captured: true
 
   tag:
     name: "5. Tag the commit"

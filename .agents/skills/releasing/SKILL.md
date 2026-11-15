@@ -45,11 +45,11 @@ and a patch on a release branch, skip stage 0.
       and pushes it to `main` (with the pin's deploy key, item 7), which starts *Checks* for it; that commit is the one proved and tagged. No change: the
       same commit goes on.
    4. **The release build** (`release-build.yml`): every image part with a new key, for amd64 and arm64, built,
-      started and attested; the install test; the screenshots again, the set the tag takes; core packed.
+      started and attested; the install test; core packed. It doesn't capture the screenshots again: stage 2's set is the one the tag takes.
    5. **The tag**: once *Checks* passed for that commit, the workflow creates `v<version>` on it, and starts *Publish
       release* at the tag and follows it. Publishing verifies each image's attestation and recomputed key, makes and
       signs each version's index, publishes core and makes the release page, with the guide's screenshots linked to
-      the tag attached (only those; it fails before publishing anything if the release build's set lacks one).
+      the tag attached (only those; it fails before publishing anything if the run's set lacks one).
 2. **A dry run** does everything but push, tag and publish: on any branch, pushed first, with the VS Code task
    *[release] Dry run (this branch)*, or `gh workflow run release.yml --ref <branch> -f version=<version> -f dry_run=true`.
    A dry run does not wait for *Checks*, which do not run on such a branch. A pin commit it makes is pushed to no

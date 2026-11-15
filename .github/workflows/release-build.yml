@@ -36,6 +36,12 @@ on:
         description: 'The commit to build and prove'
         required: true
         type: string
+      screenshots-captured:
+        # Release captures the guide in its own run before it pins the pages; the pin commit changes nothing else.
+        description: "The caller's run already holds the guide's screenshots for this commit's code (guide-release-set)"
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   # A hand-started run is told its commit, and two runs from main for different commits are two builds; a push to a
@@ -319,7 +325,7 @@ jobs:
     name: Guide screenshots
     needs: candidate
     # The build job is skipped when every image is reused, and a skipped job would skip this one too without it.
-    if: ${{ !cancelled() && needs.candidate.result == 'success' }}
+    if: ${{ !cancelled() && needs.candidate.result == 'success' && !inputs.screenshots-captured }}
     uses: ./.github/workflows/guide-screenshots.yml
     permissions:
       contents: read
@@ -382,7 +388,10 @@ jobs:
     steps:
       - name: Every part of the bar ran and passed
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
+          # The screenshots are skipped only when the caller captured them in its own run, before this.
+          RESULTS: >-
+            ${{ needs.prepare.result }} ${{ needs.candidate.result }} ${{ needs.install-test.result }} ${{ needs.core.result }}
+            ${{ inputs.screenshots-captured && 'success' || needs.guide-screenshots.result }}
         run: |
           echo "$RESULTS"
           for r in $RESULTS; do [ "$r" = success ] || { echo "::error::A part of the release bar did not pass ($r)."; exit 1; }; done

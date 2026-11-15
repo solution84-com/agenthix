@@ -142,10 +142,12 @@ uploaded by hand and no storage key is needed.
 
 Screenshots are taken by the release, never by hand. A release is one run of the *Release* workflow
 (`.github/workflows/release.yml`, the [`releasing`](../../.agents/skills/releasing/SKILL.md) skill), which calls
-*Guide screenshots* twice: once on the commit it starts from, to pin the links, and once in the release build, on the
-commit it proves. Each run captures them, compares each with the picture its link names (or, where that release does
-not hold it yet, with the one the last release's pages linked), and reports what is new, changed or removed; the
-release build's run keeps them as the set the tag takes the release's screenshots from. The tag captures nothing.
+*Guide screenshots* once, on the commit it starts from. The run captures them, compares each with the picture its link
+names (or, where that release does not hold it yet, with the one the last release's pages linked), and reports what is
+new, changed or removed. Release pins the links from that set and keeps it as the set the tag takes the release's
+screenshots from: the pin commit changes only the guide's pages, so the release build doesn't capture them again. A
+release build started on its own (by hand, or by a push to a release branch) captures them itself. The tag captures
+nothing.
 
 **One script takes them everywhere**: `node scripts/guide/capture.mjs` builds hq, starts hq and a site on free ports
 against the guide databases, runs `npm run guide:screenshots` in `hq/` and stops both (`--logs <folder>` keeps their
@@ -168,12 +170,12 @@ it. A staging copy of the site pins the pre-release's tag to review the guide be
    or is already tagged, links the name check would refuse, and a set that lacks a linked screenshot. When the pages
    changed, the workflow commits the edit (`docs(guide): pin the screenshots to v0.1.0-alpha.4`) and pushes it to
    `main`, and that commit is the one proved and tagged. The pinned pages are on the run's page.
-3. **The release build proves that commit** and captures the screenshots again; read its screenshot report on the
-   run's page in the repository's **Actions** tab.
+3. **The release build proves that commit.** It doesn't capture the screenshots again: the set Release captured in
+   step 1 is the one the tag takes. Read its screenshot report on the run's page in the repository's **Actions** tab.
 4. **The workflow tags that commit** and starts *Publish release* at the tag, which publishes the images and
    `@agenthix/core` only once the commit's checks, install test, screenshots and release build passed for it (see
    [deployment](../architecture/deployment.md#releases-and-the-images-they-publish)). Before anything is published it
-   takes, from that release build's set, exactly the screenshots whose links at the tagged commit name the tag, and
+   takes, from that run's set, exactly the screenshots whose links at the tagged commit name the tag, and
    fails if the set lacks one.
 5. **The GitHub release page** is made by *Publish release* once everything is published, with those screenshots and
    the release record attached: a pre-release for an alpha or a release candidate, with notes from the commits since
