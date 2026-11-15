@@ -4,6 +4,7 @@ import type { ScheduledChangeNotice } from '@agenthix/core'
 import { digestOf, fakeMachine, type FakeMachine } from '../../__tests__/fakeMachine'
 import { install } from '../../install/install'
 import { installed } from '../../service/context'
+import { consoleHere } from '../../install/console'
 import { BackupStore } from '../../backups/store'
 import { takeBackup } from '../../backups/take'
 import { listScheduled, scheduleChange, tickScheduled } from '../../scheduled/scheduler'
@@ -72,7 +73,7 @@ describe('an upgrade of HQ and its site @SC-835', () => {
       'Checking the images are signed by Agenthix', 'Pulling HQ 0.2.1 and its site', 'Stopping HQ and its site',
       'Taking a sealed backup', 'Starting 0.2.1', 'Health check',
     ])
-    expect(m.checked.map(c => c[0])).toEqual(['hq-server', 'hq-web', 'relay', 'site-server', 'agent', 'executor'].map(p => tagged(p, '0.2.1')))
+    expect(m.checked.map(c => c[0])).toEqual(['hq-server', 'hq-web', 'relay', 'site-server', 'agent', 'executor', 'console'].map(p => tagged(p, '0.2.1')))
     const order = actions()
     expect(order.indexOf('stop')).toBeGreaterThan(order.lastIndexOf('pull'))
     const here = installed(m.ctx)
@@ -86,6 +87,20 @@ describe('an upgrade of HQ and its site @SC-835', () => {
     expect(backups[0].header.kind).toBe('beforeUpgrade')
     expect(backups[0].name).toMatch(/-upgrade-[0-9a-f]{8}\.sealed$/)
     expect(readUpgrades(m.ctx.state).underWay).toBeNull()
+  })
+
+  it('moves the Fleet Console beside HQ to the same version, once HQ passes its health check (#294) @SC-2170', async () => {
+    expect(consoleHere(m.ctx)!.settings).toMatchObject({ version: '0.2.0', onHqMachine: true })
+    hqAnswers('0.2.1')
+    expect(await upgrade(m.ctx, 'hq', '0.2.1', () => {})).toEqual({ version: '0.2.1', rolledBack: false })
+    expect(consoleHere(m.ctx)!.settings).toMatchObject({ version: '0.2.1', images: { console: pinned('console', '0.2.1') } })
+    expect(fs.readFileSync(m.ctx.state.path('console', 'compose.json'), 'utf8')).toContain(pinned('console', '0.2.1'))
+  })
+
+  it('leaves the Fleet Console on its version when HQ is rolled back (#294) @SC-2170', async () => {
+    m.ctx.hqControl.status = async () => null
+    expect((await upgrade(m.ctx, 'hq', '0.2.1', () => {})).rolledBack).toBe(true)
+    expect(consoleHere(m.ctx)!.settings).toMatchObject({ version: '0.2.0', images: { console: pinned('console', '0.2.0') } })
   })
 
   it("leaves the agents running: they are a group of their own, which the site's project and its orphans never include @SC-1156", async () => {

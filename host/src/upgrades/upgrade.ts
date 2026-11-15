@@ -34,6 +34,7 @@ import { PARTS_OF } from './versions'
 import { refuseUnwritable } from './preflight'
 import { againCommand, builtPins, builtText, checkBuiltUpgrade, type BuiltImages } from './builtUpgrade'
 import { DEVELOPMENT } from '../images/ownVersion'
+import { consoleFollowsHq, moveConsoleWithHq } from './consoleFollows'
 
 export type UpgradeOutcome =
   | { version: string; rolledBack: false }
@@ -186,7 +187,9 @@ async function run(ctx: Context, target: Target, version: string, builtTag: stri
   if (!paths) throw new Refusal('failed', 'The host service cannot find its state folder on this machine, so it cannot upgrade. Nothing was changed.')
   await refuseUnwritable(ctx, target, version, paths)
   log(`from ${builtTag ? 'the images it runs now' : from}.`)
-  const parts = partsOf(PARTS_OF[target], version)
+  // The Fleet Console beside HQ goes with it: its image is checked and fetched with HQ's, before anything stops.
+  const consoleToo = !builtTag && target === 'hq' && consoleFollowsHq(ctx)
+  const parts = partsOf([...PARTS_OF[target], ...(consoleToo ? ['console' as const] : [])], version)
   // Before anything stops: an image that fails its check, or cannot be fetched, leaves everything running as it was.
   let built: BuiltImages | undefined
   const { pins } = builtTag
@@ -241,5 +244,7 @@ async function run(ctx: Context, target: Target, version: string, builtTag: stri
       notStarted = errorText(err)
     }
   }, () => (notStarted ? `fails: ${notStarted}` : 'done'))
-  return settle(ctx, u, progress, notStarted)
+  const outcome = await settle(ctx, u, progress, notStarted)
+  if (consoleToo && !outcome.rolledBack) log(await moveConsoleWithHq(ctx, version, pins))
+  return outcome
 }

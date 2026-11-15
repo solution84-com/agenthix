@@ -4,6 +4,7 @@
  * sockets — the owner socket for the CLI, and the figures socket for the site it runs. It runs until Docker stops
  * its container.
  */
+import { followHostServiceVersion } from './upgrades/consoleFollows'
 import { DEFAULT_INSTALL_NAMESPACE } from '@agenthix/core'
 import fs from 'node:fs'
 import { FIGURES_MOUNT, FIGURES_SOCKET, OWNER_SOCKET, STATE_DIR, cloudSettings, machineName } from './config'
@@ -164,6 +165,8 @@ async function main(): Promise<void> {
   follower.resume()
   // Remote access Cloud turned on: ends it if its time passed while stopped, else sets its timer again.
   resumeRemoteAccess(ctx)
+  // A Fleet Console on a machine of its own runs this host service's version: once this one is newer, it follows.
+  void followHostServiceVersion(ctx).then(line => { if (line) console.warn(line) }, err => console.warn(`The Fleet Console was not moved: ${err instanceof Error ? err.message : String(err)}`))
   const stopLocalConsole = keepLocalConsoleJoined(ctx, 60_000, line => console.warn(line))
   // A machine that disconnected itself while HQ did not answer tells HQ it left once HQ does (spec §6).
   const stopLeaving = startLeavingNotices(state, 60_000, line => console.warn(line))

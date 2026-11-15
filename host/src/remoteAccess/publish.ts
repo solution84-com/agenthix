@@ -7,7 +7,8 @@ import { consoleHere, writeAndStartConsole } from '../install/console'
 import type { ConsoleAdmission } from '../compose/console'
 import type { Context } from '../service/context'
 
-function admissionNow(ctx: Context): ConsoleAdmission {
+/** How the Fleet Console here is admitted to HQ, as its compose file says: kept when it is written again. */
+export function admissionNow(ctx: Context): ConsoleAdmission {
   const compose = ctx.state.readJson('console', 'compose.json') as { services?: { console?: { environment?: Record<string, unknown> } } } | null
   const env = compose?.services?.console?.environment ?? {}
   // The file escapes `$` for compose (composeJson); the value is the one before that.
