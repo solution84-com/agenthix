@@ -87,14 +87,14 @@ The five protocols moved through the alpha period: client 1.23, site 1.19, host 
 is reinstalled, so v0.1.0's baseline is 1.0 everywhere with nothing deprecated. From then on, a deprecation is one a
 real user's peer depends on. ADR-0136 restarted them once already, at alpha.1, for the same reason.
 
-- [ ] 3.1 Every deprecated piece removed, with the code on both sides that still reads or writes it: hq, the site,
+- [x] 3.1 Every deprecated piece removed, with the code on both sides that still reads or writes it: hq, the site,
       the host service, the Fleet Console, the relay and core
-- [ ] 3.2 Each protocol's constant set to `1.0` and its snapshot recorded again (`npm run snapshot:update` in core,
+- [x] 3.2 Each protocol's constant set to `1.0` and its snapshot recorded again (`npm run snapshot:update` in core,
       whose rules must allow a deliberate reset; if they don't, the reset is a step of its own in the snapshot tooling)
-- [ ] 3.3 The other peers: the mobile app starts at the client protocol of `v0.1.0` (no one runs it yet, so it
+- [x] 3.3 The other peers: the mobile app starts at the client protocol of `v0.1.0` (no one runs it yet, so it
       needs no change before the cut; owner, 2026-11-15). Agenthix Cloud's side resets its expected version with the
       cut; its maintainers are told which cut carries the reset
-- [ ] 3.4 `versioning.md`'s history of each protocol's alpha minors replaced by the 1.0 baseline
+- [x] 3.4 `versioning.md`'s history of each protocol's alpha minors replaced by the 1.0 baseline
 
 ### Phase 4 — The release checks cross the squash
 
@@ -102,7 +102,7 @@ real user's peer depends on. ADR-0136 restarted them once already, at alpha.1, f
       start from the newest tag, whose history the squash replaces. Each recognises a squashed history (the tag's first
       migration isn't the tree's) and is skipped, saying why: *"the migrations were squashed after <tag>; an
       installation of <tag> is reinstalled, not upgraded"*. From the first tag after the squash, both run as before
-- [ ] 4.2 The full regression passes on the squashed branch. *Release* is proved by alpha.6's own run (6.1): its
+- [x] 4.2 The full regression passes on the squashed branch. *Release* is proved by alpha.6's own run (6.1): its
       release build and install test install fresh
 
 ### Phase 5 — The rule written down
@@ -141,4 +141,44 @@ real user's peer depends on. ADR-0136 restarted them once already, at alpha.1, f
 
 | Phase | What changed | Why |
 |---|---|---|
-| Phase 3 | Added: every protocol restarted at 1.0, its deprecated pieces removed. The mobile app is not changed; it starts at `v0.1.0` | The same clean start as the schema; from v0.1.0 the protocols are public and every break must be deliberate (owner, 2026-11-15) |
+| Phase 1 | Kept after the double check: `Task.lastWorkedAt` (read by three screens, written only by the demo and guide seeds; the missing write is #295), `Project.slug` and `Project.executionSiteId` stay optional (empty by design for a person's own space), `AgentSession.metadata` (hq fills it). #227 and #243 were already done at head | The owner approved each removal subject to a double check; the compiler found these reads the name search missed |
+| Phase 2 | The proof compares the databases' catalogs, not only Prisma's view of them; hq's initial migration carries the 11 partial or expression unique indexes, 3 check constraints and the `UsageCallCost` view written by hand in the old chain | Prisma's own comparison doesn't see them, so the first proof passed while they were missing; the full regression's billing and personal-space tests caught it |
+| Phase 4 | The test harnesses remake a test database from empty when its history no longer matches the migrations; the full regression makes the site's database client from its schema first | Existing test databases kept the old history, and a stale client stopped the site: both only showed after a squash |
+| Phase 3 | Added: every protocol restarted at 1.0, its deprecated pieces removed. The mobile app is not changed; it starts at `v0.1.0`. Kept as ordinary 1.0 fields because the product uses them: a task's `runState`, the skill sources `org` and `agent`, the run origin `pulse` | The same clean start as the schema; from v0.1.0 the protocols are public and every break must be deliberate (owner, 2026-11-15) |
+
+## Closing note
+
+**2026-11-15.** Built and closed on the branch; waiting for the owner's review, the merge and the alpha.6 cut (6.1),
+which are the owner's.
+
+- **Schema:**
+  - hq loses 44 columns, enum values and indexes, and the site 17 fields, all double-checked with the compiler before
+    removal.
+  - Each app's migrations (hq 44, site 8) are squashed into one. The catalogs of a database built from the old chain
+    plus the approved removals, and of one built from the new migration, are identical: columns, indexes,
+    constraints, views and enums.
+- **Protocols:**
+  - Client, site, host, relay and Cloud are at 1.0, with nothing deprecated.
+  - The snapshots were recorded again with a tested, deliberate reset.
+  - The services session moves Cloud's pin with alpha.6; the mobile app starts at v0.1.0.
+- **Closing regression:**
+  - 49 steps; 48 pass.
+  - hq's integration suite: 4,232 passed and 1 failed. The failure (`staleRequests.integration.test.ts`, a request
+    whose task was deleted) passes when run alone.
+  - The upgrade test and the migration check skip across the squash and say why.
+  - An earlier run failed 8 steps: the missing database objects, a stale site client, old test databases, and one
+    stale test. All four are fixed (Deviations).
+- **Open items, deferred as issues:**
+  - #294: the Fleet Console isn't upgraded with hq.
+  - #295: a task's last worked time is never recorded.
+  - planning#506: breaking changes need a version move and a warning.
+
+  None blocks a release.
+- **Closed by this unit:** #311, #243 and #227 (planning).
+- **Noted, not done:**
+  - the file view's "site too old" state is kept for the first post-1.0 gate, with three tests still tagged with the
+    retired SC-1883;
+  - a turn's withheld tools differ from a run's (lane H's note).
+- **QA:** SC-2168 and SC-2169 written; SC-1015 and SC-1883 retired; other scenarios corrected to the 1.0 protocols.
+  No QA audit ran; these entries wait for the audit before `0.1.0`.
+- **Records:** ADR-0136 notes the second restart at 1.0. ADR-0146 still holds.
