@@ -17,9 +17,11 @@ In VS Code, **Run Task → `[dev] Start All`** does all of it. `hq/scripts/dev/s
 checks (the agent container image) and the network modes below, and starts hq's relay beside it.
 
 hq needs Node.js 24.14.1 or later. Its Wasp CLI is pinned as a dev dependency (`@wasp.sh/wasp-cli`), so Wasp
-runs as `npx wasp` from `hq/`; a global `wasp` of another version is never used. On a fresh clone, run
-`npm install && npx wasp install` in `hq/` once first. The Wasp CLI sends usage telemetry unless
-`WASP_TELEMETRY_DISABLE=1` is set in your environment; hq's images set it.
+runs as `npx wasp` from `hq/`; a global `wasp` of another version is never used. On a fresh clone, install `core`
+(`npm ci && npm run build`) and `ui` (`npm ci`), then run `hq/scripts/install.sh` once first: it installs exactly what
+hq's lockfile pins, sets up Wasp's own packages and compiles. A plain `npm install` in `hq/` before the first compile
+drops the generated code's packages from the lockfile, and the compile then takes them at their newest. The Wasp CLI
+sends usage telemetry unless `WASP_TELEMETRY_DISABLE=1` is set in your environment; hq's images set it.
 
 Before the first run, copy the env templates: `hq/.env.server.example` → `hq/.env.server`,
 `hq/.env.client.example` → `hq/.env.client`, `site/.env.server.example` → `site/.env.server`.

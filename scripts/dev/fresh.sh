@@ -51,8 +51,14 @@ for m in "${MODULES[@]}"; do
   [ -d "$dir/node_modules" ] || continue
   record="$dir/node_modules/.package-lock.json"
   if [ ! -f "$record" ] || [ "$dir/package-lock.json" -nt "$record" ]; then
-    echo "fresh: package-lock.json changed in $m, running npm install."
-    (cd "$dir" && npm install)
+    if [ "$m" = hq ] && [ ! -d "$dir/.wasp/out" ] && [ -f "$dir/scripts/install.sh" ]; then
+      # Without Wasp's generated code, a plain install drops its packages from hq's lockfile.
+      echo "fresh: package-lock.json changed in $m, running hq/scripts/install.sh."
+      bash "$dir/scripts/install.sh"
+    else
+      echo "fresh: package-lock.json changed in $m, running npm install."
+      (cd "$dir" && npm install)
+    fi
     # npm leaves its record alone when nothing needed changing; mark the lockfile as seen.
     [ -f "$record" ] && touch "$record"
   fi

@@ -148,6 +148,8 @@ jobs:
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
           node scripts/release/flags-overdue.mjs "$VERSION"
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: The Sigstore trust root hq carries is fresh enough to ship
         run: node scripts/release/trust-root.mjs
       # Checks runs on main and release branches, not on other branches, so a dry run there has none to wait for.
@@ -203,7 +205,9 @@ jobs:
       # The pin step reads images with hq's pixelmatch and pngjs, and nothing built.
       - name: Install what the pin step reads
         working-directory: hq
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Pin the screenshots
         working-directory: hq
         env:

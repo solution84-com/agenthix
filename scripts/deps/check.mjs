@@ -1,6 +1,7 @@
 // The rules that keep every package within what the others require of it. Plain Node, no dependencies.
 //   node scripts/deps/check.mjs [<root>]
 // Prints one line per failure (module, file, rule) and exits 1; prints nothing and exits 0 when every rule holds.
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -52,10 +53,28 @@ function modulesOf(root) {
   }))
 }
 
+// In a git checkout only tracked files count, so scratch folders and ignored logs never fail it; a tree with no git
+// (the tests' fixtures) is walked whole.
 function walk(dir, visit) {
+  let tracked
+  try {
+    tracked = execFileSync('git', ['ls-files', '-z'], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  } catch {
+    tracked = null
+  }
+  if (tracked !== null && fs.existsSync(path.join(dir, '.git'))) {
+    for (const f of tracked.split('\0').filter(Boolean)) {
+      if (!f.split('/').some(d => SKIP_DIRS.has(d))) visit(path.join(dir, f))
+    }
+    return
+  }
+  walkAll(dir, visit)
+}
+
+function walkAll(dir, visit) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, e.name)
-    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walk(full, visit) } else visit(full)
+    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walkAll(full, visit) } else visit(full)
   }
 }
 

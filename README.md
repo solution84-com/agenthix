@@ -91,7 +91,7 @@ You need Node.js 24.14.1 or later (`.nvmrc` names that exact version, so CI and 
 ```bash
 docker compose up -d          # dev databases: hq on 4109, site on 4209
 
-cd hq   && npm install && npx wasp install   # first time only
+hq/scripts/install.sh         # first time only, after core's build and ui's install (docs/CONTRIBUTING.md)
 cd hq   && npx wasp start     # client 4100, server 4101
 cd site && npm run dev        # server 4201
 ```

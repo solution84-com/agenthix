@@ -32,12 +32,13 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   exit 1
 fi
 
-# Wasp checks that hq's packages are installed before it compiles. An install may bring hq's lockfile up to date with
-# the generated code's packages; that is part of the update, and package.json is still held to what is committed.
+# hq's lockfile also pins the packages of the code Wasp generates, so npm updates them only while that code is there.
+# hq's install script generates it and leaves the lockfile as committed; `npm update` then moves it within the ranges.
 if [ ! -f hq/.wasp/out/server/package.json ]; then
   echo "Compiling hq, so its lockfile keeps the packages of the code Wasp generates." >&2
   [ -d core/dist ] || (cd core && npm ci --no-audit --no-fund >&2 && npm run build >&2)
-  (cd hq && export WASP_TELEMETRY_DISABLE=1 && npm install --no-audit --no-fund >&2 && npx wasp install >&2 && npx wasp compile >&2)
+  [ -d ui/node_modules ] || (cd ui && npm ci --no-audit --no-fund >&2)
+  hq/scripts/install.sh >&2
 fi
 
 work="$(mktemp -d)"

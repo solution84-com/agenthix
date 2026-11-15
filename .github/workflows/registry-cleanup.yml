@@ -63,6 +63,8 @@ jobs:
           const parts = Object.keys(JSON.parse(readFileSync('../scripts/images/parts.json', 'utf8')).parts)
           console.log(`names=${JSON.stringify(Object.fromEntries(parts.map(p => [p, imageName(p)])))}`)
           EOF
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: The plan
         id: plan
         env:
