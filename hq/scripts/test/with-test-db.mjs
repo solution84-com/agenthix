@@ -134,7 +134,18 @@ async function prepare(name) {
   if (created.status !== 0 && !/already exists/i.test(created.output)) {
     return `failed to create test database ${name}:\n${created.output}`
   }
-  const migrated = await run('npx', ['prisma', 'migrate', 'deploy'], { env: { ...baseEnv, DATABASE_URL: urlFor(name) } })
+  const deploy = () => run('npx', ['prisma', 'migrate', 'deploy'], { env: { ...baseEnv, DATABASE_URL: urlFor(name) } })
+  let migrated = await deploy()
+  if (migrated.status !== 0) {
+    // A test database is disposable: when its history no longer matches the committed migrations (they were
+    // squashed, or a failed run left it part-way), it is made again from empty, once.
+    console.error(`[with-test-db] the migrations don't apply to ${name}; making it again from empty.`)
+    const db = nameIn(urlFor(name))
+    for (const input of [`DROP DATABASE IF EXISTS "${db}" WITH (FORCE)`, `CREATE DATABASE "${db}"`]) {
+      await run('npx', ['prisma', 'db', 'execute', '--stdin', '--url', urlFor('postgres')], { input })
+    }
+    migrated = await deploy()
+  }
   if (migrated.status !== 0) return `failed to apply migrations to test database ${name}:\n${migrated.output}`
   return null
 }

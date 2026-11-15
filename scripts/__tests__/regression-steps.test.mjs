@@ -95,6 +95,8 @@ test('only hq integration is given a secrets key, and the cross-app runs use the
     assert.equal(s.env.CROSSAPP_DB_CONNECTION_LIMIT, '5')
   }
   assert.ok(ids(steps, 'prepare').indexOf('core-build') < ids(steps, 'prepare').indexOf('hq-build'))
+  // The site's database client is made from its schema before anything starts the site.
+  assert.ok(ids(steps, 'prepare').includes('site-client'))
 })
 
 test('a change to site alone runs site and its dependents, its integration and the cross-app suite, not the browser tests', () => {

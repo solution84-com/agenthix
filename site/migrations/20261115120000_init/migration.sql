@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "SessionStatus" AS ENUM ('ACTIVE', 'EXPIRED', 'ARCHIVED', 'CLOSED');
+CREATE TYPE "SessionStatus" AS ENUM ('ACTIVE', 'ARCHIVED', 'CLOSED');
 
 -- CreateEnum
 CREATE TYPE "SessionClosedReason" AS ENUM ('HARNESS_STATE_MISSING', 'LEFT_PROJECT', 'LEFT_ORGANISATION', 'PROJECT_DELETED');
@@ -22,14 +22,16 @@ CREATE TYPE "TranscriptEntryKind" AS ENUM ('THOUGHT', 'RUN_FAILED', 'RUN_STOPPED
 -- CreateEnum
 CREATE TYPE "WorkspaceOwnerType" AS ENUM ('project', 'user');
 
+-- CreateEnum
+CREATE TYPE "ExecutorRunState" AS ENUM ('RUNNING', 'SCANNING', 'WRITING_BACK', 'PASSED', 'FAILED', 'STOPPED');
+
+-- CreateEnum
+CREATE TYPE "ExecutorSnapshotKind" AS ENUM ('CLONE', 'COPY');
+
 -- CreateTable
 CREATE TABLE "SiteConfig" (
     "id" TEXT NOT NULL DEFAULT 'singleton',
     "siteId" TEXT NOT NULL,
-    "name" TEXT NOT NULL DEFAULT 'Agenthix Site',
-    "description" TEXT NOT NULL DEFAULT '',
-    "bootstrapRequired" BOOLEAN NOT NULL DEFAULT false,
-    "riskRules" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -39,13 +41,9 @@ CREATE TABLE "SiteConfig" (
 -- CreateTable
 CREATE TABLE "HqConnection" (
     "id" TEXT NOT NULL DEFAULT 'singleton',
-    "nonce" TEXT,
-    "nonceExpiresAt" TIMESTAMP(3),
     "hqUrl" TEXT NOT NULL,
-    "orgId" TEXT,
     "hqWsUrl" TEXT,
     "connectionToken" TEXT,
-    "protocolVersion" INTEGER NOT NULL DEFAULT 1,
     "status" TEXT NOT NULL DEFAULT 'LINKING',
     "connectedAt" TIMESTAMP(3),
     "pairedHqUrl" TEXT,
@@ -76,7 +74,6 @@ CREATE TABLE "AgentSession" (
     "totalCacheWriteTokens" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "expiresAt" TIMESTAMP(3),
     "taskId" TEXT,
     "primaryOwnerType" "WorkspaceOwnerType",
     "primaryOwnerId" TEXT,
@@ -117,17 +114,14 @@ CREATE TABLE "AgentRun" (
     "id" TEXT NOT NULL,
     "agentId" TEXT NOT NULL,
     "sessionId" TEXT NOT NULL,
-    "parentRunId" TEXT,
-    "rootRunId" TEXT,
     "taskId" TEXT,
+    "routineId" TEXT,
     "status" "RunStatus" NOT NULL DEFAULT 'PENDING',
     "inputText" TEXT NOT NULL,
     "outputText" TEXT,
-    "thought" TEXT,
     "metadata" JSONB,
     "model" TEXT NOT NULL,
     "usage" JSONB,
-    "diagnosticLog" JSONB DEFAULT '[]',
     "error" TEXT,
     "startedAt" TIMESTAMP(3),
     "endedAt" TIMESTAMP(3),
@@ -135,6 +129,7 @@ CREATE TABLE "AgentRun" (
     "agentPackageDigest" TEXT,
     "orgPackageDigest" TEXT,
     "platformPackageDigest" TEXT,
+    "skillDigests" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "manifestStatus" "ManifestStatus",
     "pendingManifest" JSONB,
     "approvedManifest" JSONB,
@@ -142,6 +137,7 @@ CREATE TABLE "AgentRun" (
     "manifestDecidedAt" TIMESTAMP(3),
     "contextUse" JSONB,
     "auditSummary" JSONB,
+    "skillsUsed" JSONB,
 
     CONSTRAINT "AgentRun_pkey" PRIMARY KEY ("id")
 );
@@ -182,16 +178,92 @@ CREATE TABLE "RepoAttachment" (
     "ownerId" TEXT NOT NULL,
     "workspaceId" TEXT,
     "repoUrl" TEXT NOT NULL,
+    "installationId" INTEGER,
+    "repositoryId" BIGINT,
+    "accountId" BIGINT,
+    "accountLogin" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "RepoAttachment_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "SiteConfig_siteId_key" ON "SiteConfig"("siteId");
+-- CreateTable
+CREATE TABLE "BranchCopy" (
+    "id" TEXT NOT NULL,
+    "ownerType" "WorkspaceOwnerType" NOT NULL,
+    "ownerId" TEXT NOT NULL,
+    "workspaceId" TEXT NOT NULL,
+    "branch" TEXT NOT NULL,
+    "backPending" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BranchCopy_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LivePreview" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT,
+    "personId" TEXT NOT NULL,
+    "ownerType" "WorkspaceOwnerType" NOT NULL,
+    "ownerId" TEXT NOT NULL,
+    "workspaceId" TEXT NOT NULL,
+    "branch" TEXT NOT NULL,
+    "onMain" BOOLEAN NOT NULL DEFAULT false,
+    "copyKind" TEXT NOT NULL,
+    "copyId" TEXT NOT NULL,
+    "baseCommit" TEXT,
+    "headCommit" TEXT,
+    "openedAt" TIMESTAMP(3) NOT NULL,
+    "state" JSONB NOT NULL,
+    "runs" JSONB NOT NULL DEFAULT '[]',
+    "pending" JSONB,
+    "containersRemoved" BOOLEAN NOT NULL DEFAULT false,
+    "live" BOOLEAN NOT NULL DEFAULT true,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LivePreview_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LivePreviewServiceApproval" (
+    "workspaceId" TEXT NOT NULL,
+    "service" TEXT NOT NULL,
+    "declarationHash" TEXT NOT NULL,
+    "approvedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "LivePreviewServiceApproval_pkey" PRIMARY KEY ("workspaceId","service","declarationHash")
+);
+
+-- CreateTable
+CREATE TABLE "ExecutorRun" (
+    "id" TEXT NOT NULL,
+    "ownerType" "WorkspaceOwnerType" NOT NULL,
+    "ownerId" TEXT NOT NULL,
+    "workspaceId" TEXT,
+    "state" "ExecutorRunState" NOT NULL DEFAULT 'RUNNING',
+    "currentStep" INTEGER,
+    "result" JSONB,
+    "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "endedAt" TIMESTAMP(3),
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExecutorRun_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExecutorSnapshot" (
+    "runId" TEXT NOT NULL,
+    "kind" "ExecutorSnapshotKind" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "removedAt" TIMESTAMP(3),
+
+    CONSTRAINT "ExecutorSnapshot_pkey" PRIMARY KEY ("runId")
+);
 
 -- CreateIndex
-CREATE UNIQUE INDEX "HqConnection_nonce_key" ON "HqConnection"("nonce");
+CREATE UNIQUE INDEX "SiteConfig_siteId_key" ON "SiteConfig"("siteId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AgentSession_sessionKey_key" ON "AgentSession"("sessionKey");
@@ -224,7 +296,7 @@ CREATE INDEX "AgentRun_sessionId_createdAt_idx" ON "AgentRun"("sessionId", "crea
 CREATE INDEX "AgentRun_taskId_createdAt_idx" ON "AgentRun"("taskId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "AgentRun_parentRunId_idx" ON "AgentRun"("parentRunId");
+CREATE INDEX "AgentRun_routineId_createdAt_idx" ON "AgentRun"("routineId", "createdAt");
 
 -- CreateIndex
 CREATE INDEX "ToolCallLog_runId_idx" ON "ToolCallLog"("runId");
@@ -238,6 +310,21 @@ CREATE UNIQUE INDEX "RepoAttachment_workspaceId_key" ON "RepoAttachment"("worksp
 -- CreateIndex
 CREATE INDEX "RepoAttachment_ownerType_ownerId_idx" ON "RepoAttachment"("ownerType", "ownerId");
 
+-- CreateIndex
+CREATE INDEX "BranchCopy_workspaceId_idx" ON "BranchCopy"("workspaceId");
+
+-- CreateIndex
+CREATE INDEX "BranchCopy_backPending_idx" ON "BranchCopy"("backPending");
+
+-- CreateIndex
+CREATE INDEX "LivePreview_workspaceId_live_idx" ON "LivePreview"("workspaceId", "live");
+
+-- CreateIndex
+CREATE INDEX "LivePreview_live_idx" ON "LivePreview"("live");
+
+-- CreateIndex
+CREATE INDEX "ExecutorRun_state_idx" ON "ExecutorRun"("state");
+
 -- AddForeignKey
 ALTER TABLE "TranscriptEntry" ADD CONSTRAINT "TranscriptEntry_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "AgentSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -245,11 +332,14 @@ ALTER TABLE "TranscriptEntry" ADD CONSTRAINT "TranscriptEntry_sessionId_fkey" FO
 ALTER TABLE "AgentRun" ADD CONSTRAINT "AgentRun_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "AgentSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AgentRun" ADD CONSTRAINT "AgentRun_parentRunId_fkey" FOREIGN KEY ("parentRunId") REFERENCES "AgentRun"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "ToolCallLog" ADD CONSTRAINT "ToolCallLog_runId_fkey" FOREIGN KEY ("runId") REFERENCES "AgentRun"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "RepoAttachment" ADD CONSTRAINT "RepoAttachment_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "BranchCopy" ADD CONSTRAINT "BranchCopy_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecutorSnapshot" ADD CONSTRAINT "ExecutorSnapshot_runId_fkey" FOREIGN KEY ("runId") REFERENCES "ExecutorRun"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
