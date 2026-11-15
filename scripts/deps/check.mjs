@@ -143,6 +143,54 @@ function typescriptRange(root, mods, fail) {
   }
 }
 
+const IMAGE_NAME = '[a-z0-9][a-z0-9._-]*(?:/[a-z0-9._-]+)*'
+const OWN_IMAGE = /^agenthix-/
+
+// Every outside image names a digest: on a FROM line, in a compose file's image:, and in a source string constant. Our
+// own images, a FROM that names an earlier build stage, scratch, and an image set from a variable are exempt. A source
+// string is read as an image only when its name is one the FROM lines and compose files already use and its tag is a
+// version (so `node:crypto`, an import, is not one). Comments, tests and end-to-end recipes are not read.
+function imagesPinned(root, fail) {
+  const refs = []
+  const sources = []
+  walk(root, f => {
+    const base = path.basename(f)
+    const r = rel(root, f)
+    const module = r.includes(path.sep) ? r.split(path.sep)[0] : 'root'
+    const lines = () => fs.readFileSync(f, 'utf8').split('\n')
+    if (/^([^/]*\.)?Dockerfile$/.test(base)) {
+      const stages = new Set()
+      lines().forEach((line, i) => {
+        const m = /^FROM\s+(?:--platform=\S+\s+)?(\S+)(?:\s+AS\s+(\S+))?/i.exec(line)
+        if (!m) return
+        if (m[2]) stages.add(m[2])
+        if (m[1] !== 'scratch' && !stages.has(m[1]) && !(m[2] && m[1] === m[2])) refs.push({ module, at: `${r}:${i + 1}`, ref: m[1] })
+      })
+    } else if (/^(docker-)?compose[^/]*\.ya?ml$/.test(base) || /^\.github\/workflows\/[^/]+\.ya?ml$/.test(r.split(path.sep).join('/'))) {
+      lines().forEach((line, i) => {
+        const m = /^\s*image:\s*['"]?([^\s'"#]+)/.exec(line)
+        if (m && !m[1].includes('${')) refs.push({ module, at: `${r}:${i + 1}`, ref: m[1] })
+      })
+    } else if (/\.(ts|tsx|mjs|js|cjs)$/.test(base) && !/\.(test|spec)\./.test(base) && !r.split(path.sep).some(d => d === '__tests__' || d === 'e2e')) {
+      sources.push({ module, r, f })
+    }
+  })
+  const outside = refs.filter(({ ref }) => !OWN_IMAGE.test(ref.split('/').at(-1)))
+  for (const { module, at, ref } of outside) {
+    if (!ref.includes('@sha256:')) fail(module, at, `${ref} is not pinned by a digest`)
+  }
+  const names = new Set(outside.map(({ ref }) => ref.split('@')[0].replace(/:[^:/]*$/, '')))
+  const constant = new RegExp(`(['"\`])(${IMAGE_NAME}):(\\d[\\w.-]*|latest)(@sha256:[0-9a-f]{64})?\\1`, 'g')
+  for (const { module, r, f } of sources) {
+    fs.readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+      if (/^\s*(\/\/|\*|\/\*)/.test(line)) return
+      for (const m of line.matchAll(constant)) {
+        if (names.has(m[2]) && !m[4]) fail(module, `${r}:${i + 1}`, `${m[2]}:${m[3]} is not pinned by a digest`)
+      }
+    })
+  }
+}
+
 /** Every failure under `root`, as a line each. */
 export function check(root) {
   const failures = []
@@ -153,6 +201,7 @@ export function check(root) {
   sameVersions(root, mods, fail)
   typesNode(root, mods, fail)
   typescriptRange(root, mods, fail)
+  imagesPinned(root, fail)
   return failures
 }
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Moves every base image to the newest digest of its tag, and its tag to the newest of the same shape within its major
+// Moves every outside image to the newest digest of its tag, and its tag to the newest of the same shape within its major
 // (Alpine 3.23 to 3.24; Caddy's 2-alpine keeps its tag). Node moves to one version every variant in use has, within the
 // major .nvmrc names, and that version is then written everywhere the old one is named: .nvmrc, every Dockerfile, each
-// module's engines, comments, docs and test scripts. cosign moves in the host image and the workflows' COSIGN_VERSION
+// module's engines, comments, docs and test scripts. An outside image is named on a FROM line, in a compose file's
+// `image:` and in a source string constant ('name:tag@sha256:...'); the same name:tag moves everywhere it is named, so
+// a constant and the compose line that name one image move together. cosign moves in the host image and the workflows' COSIGN_VERSION
 // together. Run by scripts/deps/update.sh; writes what moved, as JSON, to --out.
 //   node scripts/deps/images.mjs --out <file>
 import { execFileSync } from 'node:child_process'
@@ -14,12 +16,36 @@ import { compareNumbers, parseVersionTag } from './versions.mjs'
 
 const FROM = /^FROM\s+(?:--platform=\S+\s+)?([^\s@:]+(?:\/[^\s@:]+)*):([^\s@]+)@(sha256:[0-9a-f]{64})/gm
 // Records of what was, never rewritten: the units of work and the decision records; and these scripts, whose tests
-// name versions as examples.
-const NOT_REWRITTEN = [/package-lock\.json$/, /^docs\/work\//, /^docs\/adr\//, /^scripts\/deps\//]
+// name versions as examples (and the check's test, whose fixture tree names one).
+const NOT_REWRITTEN = [/package-lock\.json$/, /^docs\/work\//, /^docs\/adr\//, /^scripts\/deps\//, /^scripts\/__tests__\/deps-check\.test\.mjs$/]
 const COSIGN = /(^|\/)sigstore\/cosign\/cosign$/
+
+const REF = '([a-z0-9][a-z0-9._-]*(?:\\/[a-z0-9._-]+)*):([\\w][\\w.-]*)@(sha256:[0-9a-f]{64})'
+const COMPOSE_IMAGE = new RegExp(`^\\s*image:\\s*(['"]?)${REF}\\1\\s*(?:#.*)?$`, 'gm')
+const SOURCE_CONSTANT = new RegExp(`(['"\`])${REF}\\1`, 'g')
+const asRef = m => ({ name: m[0], tag: m[1], digest: m[2] })
 
 export function parseFromLines(text) {
   return [...text.matchAll(FROM)].map(m => ({ name: m[1], tag: m[2], digest: m[3] }))
+}
+
+export function parseComposeImages(text) {
+  return [...text.matchAll(COMPOSE_IMAGE)].map(m => asRef(m.slice(2)))
+}
+
+export function parseSourceImages(text) {
+  return [...text.matchAll(SOURCE_CONSTANT)].map(m => asRef(m.slice(2)))
+}
+
+/** The pinned outside images a tracked file names, by what kind of file it is. */
+export function imageRefsOf(file, text) {
+  const base = file.split('/').at(-1)
+  if (/^([^/]*\.)?Dockerfile$/.test(base)) return parseFromLines(text)
+  if (/^(docker-)?compose[^/]*\.ya?ml$/.test(base) || /^\.github\/workflows\/[^/]+\.ya?ml$/.test(file)) return parseComposeImages(text)
+  if (/\.(ts|tsx|mjs|js|cjs)$/.test(base) && !/\.(test|spec)\./.test(base) && !/(^|\/)__tests__\//.test(file) && !NOT_REWRITTEN.some(r => r.test(file))) {
+    return parseSourceImages(text)
+  }
+  return []
 }
 
 /** For each pinned name:tag, the tag it moves to. One version per image and shape, which every suffix in use has. */
@@ -64,10 +90,16 @@ async function main() {
   if (!process.argv.includes('--out') || !out) throw new Error('Usage: node scripts/deps/images.mjs --out <file>')
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
   const tracked = execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean)
-  const dockerfiles = tracked.filter(f => /(^|\/)([^/]*\.)?Dockerfile$/.test(f))
   const read = f => fs.readFileSync(path.join(root, f), 'utf8')
-  const texts = new Map(dockerfiles.map(f => [f, read(f)]))
-  const pins = dockerfiles.flatMap(f => parseFromLines(texts.get(f)).map(p => ({ ...p, file: f })))
+  const texts = new Map()
+  const pins = []
+  for (const f of tracked) {
+    if (!fs.lstatSync(path.join(root, f), { throwIfNoEntry: false })?.isFile()) continue
+    const text = read(f)
+    const refs = imageRefsOf(f, text)
+    if (refs.length) texts.set(f, text)
+    pins.push(...refs.map(r => ({ ...r, file: f })))
+  }
 
   const nvmrc = read('.nvmrc').trim()
   const nodePins = pins.filter(p => p.name === 'node')
@@ -94,7 +126,7 @@ async function main() {
     const digest = await digestOf(pin.name, tag)
     if (tag === pin.tag && digest === pin.digest) continue
     texts.set(pin.file, texts.get(pin.file).replaceAll(`${pin.name}:${pin.tag}@${pin.digest}`, `${pin.name}:${tag}@${digest}`))
-    const module = pin.file.split('/')[0]
+    const module = pin.file.includes('/') ? pin.file.split('/')[0] : 'root'
     const move = { module, name: pin.name, from: `${pin.tag}@${short(pin.digest)}`, to: `${tag}@${short(digest)}` }
     const key = JSON.stringify(move)
     if (!seen.has(key)) { seen.add(key); moves.push(move) }

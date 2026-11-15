@@ -104,3 +104,49 @@ test("TypeScript's range must be patch-only outside hq's exact one", () => {
   const exact = failuresOf(files => { files['core/package.json'].devDependencies.typescript = '6.0.3' })
   assert.ok(exact.some(l => l.startsWith('core: ') && l.includes('patch-only')))
 })
+
+const digest = `sha256:${'a'.repeat(64)}`
+
+test('an outside image on a FROM line without a digest fails; a stage, scratch and our own image do not', () => {
+  const f = failuresOf(files => {
+    files['hq/docker/Dockerfile'] = [
+      `FROM node:24.14.1-alpine3.23@${digest} AS build`,
+      'FROM build AS final',
+      'FROM scratch',
+      'FROM agenthix-hq-server:latest',
+      'FROM --platform=$BUILDPLATFORM alpine:3.23 AS tools',
+    ].join('\n')
+  })
+  assert.equal(f.length, 1)
+  assert.match(f[0], /^hq: hq\/docker\/Dockerfile:5: alpine:3\.23 is not pinned by a digest/)
+})
+
+test("a workflow's service image without a digest fails", () => {
+  const f = failuresOf(files => {
+    files['.github/workflows/checks.yml'] = `jobs:\n  a:\n    services:\n      db:\n        image: postgres:16-alpine\n`
+  })
+  assert.equal(f.length, 1)
+  assert.match(f[0], /\.github\/workflows\/checks\.yml:5: postgres:16-alpine is not pinned by a digest/)
+})
+
+test('an outside image in a compose file without a digest fails; our own image does not', () => {
+  const f = failuresOf(files => {
+    files['hq/compose.yml'] = `services:\n  a:\n    image: agenthix-hq-server\n  b:\n    image: postgres:16-alpine\n  c:\n    image: caddy:2-alpine@${digest}\n`
+  })
+  assert.equal(f.length, 1)
+  assert.match(f[0], /^hq: hq\/compose\.yml:5: postgres:16-alpine is not pinned by a digest/)
+})
+
+test('a string constant naming an outside image without a digest fails; one with a digest, and other strings, do not', () => {
+  const f = failuresOf(files => {
+    files['hq/compose.yml'] = `services:\n  a:\n    image: postgres:16-alpine@${digest}\n`
+    files['host/src/a.ts'] = [
+      `export const A = 'postgres:16-alpine@${digest}'`,
+      "export const B = 'postgres:16-alpine'",
+      "export const C = 'localhost:3000'",
+    ].join('\n')
+    files['host/package.json'] = { name: 'host' }
+  })
+  assert.equal(f.length, 1)
+  assert.match(f[0], /^host: host\/src\/a\.ts:2: postgres:16-alpine is not pinned by a digest/)
+})
