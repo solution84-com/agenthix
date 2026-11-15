@@ -22,7 +22,7 @@ Nobody joins an organisation's **HQ** without an invitation. HQ is your organisa
 5. Under **Projects they join on accepting**, add the projects they should start in. It is optional, and they join each one as a member.
 6. Select **Create link**.
 
-![The Invite someone dialog, with the role choices and a project chosen](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/invite-dialog.png)
+![The Invite someone dialog, with the role choices and a project chosen](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/invite-dialog.png)
 
 The link appears once. Select **Copy link** and send it yourself: Agenthix sends no email. It works for one person, once, for 7 days. If you lose it, revoke the invitation and make another.
 
@@ -32,7 +32,7 @@ What the person sees when they open the link is on [Joining by invitation](../ge
 
 ## See who has joined
 
-![The People screen, with a waiting invitation above everyone in the organisation](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/people-list.png)
+![The People screen, with a waiting invitation above everyone in the organisation](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/people-list.png)
 
 - **Invited · waiting** lists links that haven't been used, with the role, the projects and how long they have left. Select **Revoke** to stop one working.
 - **Earlier invitations**, folded at the foot, shows what happened to the others: accepted by someone, expired or revoked.

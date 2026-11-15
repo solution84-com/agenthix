@@ -16,7 +16,7 @@ skills, and a link to **Your space**, where they can make their own.
 
 ## Find something
 
-![The Library, listing the organisation's skills, agents, task templates and teams](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/library.png)
+![The Library, listing the organisation's skills, agents, task templates and teams](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/library.png)
 
 The search box looks through names, descriptions, who signed an item and who has it. **Type** narrows the list to
 **Skills**, **Agents**, **Task templates** or **Teams**. **Needs you** appears, for people who can act, when something needs them,

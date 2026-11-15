@@ -24,7 +24,7 @@ still talk to every agent from the **Agents** screen.
      cover. Select **Change** to choose others or upload your own: see [Pictures and covers](pictures-and-covers.md).
 4. Select **Create Agent**.
 
-![The New Agent dialog, with a name, a handle and a role](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/new-agent.png)
+![The New Agent dialog, with a name, a handle and a role](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/new-agent.png)
 
 The dialog asks for no model. A new agent follows the organisation's defaults until it is given its own: see
 [An agent's own models, hearing and speaking](../your-tools/models.md#an-agents-own-models-hearing-and-speaking).

@@ -19,7 +19,7 @@ task in a project.
    [Billing profiles and usage](../your-tools/billing-and-usage.md).
 4. Select **Create project**. Your project opens.
 
-![The New project dialog, with a name, a key and a description](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/new-project.png)
+![The New project dialog, with a name, a key and a description](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/new-project.png)
 
 A project runs its agents on an **Execution Site**, a machine that runs them. If **New project** can't be selected
 and you see **No Execution Site is connected**, the site isn't running: see
@@ -49,13 +49,13 @@ under **Model**; a task an agent creates for you in a conversation starts with t
 On the task, select **Run** and **Run now**. The agent's picture shows a turning ring while it runs, and the task shows **Running**. Its **Session**
 shows the run. Its **Runs** tab, below the description, shows each run's steps.
 
-![A task with its run waiting for approval](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/task-session.png)
+![A task with its run waiting for approval](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/task-session.png)
 
 When the agent wants to do something its permissions leave to a person, it asks — by default when it has done
 everything else, or at once if its approval is set to **Immediate**. The task shows **Wants approval**. You'll see it in three places: on the task, in the project's **Workroom** under **Needs you**, and in
 **Notifications**, the bell at the foot of the side bar.
 
-![The Notifications panel, with a request waiting under Needs you](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/notifications-approval.png)
+![The Notifications panel, with a request waiting under Needs you](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/notifications-approval.png)
 
 Select **Approve** to let it go on, or refuse it: **Deny** in Notifications, or **Reject** on the task, where you can
 give a reason the agent reads.

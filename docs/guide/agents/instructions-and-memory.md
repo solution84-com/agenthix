@@ -28,7 +28,7 @@ Instructions come in layers, and an agent reads all that apply to the place it i
    with it. **Task** shows what it is sent when it works on an assigned task.
 4. Select the **Instructions** section, write in the editor, and select **Save**.
 
-![An agent's Instructions open for editing, with Chat and Task at the top](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/agent-instructions.png)
+![An agent's Instructions open for editing, with Chat and Task at the top](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/agent-instructions.png)
 
 The other sections of the prompt are marked **auto · read-only**: Agenthix fills them in from the organisation, the
 project and the task. A saved change takes effect at the agent's next run. **Kernel**'s instructions start from the

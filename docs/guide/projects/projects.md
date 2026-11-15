@@ -58,7 +58,7 @@ Select **New project**. Every member of the organisation can make a project, for
 
 The person who creates it is its first administrator.
 
-![The New project dialog, with a name, a key and a description](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/new-project.png)
+![The New project dialog, with a name, a key and a description](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/new-project.png)
 
 ## Inside a project
 
@@ -66,7 +66,7 @@ Selecting a card opens the project on its **Overview**: its facts (lead, site, d
 
 To switch project, select the project's name **▾**, at the top of its menu or in the path above the page. **Find a project** lists your pinned projects first, then the others, with a search; choosing one opens it on the same section. Select anywhere outside, or press **Esc**, to close it with nothing changed.
 
-![A project's sections down the side bar, opened on Overview](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/project-sections.png)
+![A project's sections down the side bar, opened on Overview](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/project-sections.png)
 
 | Section | What it holds |
 |---|---|
@@ -96,7 +96,7 @@ organisation has no part in.
 1. Select **New project**, and under **Who is in it** choose **Just you**.
 2. Give it a **Name** and, if you like, a **Description**. Select **Create project**.
 
-![The New project dialog with Just you chosen, a name and a description](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/personal-project.png)
+![The New project dialog with Just you chosen, a name and a description](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/personal-project.png)
 
 You can make as many as you like. **Your space** is the first, made with your account and kept for as long as you are in
 the organisation; the others are yours to delete from their **Settings**. Nobody can be added to a personal project, and
@@ -131,7 +131,7 @@ For a project where newcomers should only read, make it private and add them as 
 
 ## Add people, agents and teams
 
-![A project's Members, with its teams, people and agents](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/project-members.png)
+![A project's Members, with its teams, people and agents](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/project-members.png)
 
 Open **Members**. It shows whether the project is open or private, then its teams, its people and its agents. Project administrators, and organisation administrators, select **＋ Add** and choose:
 

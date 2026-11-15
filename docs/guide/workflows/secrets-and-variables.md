@@ -32,7 +32,7 @@ same columns: name and description, value, used by, changed, and actions.
    it shows **Overdue** after.
 6. Select **Save**.
 
-![The form for adding a secret, with a name and a description filled in](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/secrets-add.png)
+![The form for adding a secret, with a name and a description filled in](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/secrets-add.png)
 
 Use the narrowest credential that does the job: a key for one server rather than for the account.
 

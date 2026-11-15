@@ -32,7 +32,7 @@ The panel before it starts says where it will run, such as *Runs on preview-box 
 of its live previews are open. If the workspace isn't a Git repository yet, the button reads **Turn Git on and start**:
 Git is turned on first, with the files kept as they are, and then the live preview starts.
 
-![Live preview chosen on a branch with none running: it would run on office-server, 2 of 6 open, with a Site choice and Start live preview](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/live-preview-start.png)
+![Live preview chosen on a branch with none running: it would run on office-server, 2 of 6 open, with a Site choice and Start live preview](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/live-preview-start.png)
 
 Or ask Kernel for the app in a conversation. When you ask to see it, Kernel's reply can hold a **Live preview** card
 for the branch; select it to start the live preview and open it. Kernel only offers: it never starts one by itself.
@@ -60,7 +60,7 @@ A fleet admin can also stop any live preview from the Fleet Console, and decides
 The live preview takes the middle of the screen, the left panel narrows to a strip, and the conversation stays on the right.
 It is never covered. On a tablet the conversation's drawer opens below the live preview's bar.
 
-![A running live preview of the About page: the bar with Running, Reload, the app's address, New tab and Auto, the app in the middle, the strip on the left and the conversation with Writer on the right](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/live-preview.png)
+![A running live preview of the About page: the bar with Running, Reload, the app's address, New tab and Auto, the app in the middle, the strip on the left and the conversation with Writer on the right](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/live-preview.png)
 
 **The bar** stays at the top of the area and never scrolls away:
 
@@ -86,7 +86,7 @@ On a phone the bar shows the state and the address, and the *Live preview* tab r
 - **Questions** that wait for a yes: see [Services](#services) and [Install scripts](#install-scripts).
 - **Start with secrets** and **Reload with secrets**, when the project has those workflows: see [Secrets](#secrets).
 
-![The strip waiting for a yes: the service postgres with Start it, and a package whose install script was blocked, with Allow](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/live-preview-question.png)
+![The strip waiting for a yes: the service postgres with Start it, and a package whose install script was blocked, with Allow](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/live-preview-question.png)
 
 ### How the agent runs the app
 
