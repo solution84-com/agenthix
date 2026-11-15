@@ -167,7 +167,6 @@ that is there but cannot be read refuses.
 ## Delivery to a run
 
 `resolveRunSkills` (`hq/src/assets/delivery/runSkills.ts`) runs for every dispatch (`hq/src/agents/runContext.ts`).
-hq names skills only to a site on site protocol 1.10 or later; an older one is sent none of it.
 
 ```mermaid
 sequenceDiagram
@@ -184,7 +183,7 @@ sequenceDiagram
     S-->>HQ: 8 skillsUsed on the run's record
 ```
 
-1. **The scan** is a control-channel method of the site protocol (1.10). The site lists the skill folders under the
+1. **The scan** is a control-channel method of the site protocol. The site lists the skill folders under the
    place's `.agents/skills/`, the agent's `.agents/agents/<agent id>/skills/`, and each of the run's workspaces'
    `.agents/skills/`, `.claude/skills/` and `.github/skills/`, under staging's bounds (1,000 entries, 16 MB, 8 levels
    deep), at most 200 skills for a place and 99 workspaces, never following a link. hq checks the person's access
@@ -246,8 +245,8 @@ sequenceDiagram
 ### The picked skill
 
 A person types `/` at the start of the message box and picks a skill of the conversation's agent. The pick is a
-**structured field** beside the message (`PickedSkill`, client protocol 1.7), kept on the person's message
-(`TextBody.skill`, 1.8) and sent with the dispatch; it is never parsed from the text. The site (`pickedSkill.ts`) keeps
+**structured field** beside the message (`PickedSkill`), kept on the person's message
+(`TextBody.skill`) and sent with the dispatch; it is never parsed from the text. The site (`pickedSkill.ts`) keeps
 it only if it equals a name staged for this turn and the skill does not set `user-invocable: false`; otherwise it is
 dropped, logged, and the text goes on. Kept, it becomes one instruction before the message, naming the skill's `/` word
 and telling the runtime to load it first; a skill that only a person may invoke (`disable-model-invocation: true`) is
@@ -259,7 +258,7 @@ text**, so a typed `/word` is never a runtime command on either harness, a stage
 The site writes one entry per staged skill to the run's `skillsUsed` (`skillUseRecord.ts`, best effort): the staged
 name and source, the fingerprint of exactly what was staged, and what it was (identity and version, or place and
 path, and the person for their own skill). A skill hq named and the site did not stage is recorded too, with
-`refused` saying why (site protocol 1.11). hq reads it back with `run.get` as the site's word, so **hostile input**:
+`refused` saying why. hq reads it back with `run.get` as the site's word, so **hostile input**:
 an entry counts only when every field has its shape, and a refused one is never counted as used
 (`assets/conversation/usedSkillRecord.ts`). It stamps *last used* on a Library skill and a place skill, which decides
 nothing.
@@ -275,7 +274,7 @@ the runs keep only identity and fingerprint.
 ## Writing a place's skill
 
 Publishing, rolling back, putting back, adding from the Library and removing a skill in a place go through two
-site-protocol methods (1.11) that write or remove **a whole skill folder at once**: `location.writeSkill`, a content
+site-protocol methods that write or remove **a whole skill folder at once**: `location.writeSkill`, a content
 method whose stream carries the files, and `location.removeSkill`. They accept only `.agents/skills/<slug>` and
 `.agents/agents/<agent id>/skills/<slug>`, never a workspace's repository. The site checks each file against the
 contents list and the whole against the fingerprint hq gave, keeps to staging's bounds, refuses a link anywhere on
@@ -312,19 +311,16 @@ All of this is decided by one policy (`assets/policy.ts`); no operation checks a
 
 ---
 
-## The protocols this changed
+## The protocols this is part of
 
-Versions and their rules are in [versioning.md](versioning.md#the-protocols).
+Versions and their rules are in [versioning.md](versioning.md#the-protocols). Skills are part of the 1.0 baseline of both:
 
-| Protocol | Version | What it added |
-|---|---|---|
-| Site | 1.9 | `installedSkills`, `fileSkills` and `personSkills` on the dispatch; the picked skill on the run's context; a `skill` target among a work step's targets; `skillsUsed` on the run's record. The agent package's skill source, `agent`, deprecated |
-| Site | 1.10 | The `skill` package kind, so installed and personal skills are delivered as packages with a `ref`; `location.scanSkills`. The organisation package's skill source, `org`, deprecated |
-| Site | 1.11 | `location.writeSkill` and `location.removeSkill`; `refused` on a `skillsUsed` entry |
-| Client | 1.7 | `PickedSkill`, the skill a person picked with `/` for a message |
-| Client | 1.8 | `TextBody.skill`, the pick kept on the message it was made for |
+| Protocol | What carries skills |
+|---|---|
+| Site | `installedSkills`, `fileSkills` and `personSkills` on the dispatch; the picked skill on the run's context; a `skill` target among a work step's targets; `skillsUsed` on the run's record, with `refused` on an entry; the `skill` package kind, so installed and personal skills are delivered as packages with a `ref`; `location.scanSkills`, `location.writeSkill` and `location.removeSkill` |
+| Client | `PickedSkill`, the skill a person picked with `/` for a message, and `TextBody.skill`, the pick kept on the message it was made for |
 
-The two deprecated sources stop working in 3.0.
+A skill's source, `org` or `agent`, names the level an installed skill was installed at.
 
 ## Where things are in the code
 

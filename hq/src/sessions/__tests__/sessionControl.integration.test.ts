@@ -231,7 +231,7 @@ describe('who may rename a session', () => {
     const { member, outsiderAdmin, chat } = await seedSessionCast()
     await expect(updateSession({ id: chat.id, status: 'ARCHIVED' }, ctx(outsiderAdmin))).rejects.toMatchObject({ statusCode: 404 })
     await expect(updateSession({ id: chat.id, status: 'ARCHIVED' }, ctx(member))).rejects.toMatchObject({ statusCode: 400 })
-    await expect(updateSession({ id: chat.id, status: 'EXPIRED' }, ctx(member))).rejects.toMatchObject({ statusCode: 400 })
+    await expect(updateSession({ id: chat.id, status: 'CLOSED' }, ctx(member))).rejects.toMatchObject({ statusCode: 400 })
     expect((await prisma.agentSession.findUnique({ where: { id: chat.id } }))?.status).toBe('ACTIVE')
   })
 })

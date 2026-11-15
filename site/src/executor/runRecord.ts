@@ -22,9 +22,6 @@ export async function recordRunStart(ins: WorkflowRunInstruction): Promise<void>
       ownerType: ins.workspace.ownerType,
       ownerId: ins.workspace.ownerId,
       workspaceId: ins.workspace.workspaceId,
-      workflowName: ins.definition.name,
-      versionHash: ins.versionHash,
-      imageDigest: ins.executorImageDigest,
     },
   })
 }

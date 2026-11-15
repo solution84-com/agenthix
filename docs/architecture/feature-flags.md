@@ -79,8 +79,8 @@ except through it.
 
 ### The site takes hq's word for two things only
 
-hq sends the organisation's switches with each instruction on the control channel (`features` on the request, site
-protocol 1.12; [versioning](versioning.md)). The site reads them through `parseFeatureSwitches`, which keeps only a
+hq sends the organisation's switches with each instruction on the control channel (`features` on the request;
+[versioning](versioning.md)). The site reads them through `parseFeatureSwitches`, which keeps only a
 listed flag's own boolean, and applies the same rule with its own `NODE_ENV`. So on a production site hq's word can turn
 on a beta or turn off a released feature, and nothing else: it cannot turn on an experimental or preview flag. An agent
 cannot reach the switches; they arrive only on hq's channel.

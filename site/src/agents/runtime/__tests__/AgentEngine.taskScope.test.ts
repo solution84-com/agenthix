@@ -146,7 +146,6 @@ const TASK_DISPATCH_CONTEXT: RunContextPayload = {
   },
   mounts: { ownerSlugs: { p1: 'project' } },
   riskRules: null,
-  credential: null,
   packages: {
     agent: { kind: 'agent', key: 'agent-1', digest: 'a'.repeat(64) },
     org: null,
@@ -158,7 +157,6 @@ const CHAT_DISPATCH_CONTEXT: RunContextPayload = {
   chat: { sessionContext: null },
   mounts: { ownerSlugs: {} },
   riskRules: null,
-  credential: null,
   packages: {
     agent: { kind: 'agent', key: 'agent-1', digest: 'a'.repeat(64) },
     org: null,

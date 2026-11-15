@@ -11,7 +11,7 @@
  * (so OpenCode's configuration adds `/v1`), and Claude Code appends
  * `/v1/messages` to one that does not.
  */
-import { CLOUD_BILLING_PROFILE_HEADER, CLOUD_CALL_ID_HEADER, CREDENTIAL_PROVIDERS, type AiProviderVendor } from '@agenthix/core'
+import { CLOUD_BILLING_PROFILE_HEADER, CLOUD_CALL_ID_HEADER, type AiProviderVendor } from '@agenthix/core'
 import type { RelayApiKeyCredential, RelayCredential } from './runAccess'
 
 export const MODEL_RELAY_PATH = '/api/v1/model-relay'
@@ -20,10 +20,10 @@ export const MODEL_RELAY_PATH = '/api/v1/model-relay'
 export const RELAY_TOKEN_HEADER = 'x-agenthix-turn'
 
 /**
- * Every provider the relay sends a run's requests to, by its relay path. Core's `CREDENTIAL_PROVIDERS` is the deprecated
- * credential's list and stays as it is; Inworld is reached only through a run's provider descriptor.
+ * Every provider the relay sends a run's requests to, by its relay path. `openai_compatible` is an endpoint the person
+ * runs themselves, so it alone has a base URL.
  */
-export const RELAY_PROVIDERS = [...CREDENTIAL_PROVIDERS, 'inworld'] as const satisfies readonly AiProviderVendor[]
+export const RELAY_PROVIDERS = ['openrouter', 'openai', 'google', 'anthropic', 'openai_compatible', 'inworld'] as const satisfies readonly AiProviderVendor[]
 export type RelayProvider = (typeof RELAY_PROVIDERS)[number]
 
 export function isRelayProvider(value: string): value is RelayProvider {

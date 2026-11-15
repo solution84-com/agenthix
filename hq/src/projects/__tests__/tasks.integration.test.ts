@@ -130,25 +130,33 @@ describe('createTask placement @SC-174', () => {
   })
 })
 
-// ── SC-036 — the deprecated moveTaskToColumn: its column names a state ──────────
+// ── SC-036 — moveTaskToColumn: one of the task's type's columns ──────────
 
-describe('moveTaskToColumn with a deprecated column @SC-036', () => {
-  it('to Backlog (null) puts it in Backlog and takes it out of its agent\'s line', async () => {
+/** The task's type's column for a state. */
+async function columnOf(taskId: string, state: 'BACKLOG' | 'DONE') {
+  const { typeId } = await prisma.task.findUniqueOrThrow({ where: { id: taskId }, select: { typeId: true } })
+  return (await prisma.typeColumn.findFirstOrThrow({ where: { typeId: typeId!, state } })).id
+}
+
+describe('moveTaskToColumn @SC-036', () => {
+  it("to a Backlog column puts it in Backlog and takes it out of its agent's line", async () => {
     const project = await makeProject()
     const task = await createTask({ title: 'T', projectId: project.id, state: 'TODO', origin: ORIGIN })
     await prisma.task.update({ where: { id: task.id }, data: { runState: 'RUN_QUEUED' } })
 
-    await moveTaskToColumn({ taskId: task.id, column: null }, ctx())
+    await moveTaskToColumn({ taskId: task.id, columnId: await columnOf(task.id, 'BACKLOG') }, ctx())
 
     const after = await prisma.task.findUniqueOrThrow({ where: { id: task.id } })
     expect([after.state, after.runState, after.runStartedBy]).toEqual(['BACKLOG', 'RUN_NONE', null])
   })
 
-  it('refuses a column that names no state, and moves nothing', async () => {
+  it("refuses a column that is not one of its type's, or none, and moves nothing", async () => {
     const project = await makeProject()
     const task = await createTask({ title: 'T', projectId: project.id, state: 'TODO', origin: ORIGIN })
+    const elsewhere = await createTask({ title: 'U', projectId: (await makeProject()).id, state: 'TODO', origin: ORIGIN })
 
-    await expect(moveTaskToColumn({ taskId: task.id, column: 'review' }, ctx())).rejects.toMatchObject({ statusCode: 400 })
+    await expect(moveTaskToColumn({ taskId: task.id, columnId: await columnOf(elsewhere.id, 'DONE') }, ctx())).rejects.toMatchObject({ statusCode: 400 })
+    await expect(moveTaskToColumn({ taskId: task.id } as never, ctx())).rejects.toMatchObject({ statusCode: 400 })
     expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).state).toBe('TODO')
   })
 })

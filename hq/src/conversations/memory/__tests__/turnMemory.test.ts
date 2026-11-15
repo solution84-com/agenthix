@@ -58,9 +58,9 @@ describe('memoryForTurn @SC-989', () => {
     expect(block).toMatch(/\[coffee\] coffee: coffee body/)
     expect(block).toMatch(/Staging \[staging\]/)
     expect(d.recordOutcomes).toHaveBeenCalledWith([
-      { itemId: 'id-coffee', kind: 'INCLUDED', similarity: 0.8, conversationId: 'c1', turnId: 't-MESSAGE' },
-      { itemId: 'id-tables', kind: 'INCLUDED', similarity: 0.5, weighted: true, conversationId: 'c1', turnId: 't-MESSAGE' },
-      { itemId: 'id-staging', kind: 'HINTED', similarity: 0.5, conversationId: 'c1', turnId: 't-MESSAGE' },
+      { itemId: 'id-coffee', kind: 'INCLUDED', similarity: 0.8, turnId: 't-MESSAGE' },
+      { itemId: 'id-tables', kind: 'INCLUDED', similarity: 0.5, weighted: true, turnId: 't-MESSAGE' },
+      { itemId: 'id-staging', kind: 'HINTED', similarity: 0.5, turnId: 't-MESSAGE' },
     ])
     expect(d.markRecalled).toHaveBeenCalledWith(['id-coffee', 'id-tables'], expect.any(Date))
     expect(probeScore('t-MESSAGE', 'id-far')).toBe(0.2)

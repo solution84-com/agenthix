@@ -114,7 +114,7 @@ export function createScopeChange(): Pick<MemoryService, 'setScope'> {
         }
         case 'supersede':
           await tx.memoryItem.delete({ where: { id: held.id } })
-          await tx.memoryItem.update({ where: { id: row.id }, data: { ...target, supersedesId: held.id } })
+          await tx.memoryItem.update({ where: { id: row.id }, data: target })
           return { status: 'changed' as const, itemId: row.id }
         case 'renumber-archived':
           await tx.memoryItem.update({ where: { id: held.id }, data: { key: freeKey(held.key, await keysTaken(tx, target.scopeKey, held.key)) } })

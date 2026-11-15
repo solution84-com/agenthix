@@ -3,8 +3,8 @@
  * the same rule as every other connection (`checkProtocolCompatibility`, docs/architecture/versioning.md).
  *
  * - **The site line.** A site dials its relay at `RELAY_SITE_LINE_PATH`, a WebSocket, with `Authorization: Bearer
- *   <relay pass>`, `X-Site-Id`, `X-Site-Protocol-Version` (what its streams speak: `files.serve` came in site protocol
- *   1.8) and `X-Relay-Protocol-Version` (what the line speaks). The relay keeps one line per site, replacing it when
+ *   <relay pass>`, `X-Site-Id`, `X-Site-Protocol-Version` (what its streams speak, `files.serve` among them) and
+ *   `X-Relay-Protocol-Version` (what the line speaks). The relay keeps one line per site, replacing it when
  *   the site dials again. On the line the content channel's frames and multiplexer are reused unchanged
  *   (content.ts, contentMux.ts): the relay is the opener, the site the server.
  * - **The hq link.** A relay dials hq at `RELAY_HQ_LINK_PATH`, a WebSocket, with `Authorization: Bearer <secret>` and
@@ -12,18 +12,18 @@
  *   `RELAY_REPORT_INTERVAL_MS`. It fetches hq's key set from `HQ_JWKS_PATH`, and again on an unknown key id.
  * - **A browser** fetches `GET` or `HEAD` `RELAY_TICKET_PATH_PREFIX` + ticket on the relay's files address, or, on an
  *   installation with no name for files, `RELAY_BARE_TICKET_PATH_PREFIX` + ticket on hq's own address (door.ts).
- * - **Since 1.1, a live app's address** (previewAddress.ts, appDoor.ts): every request and WebSocket on its own
+ * - **A live app's address** (previewAddress.ts, appDoor.ts): every request and WebSocket on its own
  *   `app.serve` stream on the site's line, after the relay asked hq (`relay.ask`) whether the ticket behind the
  *   cookie still stands. hq pushes `relay.revoke` when an app, a live preview or a person is cut off.
- * - **Since 1.1, bundles** between two sites' lines (`bundle.read`, `bundle.write`): hq hands the relay a bundle ticket
+ * - **Bundles** between two sites' lines (`bundle.read`, `bundle.write`): hq hands the relay a bundle ticket
  *   with `relay.bundle`; the relay reports with `relay.bundleReport` only what the sites cannot (an end offline, a
  *   stream broken). The destination site reports what it kept to hq itself (`bundle.landed`).
- * - **Since 1.2, a workspace file at a commit**: a ticket for a place's file may name a `commit` (refs.ts), served by
+ * - **A workspace file at a commit**: a ticket for a place's file may name a `commit` (refs.ts), served by
  *   the site from the workspace's repository. The relay routes it as any other ticket.
  */
 import type { RelayAppRefusal } from './appDoor.js'
 
-export const RELAY_PROTOCOL_VERSION = '1.2'
+export const RELAY_PROTOCOL_VERSION = '1.0'
 export const RELAY_PROTOCOL_VERSION_HEADER = 'X-Relay-Protocol-Version'
 
 export const RELAY_SITE_LINE_PATH = '/relay-line'
@@ -57,7 +57,7 @@ export type RelayLinkReport = {
   sites: string[]
   openStreams: number
   bytesCarried: number
-  /** Since 1.1: the refusals for each app since the last report, for the guard's threshold. */
+  /** The refusals for each app since the last report, for the guard's threshold. */
   appRefusals?: { appId: string; refusal: RelayAppRefusal; count: number }[]
 }
 

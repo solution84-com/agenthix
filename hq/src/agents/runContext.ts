@@ -13,7 +13,7 @@ import { prisma } from 'wasp/server'
 import type { Agent, AgentSession } from '@prisma/client'
 import type { RunContextPayload, AgentConfigPayload, CapabilityClaims } from '@agenthix/core'
 import { normalizeTimezone, type LocationRef, type RunStartedBy } from '@agenthix/core'
-import { memoryForRun, pinnedForOlderSite } from '../memory/runMemory'
+import { memoryForRun } from '../memory/runMemory'
 import { fetchPrimaryOwnerSlug } from './locationResolver'
 import { runModelAccess } from '../routing/reaching'
 import { chooseBoundaryRun, type RunChoice } from './runModel'
@@ -27,9 +27,9 @@ import { resolveRunSkills, siteTakesRunSkills, type RunSkills } from '../assets/
 /** The site's name for the OpenCode runtime (site `runtime/types.ts`). */
 const OPENCODE_RUNTIME = 'opencode'
 
-/** The grant target a run's capability names: the site it goes to, its session, and who it runs for. */
-export function grantTargetOf(claims: Pick<CapabilityClaims, 'siteId' | 'sessionId' | 'runner'>): GrantTarget {
-  return { siteId: claims.siteId, sessionId: claims.sessionId, runner: claims.runner }
+/** The grant target a run's capability names: the site it goes to, and who it runs for. */
+export function grantTargetOf(claims: Pick<CapabilityClaims, 'siteId' | 'runner'>): GrantTarget {
+  return { siteId: claims.siteId, runner: claims.runner }
 }
 
 const NOT_GIVEN = "The run's model provider cannot be given to this run. An organisation admin can check it under Manage organisation › AI, under Your providers."
@@ -133,9 +133,6 @@ export async function buildContext(
     runSkills(agent.id, kind, primaryLoc, extras),
   ])
 
-  // A site before 1.19 reads only the deprecated field.
-  const pinnedMemory = pinnedForOlderSite(extras?.grantTo?.siteId, memory)
-
   const ownerSlugs: Record<string, string> =
     primaryOwnerSlugValue !== null ? { [primaryLoc.ownerId]: primaryOwnerSlugValue } : {}
 
@@ -146,22 +143,19 @@ export async function buildContext(
     mounts: { ownerSlugs },
     // A stored JSON column, written only by `updateRiskRules` as a list of rules.
     riskRules: (siteConfigRow?.riskRules ?? null) as RunContextPayload['riskRules'],
-    // The deprecated credential is no longer sent: the site reaches the run's provider through `modelAccess`.
-    credential: null,
     ...(modelAccess ? { modelAccess } : {}),
     ...(problem ? { credentialProblem: problem } : {}),
     ...(webSearchKey ? { webSearchKey } : {}),
     packages,
     ...(person ? { person } : {}),
     ...(memory ? { memory } : {}),
-    ...(pinnedMemory ? { pinnedMemory } : {}),
     ...(skills ? { installedSkills: skills.installedSkills, fileSkills: skills.fileSkills, personSkills: skills.personSkills } : {}),
   }
 }
 
 /**
  * The run's skills, resolved where the run is dispatched (skills spec part 5, *Delivery per turn*). Null when the
- * dispatch names no site or the site speaks a protocol without them; it then stages as before.
+ * dispatch names no site or the site is not connected.
  */
 async function runSkills(
   agentId: string,

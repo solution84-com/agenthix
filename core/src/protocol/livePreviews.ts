@@ -1,6 +1,6 @@
 /**
- * Live previews (live preview spec sections 4 and 5), as hq and a site say them on the control channel, since site
- * protocol 1.12. The organisation's sites obey hq, so hq's own checks admit a live preview (the person's project role,
+ * Live previews (live preview spec sections 4 and 5), as hq and a site say them on the control channel. The
+ * organisation's sites obey hq, so hq's own checks admit a live preview (the person's project role,
  * the site's *Live previews on this site*, its limit, one live preview per branch) and these methods carry no proof of
  * their own. The site still decides for itself what only it can know: its own setting and limit (`turnedOff`,
  * `atLimit`), its guard (`guardDown`), the host service's protections (`protectionsDown`), and that the copy named is

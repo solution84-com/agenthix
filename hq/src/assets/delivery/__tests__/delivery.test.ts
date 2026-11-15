@@ -5,7 +5,6 @@ vi.mock('../../../sites/channel', () => ({ siteChannelRegistry: {}, ChannelReque
 vi.mock('../../../sites/content', () => ({ openContentStream: vi.fn(), ContentStreamFailed: class extends Error {} }))
 
 import { skillRefsOf } from '../../../packages/packageDelivery'
-import { speaksRunSkills } from '../runSkills'
 
 const D1 = '1'.repeat(64)
 const D2 = '2'.repeat(64)
@@ -26,13 +25,5 @@ describe('delivering installed and personal content @SC-1650', () => {
 
   it('names nothing for a run without skills', () => {
     expect(skillRefsOf({})).toEqual([])
-  })
-})
-
-describe('which sites are sent a run\'s skills @SC-1650', () => {
-  it('a site on 1.10 or later', () => {
-    expect(speaksRunSkills({ major: 1, minor: 10 })).toBe(true)
-    expect(speaksRunSkills({ major: 2, minor: 0 })).toBe(true)
-    expect(speaksRunSkills({ major: 1, minor: 9 })).toBe(false)
   })
 })

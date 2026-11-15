@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../test/db'
-import { ctx, makeBoard, makeTask, privateProjectCast, projectState } from './projectsHarness'
+import { ctx, columnOfState, makeBoard, makeTask, privateProjectCast, projectState } from './projectsHarness'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -26,7 +26,6 @@ import {
   unarchiveTask, addTaskComment, runTask,
 } from '../actions'
 import { startAgentInProject, startAllAgents, stopAgentInProject } from '../agentLineOperations'
-import { moveTaskToBoard } from '../boardOperations'
 import { finishProjectSprint, updateProjectSprint } from '../sprintOperations'
 import { saveBoardView } from '../boardViewOperations'
 import { updateTaskPlan, createMilestone, updateMilestone, deleteMilestone } from '../planOperations'
@@ -41,10 +40,7 @@ const cases: Case[] = [
   { name: 'updateTask', call: (c, x) => updateTask({ taskId: c.task.id, title: 'x' }, x) },
   { name: 'deleteTask', call: (c, x) => deleteTask({ taskId: c.task.id }, x) },
   { name: 'archiveTask', call: (c, x) => archiveTask({ taskId: c.task.id }, x) },
-  { name: 'moveTaskToColumn', call: (c, x) => moveTaskToColumn({ taskId: c.task.id, column: 'in_progress' }, x) },
-  {
-    name: 'moveTaskToBoard', call: (c, x) => moveTaskToBoard({ taskId: c.task.id, boardId: c.board.id }, x),
-  },
+  { name: 'moveTaskToColumn', call: async (c, x) => moveTaskToColumn({ taskId: c.task.id, columnId: await columnOfState(c.project.id, 'IN_PROGRESS') }, x) },
   { name: 'updateTaskPlan', call: (c, x) => updateTaskPlan({ taskId: c.task.id, planStart: '2026-10-08' }, x) },
   { name: 'createMilestone', call: (c, x) => createMilestone({ projectId: c.project.id, name: 'm', date: '2026-11-30' }, x) },
   {
@@ -119,20 +115,5 @@ describe('Start only puts in line tasks of the project it checked the caller aga
     await expect(startAllAgents({ projectId: cast.project.id, taskIds: [foreign.id] }, ctx(cast.member))).resolves.toEqual({ started: 0, agents: 0 })
     await expect(startAgentInProject({ projectId: cast.project.id, agentId: cast.agent.id, taskIds: [foreign.id] }, ctx(cast.member))).resolves.toEqual({ started: 0, agents: 0 })
     expect((await prisma.task.findUniqueOrThrow({ where: { id: foreign.id } })).runState).toBe('RUN_NONE')
-  })
-})
-
-describe("a deprecated boardId places nothing: a task is on no board (adr-0176)", () => {
-  it("createTask and moveTaskToColumn naming another project's board keep the task in its own project, and change nothing of the other", async () => {
-    const cast = await privateProjectCast()
-    const foreign = await privateProjectCast()
-    const foreignBefore = await prisma.task.findMany({ where: { projectId: foreign.project.id }, orderBy: { id: 'asc' } })
-
-    const created = await createTask({ projectId: cast.project.id, title: 'x', boardId: foreign.board.id }, ctx(cast.member))
-    const moved = await moveTaskToColumn({ taskId: cast.task.id, column: 'done', boardId: foreign.board.id }, ctx(cast.member))
-
-    expect(created).toMatchObject({ projectId: cast.project.id, boardId: cast.project.id })
-    expect(moved).toMatchObject({ projectId: cast.project.id, state: 'DONE' })
-    expect(await prisma.task.findMany({ where: { projectId: foreign.project.id }, orderBy: { id: 'asc' } })).toEqual(foreignBefore)
   })
 })

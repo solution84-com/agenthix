@@ -4,7 +4,6 @@
  * names. Type aliases, not interfaces, for the reason it gives.
  */
 import type { FileSkillEntry, InstalledSkillEntry, PersonSkillEntry, RunPackages } from './packages.js'
-import type { ApiKeyRunCredential, RunCredential } from './credential.js'
 import type { RunModelAccess } from './runProvider.js'
 import type { TaskCommentForRun } from './sharedSessions.js'
 import type { Approval, BashPatternPermission, ToolPermission } from './capability.js'
@@ -53,7 +52,7 @@ export type RunContextPayload = {
     /** The newest comments not by this agent, oldest first (`sharedSessions.ts`); the site keeps those since its last run. */
     comments?: TaskCommentForRun[]
   }
-  /** Since 1.12: set when the run's workspace is a code workspace (`codeWork.ts`). */
+  /** Set when the run's workspace is a code workspace (`codeWork.ts`). */
   codeWork?: RunCodeWork
   /**
    * Mount inputs, pre-resolved by hq. A run reaches one owner's storage — its
@@ -64,36 +63,13 @@ export type RunContextPayload = {
     /** locationResolver's slug lookups, pre-resolved by owner id. */
     ownerSlugs: Record<string, string>
   }
-  /** SiteConfig.riskRules (sdkToolGate), null when unset. */
+  /** The site-wide risk rules hq resolved for the run (sdkToolGate), null when unset. */
   riskRules: RiskRule[] | null
-  /**
-   * The one model credential this run may use, decided by the boundary it acts
-   * for (spec §6.3, ADR-0060) — an API key, or the subscription login of the
-   * person the run acts as. Null when the boundary has none configured and
-   * neither does the org, which the site turns into a failed run naming the
-   * boundary rather than falling through to whatever the container holds.
-   *
-   * REQUIRED, and it replaced `llmApiKey` — a removal, which is why the
-   * protocol major moved (see connection.ts).
-   *
-   * @deprecated since 1.1; stops working in 3.0. Use `modelAccess` instead.
-   */
-  credential: RunCredential | null
-  /**
-   * The API keys for the turn's other providers — one per provider of a
-   * fallback model the turn may switch to, resolved by the same rules as
-   * `credential` (spec §6, "Every provider the turn may use has its
-   * credential"). Never `credential`'s own provider again, never a
-   * subscription. The site's model relay picks a request's key from
-   * `credential` and these by provider. ABSENT when there are none.
-   *
-   * @deprecated since 1.1; stops working in 3.0. Use `modelAccess` instead.
-   */
-  fallbackCredentials?: ApiKeyRunCredential[]
   /**
    * The run's model via its provider, the provider descriptor the site's relay adds the key from, any other provider
    * a helper of the run may use, and the billing profile its calls are costed to (runProvider.ts). Decided by hq's
-   * resolver. ABSENT from an hq before 1.1, which sends `credential`; a site reads this first when both are there.
+   * resolver. ABSENT when the run has no usable provider: `credentialProblem` then says why, and the site fails the
+   * run with it rather than fall through to whatever the container holds.
    */
   modelAccess?: RunModelAccess
   /**
@@ -102,7 +78,7 @@ export type RunContextPayload = {
    * tool and never puts it in a container's environment.
    */
   webSearchKey?: string
-  /** Why `credential` is null, when hq knows — the site shows it verbatim as the run's error. */
+  /** Why `modelAccess` is absent, when hq knows — the site shows it verbatim as the run's error. */
   credentialProblem?: string
   /**
    * The content this run loads, each package named by its digest (ADR-0072). hq
@@ -110,11 +86,11 @@ export type RunContextPayload = {
    * site fails the run rather than load any other content (`package_unavailable`).
    */
   packages: RunPackages
-  /** Built-in and installed skills this agent has, at their pinned versions, by digest. ABSENT from an hq before 1.9. */
+  /** Built-in and installed skills this agent has, at their pinned versions, by digest.. */
   installedSkills?: InstalledSkillEntry[]
-  /** The place's switched-on skills in files, by place, path and fingerprint. ABSENT from an hq before 1.9. */
+  /** The place's switched-on skills in files, by place, path and fingerprint.. */
   fileSkills?: FileSkillEntry[]
-  /** The person's own published skills, only on a turn of their own conversation. ABSENT from an hq before 1.9. */
+  /** The person's own published skills, only on a turn of their own conversation.. */
   personSkills?: PersonSkillEntry[]
   /**
    * The person this run is on behalf of, so the agent can read "tomorrow at 9"
@@ -125,18 +101,16 @@ export type RunContextPayload = {
    */
   person?: { timezone: string }
   /**
-   * Since 1.19: what memory found for this run when it started (ADR-0188): hq searches the memory of the person the
+   * What memory found for this run when it started (ADR-0188): hq searches the memory of the person the
    * run is for, scoped to this agent and place, with the run's brief as the query (the task's title and
    * description, or the message that started it). The site writes it as a read-only file in the run's staging at
    * every run start. ABSENT when the run is for no person or nothing was found; the run still reaches memory
    * through `recall`.
    */
   memory?: RunMemory
-  /** @deprecated since 1.19; stops working in 3.0. Use `memory` instead. */
-  pinnedMemory?: PinnedMemoryItem[]
 }
 
-/** Since 1.19: a run's memory, the items found in full and those only named. */
+/** A run's memory, the items found in full and those only named. */
 export type RunMemory = {
   /** Included in full, Rules first. */
   items: RunMemoryItem[]
@@ -148,15 +122,6 @@ export type RunMemoryItem = {
   key: string
   /** `fact` or `rule`, as the memory tools name the kinds; an unknown value is read as a fact. */
   kind: string
-  title: string
-  body: string
-}
-
-/** What a site before 1.19 writes as a run's pinned memory. */
-export type PinnedMemoryItem = {
-  key: string
-  /** `person`, `agent_person` or `agent_place`, as the memory tools name the scopes. */
-  scope: 'person' | 'agent_person' | 'agent_place'
   title: string
   body: string
 }

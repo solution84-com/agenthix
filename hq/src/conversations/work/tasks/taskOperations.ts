@@ -101,7 +101,6 @@ export async function createSetTaskOperation(
       toolName,
       idempotencyKey: `${idempotencyKey}:${id}`,
       state: 'COMPLETED',
-      completedAt: new Date(),
       title: sealText(title),
       resultSummary: sealJson(result),
       authorisedById: capability.actingUserId,

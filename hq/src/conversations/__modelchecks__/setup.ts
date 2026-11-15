@@ -6,7 +6,7 @@
  */
 import { CAPABILITY_TTL_SECONDS, type FeatureFlag } from '@agenthix/core'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
-import { resolveEffectivePermissions } from '../../agents/permissions/effectivePermissions'
+import { capabilityPermissions, resolveEffectivePermissions } from '../../agents/permissions/effectivePermissions'
 import type { ConversationTool, LeadMessage, LeadToolDefinition, PromptPart, TurnCapability } from '../contract'
 import { contextFrom, placeLabelOf } from '../coordinator/context'
 import { clockNote, withClock } from '../coordinator/clock'
@@ -121,13 +121,7 @@ export function capabilityOf(home: Home): TurnCapability {
     readerUserId: PERSON_ID,
     trigger: 'MESSAGE',
     role: 'MEMBER',
-    // Shaped as mintTurnCapability's permissionsOf shapes them.
-    permissions: {
-      bypassed: false,
-      allowedTools: effective.allowedTools,
-      allowedBashPatterns: effective.allowedBashPatterns,
-      neverTools: effective.allowedTools.filter(p => p.state === 'never').map(p => p.name),
-    },
+    permissions: capabilityPermissions(effective),
     expiresAt: Date.now() + CAPABILITY_TTL_SECONDS * 1000,
   }
 }

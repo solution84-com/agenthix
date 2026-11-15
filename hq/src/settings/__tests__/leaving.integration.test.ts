@@ -52,7 +52,7 @@ describe('removePerson — deactivates, deletes nothing @SC-606', () => {
     const target = await createUserWithRole('MEMBER')
     await signedIn(target.id)
     const chat = await createSession({ userId: target.id })
-    await prisma.mobileAuthToken.create({ data: { userId: target.id, expiresAt: new Date(Date.now() + 60_000) } })
+    await prisma.mobileAuthToken.create({ data: { userId: target.id, token: 'p'.repeat(64), expiresAt: new Date(Date.now() + 60_000) } })
     await prisma.personConnection.create({
       data: { userId: target.id, name: 'Laptop', tokenHash: 'c'.repeat(64), tokenPrefix: 'pc_', expiresAt: new Date(Date.now() + 60_000) },
     })

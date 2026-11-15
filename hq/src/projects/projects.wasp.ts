@@ -12,7 +12,7 @@ import { TaskPage as ProjectTaskPage } from "./pages/TaskPage" with { type: "ref
 import { TaskSessionPage } from "./pages/TaskSessionPage" with { type: "ref" };
 import { getProjects, getProject, getProjectByKey, getTaskByKey, getBoards, getBoard, getTasks, getTask, getTaskComments, getTaskAttachments, getAllBoards, getAllTasks, getActiveTaskCount } from "./queries" with { type: "ref" };
 import { getProjectCards } from "./projectCardQueries" with { type: "ref" };
-import { getProjectBoards, moveTaskToBoard } from "./boardOperations" with { type: "ref" };
+import { getProjectBoards } from "./boardOperations" with { type: "ref" };
 import { updateTaskPlan, getMilestones, createMilestone, updateMilestone, deleteMilestone } from "./planOperations" with { type: "ref" };
 import { getTimeline } from "./timeline" with { type: "ref" };
 import { getMyTasks } from "./myTasksQueries" with { type: "ref" };
@@ -108,7 +108,6 @@ export const projectsSpec: Spec = [
     action(createProject, { entities: ["Project", "BillingProfile", "Product", "Program", "ExecutionSite", "ProjectMember", "UserSettings"] }),
     action(updateProject, { entities: ["Project", "Product", "Program", "ProjectMember", "UserSettings"] }),
     action(deleteProject, { entities: ["Project", "Board", "Task"] }),
-    action(moveTaskToBoard, { entities: ["Task", "Board", "Project"] }),
     action(updateTaskPlan, { entities: ["Task", "Milestone"] }),
     action(createMilestone, { entities: ["Milestone"] }),
     action(updateMilestone, { entities: ["Milestone"] }),

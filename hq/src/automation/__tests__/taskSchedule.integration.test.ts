@@ -83,7 +83,7 @@ describe('clearTaskSchedule — the column rule applies again', () => {
     const { task } = await scheduledIn('TODO')
     await clearTaskSchedule(task.id)
     expect(await taskRow(task.id)).toMatchObject({
-      scheduleAt: null, scheduleNextDueAt: null, scheduleSetByUserId: null, scheduleSetByAgentId: null, scheduleSetBySessionId: null,
+      scheduleAt: null, scheduleNextDueAt: null, scheduleSetByUserId: null, scheduleSetByAgentId: null,
     })
   })
 
@@ -105,21 +105,21 @@ describe('clearTaskSchedule — the column rule applies again', () => {
 })
 
 describe('setTaskSchedule — the person behind a schedule (adr-0089)', () => {
-  it('a person setting it makes the task done on their behalf, through their connection when they used one', async () => {
+  it('a person setting it makes the task done on their behalf', async () => {
     const project = await createProject()
     const task = await taskIn(project.id)
-    await setTaskSchedule(task.id, { at: AT }, { kind: 'person', userId: 'dana', connectionId: 'conn-1' }, NOW)
+    await setTaskSchedule(task.id, { at: AT }, { kind: 'person', userId: 'dana' }, NOW)
     expect(await taskRow(task.id)).toMatchObject({
-      onBehalfOfUserId: 'dana', scheduleSetByUserId: 'dana', scheduleSetByAgentId: null, scheduleSetBySessionId: null, scheduleSetByConnectionId: 'conn-1',
+      onBehalfOfUserId: 'dana', scheduleSetByUserId: 'dana', scheduleSetByAgentId: null,
     })
   })
 
   it('an agent setting it makes the task done on behalf of the person its run is for, and records the agent', async () => {
     const project = await createProject()
     const task = await taskIn(project.id)
-    await setTaskSchedule(task.id, { at: AT }, { kind: 'agent', agentId: 'a1', sessionId: 's1', userId: 'erin' }, NOW)
+    await setTaskSchedule(task.id, { at: AT }, { kind: 'agent', agentId: 'a1', userId: 'erin' }, NOW)
     expect(await taskRow(task.id)).toMatchObject({
-      onBehalfOfUserId: 'erin', scheduleSetByUserId: 'erin', scheduleSetByAgentId: 'a1', scheduleSetBySessionId: 's1', scheduleSetByConnectionId: null,
+      onBehalfOfUserId: 'erin', scheduleSetByUserId: 'erin', scheduleSetByAgentId: 'a1',
     })
   })
 

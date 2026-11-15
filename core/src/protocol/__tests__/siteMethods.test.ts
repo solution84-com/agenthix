@@ -7,7 +7,6 @@ import { MEMBERSHIP_METHODS } from '../membership.js'
 import { PACKAGE_METHODS } from '../packages.js'
 import { LOCATION_FILE_METHODS } from '../locationFiles.js'
 import { REPO_WORK_METHODS } from '../repoWork.js'
-import { PREVIEW_METHODS } from '../preview.js'
 import { SITE_DIAGNOSTICS_METHODS } from '../siteDiagnostics.js'
 import { SITE_RESTORE_METHODS } from '../siteRestore.js'
 import { SITE_HQ_ADDRESS_METHOD } from '../hqAddress.js'
@@ -33,7 +32,7 @@ import { BRANCH_PACKAGE_BLOCKED_EVENT, BRANCH_PACKAGE_USE_METHOD } from '../bran
 const CONTROL_LIST = [
   'site.describe', SITE_HQ_ADDRESS_METHOD, RELAY_ASSIGN_METHOD, FILE_ABOUT_METHOD, GIT_STATUS_METHOD,
   ...Object.values(SITE_DATA_METHODS), ...Object.values(RUNTIME_METHODS), ...Object.values(MEMBERSHIP_METHODS),
-  PACKAGE_METHODS.missing, ...Object.values(REPO_WORK_METHODS), PREVIEW_METHODS.start, PREVIEW_METHODS.stop,
+  PACKAGE_METHODS.missing, ...Object.values(REPO_WORK_METHODS),
   LOCATION_FILE_METHODS.listFiles, LOCATION_FILE_METHODS.statFile, LOCATION_FILE_METHODS.seedFiles,
   LOCATION_FILE_METHODS.ensureDir, LOCATION_FILE_METHODS.removeLocation, LOCATION_FILE_METHODS.listArtefacts,
   LOCATION_FILE_METHODS.listKnowledge, LOCATION_FILE_METHODS.searchKnowledge, LOCATION_FILE_METHODS.writeKnowledge,
@@ -53,8 +52,8 @@ void [listsEveryMethod, listsNoOther]
 const CONTROL = new Set<string>(CONTROL_LIST)
 
 const CONTENT: Record<SiteContentMethodName, true> = {
-  'packages.put': true, 'location.readFile': true, 'location.readArtefact': true, 'location.readKnowledge': true,
-  'location.writeSkill': true, 'location.shareFile': true, 'preview.connect': true, [FILES_SERVE_METHOD]: true,
+  'packages.put': true, 'location.readFile': true, 'location.readKnowledge': true,
+  'location.writeSkill': true, 'location.shareFile': true, [FILES_SERVE_METHOD]: true,
   [APP_SERVE_METHOD]: true, [BUNDLE_METHODS.read]: true, [BUNDLE_METHODS.write]: true,
 }
 
@@ -70,7 +69,7 @@ const EVENTS: Record<SiteEventName, true> = {
 
 const EVERY_METHOD_CONSTANT = [
   SITE_DATA_METHODS, RUNTIME_METHODS, MEMBERSHIP_METHODS, PACKAGE_METHODS, LOCATION_FILE_METHODS, REPO_WORK_METHODS,
-  PREVIEW_METHODS, SITE_DIAGNOSTICS_METHODS, SITE_RESTORE_METHODS, CLAUDE_LOGIN_METHODS, WORKFLOW_RUN_METHODS,
+  SITE_DIAGNOSTICS_METHODS, SITE_RESTORE_METHODS, CLAUDE_LOGIN_METHODS, WORKFLOW_RUN_METHODS,
   BRANCH_WORK_METHODS, BRANCH_READ_METHODS, MAIN_WORK_METHODS, LIVE_PREVIEW_METHODS, LIVE_PREVIEW_APP_METHODS,
   BUNDLE_METHODS,
 ].flatMap(group => Object.values(group) as string[]).concat(

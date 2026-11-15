@@ -91,3 +91,8 @@ Implemented by the version baseline (2026-10-21) and released in `v0.1.0-alpha.1
 - adr-0117, the signed images every part is installed from.
 - adr-0134, how hq connects to Agenthix Cloud.
 - The rule as it stands, and how to move a version: [`docs/architecture/versioning.md`](../architecture/versioning.md).
+
+Applied a second time on 2026-11-15, before `v0.1.0`: every protocol was restarted at `1.0` again, with every
+deprecated piece and every older-peer version gate removed, and the snapshots were recorded again with a deliberate
+reset (`PROTOCOL_SNAPSHOT_RESET=1 npm run snapshot:update` in core). The reason was the same: no installation outside
+the team needed the alpha history.

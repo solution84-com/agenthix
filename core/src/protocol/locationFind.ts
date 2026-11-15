@@ -1,5 +1,5 @@
 /**
- * Finding a place's files by name (site protocol 1.8), on the control channel: what the message box's `@` picker asks
+ * Finding a place's files by name, on the control channel: what the message box's `@` picker asks
  * a site as the person types. The site walks the one location it is named, never following a symbolic link and
  * skipping `FIND_FILES_SKIPPED_FOLDERS`, and stops at `FIND_FILES_MAX_ENTRIES` entries or `FIND_FILES_MAX_MS`,
  * answering what it has found by then with `truncated` set. hq checks the person's access to the place before it asks;

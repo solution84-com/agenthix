@@ -39,8 +39,8 @@ describe('inRange @SC-564', () => {
 
 function run(over: Partial<RunRow>): RunRow {
   return {
-    id: 'r', agentId: 'a', sessionId: 's', taskId: 't1', parentRunId: null, rootRunId: null, status: 'COMPLETED',
-    inputText: '', outputText: null, thought: null, model: 'm', error: null, usage: null, diagnosticLog: null,
+    id: 'r', agentId: 'a', sessionId: 's', taskId: 't1', status: 'COMPLETED',
+    inputText: '', outputText: null, model: 'm', error: null, usage: null,
     manifestStatus: null, pendingManifest: null, approvedManifest: null, manifestDecidedById: null, manifestDecidedAt: null, contextUse: null,
     auditSummary: null,
     metadata: null, startedAt: '2026-10-05T10:00:00.000Z', endedAt: '2026-10-05T11:00:00.000Z', createdAt: '2026-10-05T09:59:00.000Z',

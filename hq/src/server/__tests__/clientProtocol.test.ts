@@ -27,8 +27,8 @@ function handshake(auth: Record<string, unknown>, headers: Record<string, string
 }
 
 const TWO_AHEAD = {
-  error: 'This app speaks protocol 3.0 and HQ speaks 1.23, too far apart to work together: upgrade HQ.',
-  reason: 'too_far_apart', hqVersion: '1.23', clientVersion: '3.0', upgrade: 'hq',
+  error: 'This app speaks protocol 3.0 and HQ speaks 1.0, too far apart to work together: upgrade HQ.',
+  reason: 'too_far_apart', hqVersion: '1.0', clientVersion: '3.0', upgrade: 'hq',
 }
 
 describe('the client protocol over HTTP @SC-1138', () => {
@@ -38,7 +38,7 @@ describe('the client protocol over HTTP @SC-1138', () => {
     expect(answer.locals.client).toBeUndefined()
   })
 
-  it.each(['1.0', '1.9', '2.0', '2.7'])('serves an app on %s (hq on 1.2: the same major or one ahead)', (version) => {
+  it.each(['1.0', '1.9', '2.0', '2.7'])('serves an app on %s (hq on 1.0: the same major or one ahead)', (version) => {
     const answer = request({ 'X-Client-Protocol-Version': version, 'User-Agent': 'mobile/1.2.0' })
     expect(answer.passed).toBe(true)
     expect(answer.locals.client).toEqual({ version, userAgent: 'mobile/1.2.0' })
@@ -47,7 +47,7 @@ describe('the client protocol over HTTP @SC-1138', () => {
 
   it('refuses an app two majors ahead with 426, naming HQ as the side to update', () => {
     expect(request({ 'X-Client-Protocol-Version': '3.0', 'User-Agent': 'mobile/9.0.0' })).toMatchObject({
-      passed: false, status: 426, headers: { 'X-Client-Protocol-Version': '1.23' }, body: TWO_AHEAD,
+      passed: false, status: 426, headers: { 'X-Client-Protocol-Version': '1.0' }, body: TWO_AHEAD,
     })
   })
 
@@ -64,8 +64,8 @@ describe('the client protocol over HTTP @SC-1138', () => {
     expect(request({ 'X-Client-Protocol-Version': 'one' })).toMatchObject({
       passed: false, status: 426,
       body: {
-        error: 'This app stated the protocol version "one", which is not one; HQ speaks 1.23.',
-        reason: 'malformed', hqVersion: '1.23', clientVersion: 'one', upgrade: 'client',
+        error: 'This app stated the protocol version "one", which is not one; HQ speaks 1.0.',
+        reason: 'malformed', hqVersion: '1.0', clientVersion: 'one', upgrade: 'client',
       },
     })
   })

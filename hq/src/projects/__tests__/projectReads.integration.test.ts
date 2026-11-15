@@ -70,7 +70,7 @@ describe("a private project's contents follow its visibility", () => {
     const c = await privateCast()
     expect((await getProject({ projectId: c.project.id }, ctx(c.member))).tasks.map((t: { id: string }) => t.id)).toEqual([c.task.id])
     const board = await getBoard({ boardId: c.board.id }, ctx(c.member))
-    expect([...board.tasks, ...board.backlog].map(t => t.id)).toEqual([c.task.id])
+    expect(board.tasks.map(t => t.id)).toEqual([c.task.id])
   })
 })
 

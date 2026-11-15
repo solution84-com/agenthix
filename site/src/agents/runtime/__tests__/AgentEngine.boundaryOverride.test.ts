@@ -132,7 +132,6 @@ const DISPATCH_CONTEXT: RunContextPayload = {
   chat: { sessionContext: null },
   mounts: { ownerSlugs: {} },
   riskRules: null,
-  credential: null,
   packages: {
     agent: { kind: 'agent', key: 'agent-1', digest: 'a'.repeat(64) },
     org: null,

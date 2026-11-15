@@ -80,7 +80,7 @@ export type SessionPatchEvent = {
  * sees nothing of it, since the wait happens before the run's RUNNING frame.
  * Lost like any event: hq clears the wait on the run's own status frames too.
  *
- * `reason` (inside 1.12): `branch` is a run on a branch's copy waiting for the
+ * `reason`: `branch` is a run on a branch's copy waiting for the
  * other runs in its container to end, so the container is made again with the
  * storage's code workspaces read-only. Absent means `slot`.
  */
@@ -169,8 +169,8 @@ export type CredentialHealthEvent = {
 
 /**
  * site → hq: a subscription login the harness refreshed during a run, reported
- * against the grant hq named on the run's credential
- * (`SubscriptionRunCredential.grantId`). It covers every subscription, a
+ * against the grant hq named on the run's provider descriptor
+ * (`RunProviderDescriptor`'s `grantId`). It covers every subscription, a
  * person's, a project's or the organisation's.
  *
  * The event names no owner. hq looks the grant up in its own records, which

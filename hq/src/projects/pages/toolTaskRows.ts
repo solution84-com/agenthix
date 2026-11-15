@@ -15,7 +15,7 @@ export interface TaskRowData {
   runStateReason: string | null
   assignedAgentId: string | null
   assignedAgent: { id: string; name: string; handle: string | null } | null
-  /** Its column, as its type names it (since client protocol 1.16). */
+  /** Its column, as its type names it. */
   typeColumn?: { name: string } | null
   scheduleNextDueAt?: When
   lastWorkedAt?: When

@@ -12,14 +12,11 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import {
   CONTENT_LINK_MAX_MESSAGE_BYTES, CONTENT_PING_INTERVAL_MS, RELAY_PASS_TOKEN_TYPE, RELAY_PROTOCOL_VERSION,
   RELAY_PROTOCOL_VERSION_HEADER, RELAY_SITE_ID_HEADER, RELAY_SITE_LINE_PATH, SITE_PROTOCOL_VERSION,
-  SITE_PROTOCOL_VERSION_HEADER, checkProtocolCompatibility, parseProtocolVersion, verifyRelayToken,
+  SITE_PROTOCOL_VERSION_HEADER, checkProtocolCompatibility, verifyRelayToken,
 } from '@agenthix/core'
 import type { KeySet } from '../keySet'
 import type { Log } from '../log'
 import type { SiteLines } from './siteLines'
-
-/** `files.serve`, the first stream a relay opens, came in site protocol 1.8. */
-const MIN_SITE_MINOR = 8
 
 export type LineServerDeps = {
   lines: SiteLines
@@ -85,9 +82,7 @@ async function admit(req: IncomingMessage, socket: Duplex, deps: LineServerDeps)
 
   const relay = checkProtocolCompatibility(RELAY_PROTOCOL_VERSION, headerOf(req, RELAY_PROTOCOL_VERSION_HEADER))
   const site = checkProtocolCompatibility(SITE_PROTOCOL_VERSION, headerOf(req, SITE_PROTOCOL_VERSION_HEADER))
-  const minimum = parseProtocolVersion(SITE_PROTOCOL_VERSION)!
-  const siteTooOld = site.ok && site.speak.major === minimum.major && site.speak.minor < MIN_SITE_MINOR
-  if (!relay.ok || !site.ok || siteTooOld) {
+  if (!relay.ok || !site.ok) {
     refuseUpgrade(socket, 426, 'Upgrade Required', {
       [RELAY_PROTOCOL_VERSION_HEADER]: RELAY_PROTOCOL_VERSION,
       [SITE_PROTOCOL_VERSION_HEADER]: SITE_PROTOCOL_VERSION,

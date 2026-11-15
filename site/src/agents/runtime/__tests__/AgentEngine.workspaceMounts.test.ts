@@ -186,7 +186,6 @@ function chatDispatchContext(overrides: Partial<RunContextPayload> = {}): RunCon
     chat: { sessionContext: null },
     mounts: { ownerSlugs: {} },
     riskRules: null,
-    credential: null,
     packages: {
       agent: { kind: 'agent', key: 'agent-1', digest: 'a'.repeat(64) },
       org: null,
@@ -205,7 +204,6 @@ function taskDispatchContext(overrides: Partial<RunContextPayload> = {}): RunCon
     },
     mounts: { ownerSlugs: { p1: 'web' } },
     riskRules: null,
-    credential: null,
     packages: {
       agent: { kind: 'agent', key: 'agent-1', digest: 'a'.repeat(64) },
       org: null,

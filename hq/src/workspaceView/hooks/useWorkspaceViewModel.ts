@@ -116,8 +116,8 @@ function useOlderVersion(workspaceId: string, named: string | null) {
 }
 
 /**
- * An older version's own changes, against the version before it: none at the latest, while loading, when the site
- * cannot say, or when the read fails (the tree then shows no marks).
+ * An older version's own changes, against the version before it: none at the latest, while loading, or when the read
+ * fails (the tree then shows no marks).
  */
 function useVersionChanges(workspaceId: string, commit: string | null) {
   const { data, error } = useQuery(getMainVersionChanges, { workspaceId, version: commit ?? '' }, { enabled: commit !== null })

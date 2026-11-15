@@ -159,7 +159,7 @@ async function seedTaskExtras(c: SeedContext, o: SeedOrganisation) {
   }
   for (const a of o.attachments) {
     await db.taskAttachment.create({
-      data: { taskId: idFor(ids.tasks, a.task, 'task'), uuid: a.uuid, fileName: a.fileName, mimeType: a.mimeType, fileSizeBytes: a.sizeBytes, createdAt: c.at(a.at) },
+      data: { taskId: idFor(ids.tasks, a.task, 'task'), uuid: a.uuid, fileName: a.fileName, fileSizeBytes: a.sizeBytes, createdAt: c.at(a.at) },
     })
   }
   for (const r of o.routines) {
@@ -173,7 +173,7 @@ async function seedTaskExtras(c: SeedContext, o: SeedOrganisation) {
     })
     for (const run of r.runs) {
       await db.routineRun.create({
-        data: { id: run.id, routineId: r.id, number: run.number, dueAt: c.at(run.dueAt), ...common, state: 'FINISHED', startedAt: c.at(run.startedAt), endedAt: c.at(run.endedAt) },
+        data: { id: run.id, routineId: r.id, number: run.number, dueAt: c.at(run.dueAt), onBehalfOfUserId: common.onBehalfOfUserId, state: 'FINISHED', startedAt: c.at(run.startedAt), endedAt: c.at(run.endedAt) },
       })
     }
   }

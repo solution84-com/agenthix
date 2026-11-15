@@ -28,6 +28,9 @@
 #   UPGRADE_TEST_LOGS          where the logs go (a new folder under the system's temporary folder)
 #   UPGRADE_TEST_HQ_WAIT_SECONDS  how long the host service waits for HQ to answer (90 unless set; a development build's
 #                              setting HOST_DEV_HQ_WAIT_SECONDS, which a published host service ignores)
+# It installs whole installations, so it is skipped, with one line saying why and exit 0, when either app's migrations
+# were squashed after the version installed first (scripts/regression/squashed.mjs): an installation from before a
+# squash is reinstalled, not upgraded. From the first release after a squash it runs as before.
 # It takes about 5 minutes once the images are built, the forced failure's health check waiting that long for an
 # hq-server that never answers (an installation's waits 10 minutes).
 set -euo pipefail
@@ -95,6 +98,14 @@ if [ -z "$FROM_VERSION" ] && [ -z "${UPGRADE_TEST_FROM_TAG:-}${UPGRADE_TEST_FROM
   FROM_VERSION="$(git -C "$ROOT" describe --tags --match 'v*' --abbrev=0 2>/dev/null || true)"
   FROM_VERSION="${FROM_VERSION#v}"
   [ -n "$FROM_VERSION" ] || fail 'no release tag (v*) is in this history, so there is no version to upgrade from: fetch the tags (git fetch --tags), or set UPGRADE_TEST_FROM.'
+fi
+# A squash after the version installed first: nothing to prove. Only a release tag can be compared; images given by
+# tag or refs are not, and run as before.
+if [ -n "$FROM_VERSION" ]; then
+  for app in hq site; do
+    squashed="$(node "$ROOT/scripts/regression/squashed.mjs" "v$FROM_VERSION" "$app" 2>/dev/null || true)"
+    if [ -n "$squashed" ]; then echo "$squashed"; exit 0; fi
+  done
 fi
 HQ_WAIT="${UPGRADE_TEST_HQ_WAIT_SECONDS:-90}"
 [[ "$HQ_WAIT" =~ ^[1-9][0-9]*$ ]] || fail "UPGRADE_TEST_HQ_WAIT_SECONDS is a whole number of seconds, not \"$HQ_WAIT\"."

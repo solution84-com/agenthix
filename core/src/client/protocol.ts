@@ -11,7 +11,7 @@
  */
 import { checkProtocolCompatibility, protocolRefusalMessage } from '../protocol/compatibility.js'
 
-export const CLIENT_PROTOCOL_VERSION = '1.23'
+export const CLIENT_PROTOCOL_VERSION = '1.0'
 
 export const CLIENT_PROTOCOL_VERSION_HEADER = 'X-Client-Protocol-Version'
 
@@ -26,7 +26,7 @@ export type HqVersions = {
   /** hq's product version (`0.1.0-alpha.1`), or `dev` for a build made on a machine. */
   release: string
   clientProtocolVersion: string
-  /** Whether HQ is set up yet, so an app says so before sign-in. Absent from an hq before 1.1. */
+  /** Whether HQ is set up yet, so an app says so before sign-in.. */
   claimState?: HqClaimState
 }
 

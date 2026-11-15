@@ -117,7 +117,7 @@ export type HostRequest =
   | { op: 'frontDoor.set'; on: true; confirmPorts: true; filesHost?: string; previewsHost?: string; certificate?: string; privateKey?: string }
   | { op: 'frontDoor.set'; on: false }
   /**
-   * Since 1.3: HQ's preview address, the domain every live app is answered under (live preview spec section 5); null
+   * HQ's preview address, the domain every live app is answered under (live preview spec section 5); null
    * keeps live apps off. Asked again with the same domain, it changes nothing and runs the three checks again.
    */
   | { op: 'previews.set'; domain: string | null }

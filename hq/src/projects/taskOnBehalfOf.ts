@@ -7,17 +7,15 @@ import { mayWorkInProject } from './membership'
 import { isActivePerson } from '../server/identity/people'
 import { LOST_ACCESS_REASON } from '../agents/taskExecutionReasons'
 
-/** Who put a task in the queue: a person (through one of their connections, when
- *  they used one — adr-0090), or an agent during a run (its session). */
+/** Who put a task in the queue: a person, or an agent during a run (its session). */
 export type Queuer =
-  | { kind: 'person'; userId: string; connectionId?: string }
+  | { kind: 'person'; userId: string }
   | { kind: 'agent'; agentId: string; sessionId: string }
 
 export type QueuedByFields = {
   queuedByUserId: string | null
   queuedByAgentId: string | null
   queuedBySessionId: string | null
-  queuedByConnectionId: string | null
 }
 
 /**
@@ -25,10 +23,10 @@ export type QueuedByFields = {
  * a run of a task queued; `null` when no one is behind the act.
  */
 export function queuedBy(queuer: Queuer | null): QueuedByFields {
-  if (!queuer) return { queuedByUserId: null, queuedByAgentId: null, queuedBySessionId: null, queuedByConnectionId: null }
+  if (!queuer) return { queuedByUserId: null, queuedByAgentId: null, queuedBySessionId: null }
   return queuer.kind === 'person'
-    ? { queuedByUserId: queuer.userId, queuedByAgentId: null, queuedBySessionId: null, queuedByConnectionId: queuer.connectionId ?? null }
-    : { queuedByUserId: null, queuedByAgentId: queuer.agentId, queuedBySessionId: queuer.sessionId, queuedByConnectionId: null }
+    ? { queuedByUserId: queuer.userId, queuedByAgentId: null, queuedBySessionId: null }
+    : { queuedByUserId: null, queuedByAgentId: queuer.agentId, queuedBySessionId: queuer.sessionId }
 }
 
 export function personQueuer(userId: string): Queuer {
@@ -39,18 +37,11 @@ export function personQueuer(userId: string): Queuer {
 export interface TaskOrigin {
   onBehalfOfUserId: string
   queuer: Queuer
-  /** The person's connection it is created through, when it is (adr-0090). */
-  connectionId?: string
 }
 
 /** A task a person created themselves is on their own behalf. */
 export function originByPerson(userId: string): TaskOrigin {
   return { onBehalfOfUserId: userId, queuer: personQueuer(userId) }
-}
-
-/** A task a person created through one of their connections (adr-0090): on their behalf, through it. */
-export function originByConnection(userId: string, connectionId: string): TaskOrigin {
-  return { onBehalfOfUserId: userId, queuer: { kind: 'person', userId, connectionId }, connectionId }
 }
 
 /** A task an agent created during a run, on behalf of the person that run was for. */

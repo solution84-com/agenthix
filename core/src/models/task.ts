@@ -8,11 +8,6 @@ import type { TaskState } from '../tasks/taskModel.js'
 export type TaskRunState =
   | 'RUN_NONE'
   | 'RUN_QUEUED'
-  /**
-   * Held for a throttled round; the throttle is gone (adr-0175) and hq never sends it.
-   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
-   */
-  | 'RUN_THROTTLED'
   | 'RUN_ACTIVE'
   | 'RUN_BLOCKED'
   | 'RUN_FAILED'

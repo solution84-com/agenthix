@@ -123,13 +123,18 @@ const ADAS_DOCUMENT = JSON.stringify({ claudeAiOauth: { accessToken: 'ada-token'
 const SUBSCRIPTION = {
   kind: 'subscription' as const, provider: 'anthropic' as const, oauthJson: ADAS_DOCUMENT, grantId: 'grant-1', loginId: 'login-1',
 }
+const SUBSCRIPTION_ACCESS: RunContextPayload['modelAccess'] = {
+  model: { providerId: 'prov-mine', model: 'claude-x' },
+  provider: { kind: 'subscription', providerId: 'prov-mine', vendor: 'anthropic', oauthJson: ADAS_DOCUMENT, grantId: 'grant-1', loginId: 'login-1' },
+  billingProfileId: '',
+}
 
 const CONTEXT: RunContextPayload = {
   agent: AGENT as any,
   chat: { sessionContext: null },
   mounts: { ownerSlugs: {} },
   riskRules: null,
-  credential: SUBSCRIPTION,
+  modelAccess: SUBSCRIPTION_ACCESS,
   packages: {
     agent: { kind: 'agent', key: 'agent-1', digest: 'a'.repeat(64) },
     org: null,
@@ -186,14 +191,14 @@ describe('the document leaves the home with the run @SC-782', () => {
     // An API-key run was granted no document, but the home may still hold one
     // an earlier run left — the removal is about the home, not about this
     // run's own credential.
-    await run({ ...CONTEXT, credential: { kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-live' } })
+    await run({ ...CONTEXT, modelAccess: { model: { providerId: 'p-ant', model: 'claude-x' }, provider: { kind: 'api_key', providerId: 'p-ant', vendor: 'anthropic', apiKey: 'sk-live' }, billingProfileId: '' } })
 
     expect(h.clearRunCredential).toHaveBeenCalledWith('/site/homes/users/u1/personal/.claude')
   })
 })
 
 describe('a subscription hq granted @SC-1231', () => {
-  const GRANTED = SUBSCRIPTION
+  const GRANTED = { ...SUBSCRIPTION, providerId: 'prov-mine' }
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -220,7 +225,7 @@ describe('a subscription hq granted @SC-1231', () => {
     locationMock.resolvePrimaryLocation.mockReturnValue({ ownerType: 'project', ownerId: 'p1' } as any)
     h.resolveAgentContext.mockResolvedValue({ agent: AGENT, session: { ...CHAT_SESSION, sessionType: 'task', taskId: 'task-1' } })
 
-    await run({ ...CONTEXT, credential: GRANTED })
+    await run(CONTEXT)
 
     expect(logins.join).toHaveBeenCalledTimes(1)
     const [home, credential] = logins.join.mock.calls[0]
@@ -239,7 +244,7 @@ describe('a subscription hq granted @SC-1231', () => {
       exp: Math.floor(Date.now() / 1000) + 900,
     } as any)
 
-    await run({ ...CONTEXT, credential: GRANTED })
+    await run(CONTEXT)
 
     expect(logins.join).toHaveBeenCalledTimes(1)
     expect(logins.leave).toHaveBeenCalledTimes(1)
@@ -257,7 +262,6 @@ describe('a subscription hq granted @SC-1231', () => {
 
     await run({
       ...CONTEXT,
-      credential: null,
       modelAccess: {
         model: { providerId: 'prov-mine', model: 'claude-x' },
         provider: { kind: 'subscription', providerId: 'prov-mine', vendor: 'anthropic', oauthJson: ADAS_DOCUMENT, grantId: 'grant-1', loginId: 'login-1' },
@@ -266,7 +270,7 @@ describe('a subscription hq granted @SC-1231', () => {
     })
 
     expect(logins.join).toHaveBeenCalledTimes(1)
-    expect(logins.join.mock.calls[0][1]).toEqual({ ...GRANTED, providerId: 'prov-mine' })
+    expect(logins.join.mock.calls[0][1]).toEqual(GRANTED)
     expect(logins.leave).toHaveBeenCalledTimes(1)
   })
 })

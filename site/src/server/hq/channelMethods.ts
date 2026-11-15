@@ -9,7 +9,6 @@ import {
   MAIN_WORK_METHODS,
   MEMBERSHIP_METHODS,
   PACKAGE_METHODS,
-  PREVIEW_METHODS,
   RELAY_ASSIGN_METHOD,
   REPO_WORK_METHODS,
   RUNTIME_METHODS,
@@ -36,7 +35,6 @@ import {
 import { searchKnowledge } from '../storage/knowledgeSearch'
 import { removeLocation } from '../storage/locationRemove'
 import * as repoWork from '../storage/repoWorkMethods'
-import { previewGone } from './previewGone'
 import * as runtimeMethods from './runtimeChannelMethods'
 import * as dispatchHandler from '../runtime/dispatchHandler'
 import * as membershipEnding from '../runtime/membershipEnding'
@@ -86,7 +84,6 @@ export const channelMethods: ChannelHandlers = {
     const config = await prisma.siteConfig.findFirst()
     return {
       siteId: config?.siteId ?? '',
-      name: config?.name ?? '',
       protocolVersion: SITE_PROTOCOL_VERSION,
       startedAt: startedAt.toISOString(),
     }
@@ -225,9 +222,6 @@ export const channelMethods: ChannelHandlers = {
   // guard, and branches carried between sites as bundles.
   ...livePreviewChannelMethods,
 
-  // The old preview path, deprecated since 1.12 and answered as gone (`./previewGone.ts`).
-  [PREVIEW_METHODS.start]: (params) => previewGone(params),
-  [PREVIEW_METHODS.stop]: (params) => previewGone(params),
 
   // The logs and diagnostics page (adr-0106): a page of this site's own log,
   // and its health report taken now for Check again. Reads only.

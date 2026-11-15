@@ -125,9 +125,9 @@ describe('the record, and who', () => {
   it('a move is two records, one under each name @SC-1422', async () => {
     await moveKnowledgePageAction({ owner: web(), from: 'processes/release.md', to: 'how-we-work/release.md', baseVersion: v(PAGE) }, as(member))
     const rows = await prisma.knowledgeChange.findMany({ orderBy: { page: 'asc' } })
-    expect(rows.map(r => [r.page, r.kind, r.fromPage])).toEqual([
-      ['how-we-work/release.md', 'MOVED', 'processes/release.md'],
-      ['processes/release.md', 'MOVED', null],
+    expect(rows.map(r => [r.page, r.kind])).toEqual([
+      ['how-we-work/release.md', 'MOVED'],
+      ['processes/release.md', 'MOVED'],
     ])
   })
 

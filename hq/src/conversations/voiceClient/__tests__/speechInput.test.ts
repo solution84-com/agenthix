@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { buildSpeechUrl, createLoudDetector, readSpeechMessage, rms } from '../speechInput'
+import { describe, expect, it } from 'vitest'
+import { buildSpeechUrl, readSpeechMessage, rms } from '../speechInput'
 
 describe('the speech service’s frames @SC-995', () => {
   it('reads words still being spoken as partial', () => {
@@ -33,15 +33,7 @@ describe('the speech service’s frames @SC-995', () => {
   })
 })
 
-describe('someone speaking over the reply @SC-997', () => {
-  it('needs two loud chunks in a row', () => {
-    const onLoud = vi.fn()
-    const feed = createLoudDetector(onLoud)
-    feed(0.2); feed(0.01); feed(0.2)
-    expect(onLoud).not.toHaveBeenCalled()
-    feed(0.2)
-    expect(onLoud).toHaveBeenCalledTimes(1)
-  })
+describe('the audio\'s loudness @SC-997', () => {
   it('measures loudness', () => {
     expect(rms(new Int16Array([0, 0, 0]))).toBe(0)
     expect(rms(new Int16Array([16384, -16384]))).toBeCloseTo(0.5)

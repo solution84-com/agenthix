@@ -23,9 +23,7 @@ import { MEMBERSHIP_METHODS } from '@agenthix/core'
 import type { AddTaskCommentArgs, CreateTaskArgs, MoveTaskToColumnArgs, TaskCommentView, TaskFields } from '@agenthix/core'
 import { taskCommentView, taskFields } from './taskWire'
 import { checkedTaskModel } from '../models-settings/taskModelChoice'
-import { createTaskArgs, requireColumnArg, requireCommentContent, updateTaskArgs } from './taskArgs'
-import { stateOfColumnArg, UNKNOWN_COLUMN } from './deprecatedBoardPlace'
-import { statusOfState } from './taskWire'
+import { createTaskArgs, requireCommentContent, updateTaskArgs } from './taskArgs'
 import { taskRunner } from '../agents/TaskRunner'
 import { replaceTaskRequests } from '../agents/manifestRequests'
 import { requireRole } from '../server/identity/requireRole'
@@ -48,7 +46,7 @@ import { LOST_ACCESS_REASON } from './taskOnBehalfOf'
 import { LOST_ACCESS_RUN_REFUSAL } from '../agents/taskExecutionReasons'
 import { personActor } from './taskActivity'
 import { refuseRunOfEpic } from './epicRules'
-import { moveTask as moveTaskInPlan, setTaskState } from './taskColumnService'
+import { moveTask as moveTaskInPlan } from './taskColumnService'
 import { refuseWhileRunning } from './taskArchiveActions'
 import {
   createProject as createProjectRecord,
@@ -195,13 +193,12 @@ export const updateTask: UpdateTask<
     modelChoice?: string | null
     /** One of the project's workspaces, or null for the project's files. */
     workspaceId?: string | null
-    status?: string
   },
   any
 > = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   // Wasp hands the operation whatever the request carried: each field is checked, and only these are kept.
-  const { taskId, title, description, assignedAgentId, priority, labels, status } = updateTaskArgs(args)
+  const { taskId, title, description, assignedAgentId, priority, labels } = updateTaskArgs(args)
   // The run state is not an edit: a person changes it by Run, Stop or Dismiss, which say what they do.
   const projectId = await requireTaskAccess(taskId, context.user.id, 'Changing this task')
   if (assignedAgentId) await requireAgentOnProject(projectId, assignedAgentId)
@@ -210,15 +207,10 @@ export const updateTask: UpdateTask<
     agentId: assignedAgentId ?? (await prisma.task.findUnique({ where: { id: taskId }, select: { assignedAgentId: true } }))?.assignedAgentId,
   })
   const workspaceId = await checkedTaskWorkspace(projectId, args.workspaceId)
-  // The deprecated status is a state: it is reached by a move, landing on the type's default column for it.
-  const current = status === undefined ? null : await prisma.task.findUnique({ where: { id: taskId }, select: { state: true } })
-  const moveTo = status !== undefined && current && statusOfState(current.state) !== status ? status : null
-  const updated = await updateTaskRecord({
+  return updateTaskRecord({
     taskId, title, description, assignedAgentId, priority, labels, actor: personActor(context.user.id),
     ...(modelChoice !== undefined ? { modelChoice } : {}), ...(workspaceId !== undefined ? { workspaceId } : {}),
   })
-  if (!moveTo) return updated
-  return setTaskState(taskId, moveTo, personActor(context.user.id))
 }
 
 export const runTask: RunTask<{ taskId: string }, void> = async ({ taskId }, context) => {
@@ -259,17 +251,9 @@ export const deleteTask: DeleteTask<{ taskId: string }, any> = async ({ taskId }
 
 export const moveTaskToColumn: MoveTaskToColumn<MoveTaskToColumnArgs, TaskFields> = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
-  // One of its type's columns (since 1.16): the move is the task model's, and `column` is not read.
-  if (args.columnId !== undefined) {
-    if (typeof args.columnId !== 'string' || !args.columnId) throw new HttpError(400, 'columnId must be a column id')
-    await requireTaskAccess(args.taskId, context.user.id, 'Changing this task')
-    return taskFields(await moveTaskInPlan(args.taskId, { columnId: args.columnId }, personActor(context.user.id)))
-  }
-  // The deprecated column names a state (deprecatedBoardPlace.ts); a task is on no board, so `boardId` moves nothing.
-  const state = stateOfColumnArg(requireColumnArg(args.column))
-  if (!state) throw new HttpError(400, UNKNOWN_COLUMN)
+  if (typeof args.columnId !== 'string' || !args.columnId) throw new HttpError(400, 'columnId must be a column id')
   await requireTaskAccess(args.taskId, context.user.id, 'Changing this task')
-  return taskFields(await setTaskState(args.taskId, state, personActor(context.user.id)))
+  return taskFields(await moveTaskInPlan(args.taskId, { columnId: args.columnId }, personActor(context.user.id)))
 }
 
 export const addAgentToProject: AddAgentToProject<{ projectId: string; agentId: string }, any> = async (args, context) => {

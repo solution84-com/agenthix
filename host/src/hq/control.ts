@@ -20,7 +20,7 @@ export type HqStatusData = {
   hqSite: {
     state: 'connected' | 'notConnected' | 'upgrade' | 'unpaired'
     dockerRunning: boolean | null
-    /** Why its own site is not connected, as this host service last told hq; absent from an older hq. */
+    /** Why its own site is not connected, as this host service last told hq. */
     cause?: SiteCause | null
   }
   address: string

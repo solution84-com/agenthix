@@ -15,7 +15,7 @@
  *
  * It reports the executor image too (workflows spec part 1, *Image upgrades*): the digest workflow steps start from,
  * the release it came with and the content key of its tools stage, which together decide whether an approval
- * survives an upgrade. Added in site protocol 1.5; a site from before reports none.
+ * survives an upgrade.
  *
  * It also says whether the machine is nearly out of memory (`memoryNearlyFull`), a condition and never a figure, so
  * hq can warn the members whose work runs there (spec §10).
@@ -61,15 +61,15 @@ export type SiteHealth = {
     /** The release the site was started as, which is the release of the agent image it runs; null when the image is absent or the site was given no version. */
     version: string | null
   }
-  /** The image workflow steps start from; absent when the site reports none (it is from before 1.5). */
+  /** The image workflow steps start from; absent when the site reports none. */
   executorImage?: ExecutorImageReport | null
   /** What each agent container gets, and the machine's ceilings before narrowing; null when they cannot be trusted. */
   ceilings: EffectiveCeilings | null
   /** Whether the machine is nearly out of memory (`machineMemoryNearlyFull`). */
   memoryNearlyFull: boolean
-  /** The disk the branches' working copies use (`clones/` across owners); absent from a site before 1.12, null when unreadable. Added in site protocol 1.12. */
+  /** The disk the branches' working copies use (`clones/` across owners); null when unreadable. */
   branchCopies?: { usedBytes: number } | null
-  /** Since 1.12: what the site's live previews use (`LivePreviewsCapacity`); absent from a site from before. */
+  /** What the site's live previews use (`LivePreviewsCapacity`). */
   livePreviews?: LivePreviewsCapacity
 }
 
@@ -178,7 +178,7 @@ export function parseSiteHealth(data: unknown): SiteHealth | null {
     disk: freeBytes !== null && totalBytes !== null && freeBytes <= totalBytes ? { freeBytes, totalBytes } : null,
     docker: { running: docker.running, version: text(docker.version) },
     agentImage: { name, present: image.present, version: text(image.version) },
-    // Left out when not reported, so a report from before 1.5 reads as it did.
+    // Left out when not reported.
     ...(executorImage ? { executorImage } : {}),
     ceilings: parseEffectiveCeilings(d.ceilings),
     memoryNearlyFull: d.memoryNearlyFull,

@@ -1,17 +1,33 @@
 /**
  * What a run is given to reach its models, as the site uses it (models from one place, part 1). hq sends a provider
- * descriptor per provider (`RunContextPayload.modelAccess`); an hq before site protocol 1.1 sends the deprecated
- * `credential` and `fallbackCredentials` instead, which are still read until they stop working in 3.0.
+ * descriptor per provider (`RunContextPayload.modelAccess`).
  *
  * Each relayed provider is keyed by the relay path a harness addresses it at (`provider`): a vendor's own, and for
- * Agenthix Cloud the vendor API its gateway is spoken to in. A provider id is known only from a descriptor; a run from
- * an older hq has none, and its calls are not reported.
+ * Agenthix Cloud the vendor API its gateway is spoken to in. A credential without a provider id has its calls not
+ * reported.
  */
-import type { ApiKeyRunCredential, RunContextPayload, RunProviderDescriptor, SubscriptionRunCredential } from '@agenthix/core'
+import type { RunContextPayload, RunProviderDescriptor } from '@agenthix/core'
 import { isRelayProvider, type RelayProvider } from './relayProviders'
 
-/** An API key the relay adds to a request: an older hq's credential, or a descriptor's key for any relayed provider. */
-export type RelayApiKeyCredential = Omit<ApiKeyRunCredential, 'provider'> & { provider: RelayProvider; providerId?: string }
+/**
+ * An API key the relay adds to a request, for any relayed provider. `baseUrl` is set for `openai_compatible` and
+ * absent for every other provider; an endpoint that needs no key carries `apiKey: ''`.
+ */
+export type RelayApiKeyCredential = { kind: 'apiKey'; provider: RelayProvider; apiKey: string; baseUrl?: string; providerId?: string }
+
+/**
+ * A person's own Claude subscription: the Claude Code OAuth credentials document, written into the run's own Claude
+ * home. `grantId` names this one hand-over, so a token the harness refreshes is reported against it; `loginId` the
+ * stored sign-in the document came from, the same for every run handed that login.
+ */
+export type SubscriptionCredential = {
+  kind: 'subscription'
+  provider: 'anthropic'
+  oauthJson: string
+  grantId: string
+  loginId: string
+  providerId?: string
+}
 
 /** A provider whose requests the relay sends on, adding what it presents. */
 export type RelayCredential =
@@ -19,7 +35,7 @@ export type RelayCredential =
   | { kind: 'cloud'; providerId: string; provider: Extract<RelayProvider, 'anthropic' | 'openai'>; baseUrl: string }
 
 /** The run's own provider: relayed, or a person's own Claude subscription written as the run's login file. */
-export type SiteRunCredential = RelayCredential | (SubscriptionRunCredential & { providerId?: string })
+export type SiteRunCredential = RelayCredential | SubscriptionCredential
 
 export type RunAccess = {
   credential: SiteRunCredential | null
@@ -48,16 +64,14 @@ export function isRelayed(c: SiteRunCredential | null | undefined): c is RelayCr
   return !!c && c.kind !== 'subscription'
 }
 
-export function runAccessOf(ctx: Pick<RunContextPayload, 'modelAccess' | 'credential' | 'fallbackCredentials'>): RunAccess {
+export function runAccessOf(ctx: Pick<RunContextPayload, 'modelAccess'>): RunAccess {
   const access = ctx.modelAccess
-  if (access) {
-    return {
-      credential: siteCredentialOf(access.provider),
-      others: (access.others ?? []).map(siteCredentialOf).filter(isRelayed),
-      billingProfileId: access.billingProfileId || null,
-    }
+  if (!access) return { credential: null, others: [], billingProfileId: null }
+  return {
+    credential: siteCredentialOf(access.provider),
+    others: (access.others ?? []).map(siteCredentialOf).filter(isRelayed),
+    billingProfileId: access.billingProfileId || null,
   }
-  return { credential: ctx.credential ?? null, others: ctx.fallbackCredentials ?? [], billingProfileId: null }
 }
 
 /** Every provider a turn's model requests may be relayed to: its own, then the others. */

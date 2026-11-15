@@ -57,7 +57,7 @@ export async function memoryForTurn(input: TurnMemoryInput, deps: TurnMemoryDeps
     const probable = canRecall ? found.probable : []
     keepScores(turn.turnId, found.scores)
 
-    const ids = { conversationId: conversation.id, turnId: turn.turnId }
+    const ids = { turnId: turn.turnId }
     await deps.recordOutcomes([
       ...found.certain.map(i => ({ itemId: i.itemId, kind: 'INCLUDED' as const, similarity: i.similarity, ...(i.weighted ? { weighted: true } : {}), ...ids })),
       ...probable.map(p => ({ itemId: p.itemId, kind: 'HINTED' as const, similarity: p.similarity, ...ids })),

@@ -74,9 +74,7 @@ export interface OutcomeInput {
   similarity?: number
   /** An INCLUDED Rule that only its kind's weight brought in: the bar tuner leaves it out. */
   weighted?: boolean
-  conversationId?: string
   turnId?: string
-  runId?: string
 }
 
 export type ScopeChangeOutcome =

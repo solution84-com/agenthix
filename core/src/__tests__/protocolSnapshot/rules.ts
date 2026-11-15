@@ -119,6 +119,18 @@ export function judge(
   return { connection: name, changes, needed, problems }
 }
 
+/**
+ * What stops a deliberate reset: the lead's step before a first release, which records the current shapes as a new
+ * baseline instead of judging them against the committed snapshot. It is allowed only at `1.0`, with nothing
+ * deprecated, since a baseline every later version counts from carries nothing on its way out.
+ */
+export function resetProblems(now: Snapshot): string[] {
+  const name = now.connection
+  const problems = now.version === '1.0' ? [] : [`${name}: a reset records 1.0, and the version is ${now.version}`]
+  for (const { at } of marksIn(now)) problems.push(`${name}: ${at} still carries a deprecation mark: a reset baseline has none`)
+  return problems
+}
+
 function describe(changes: Change[], level: Level): string {
   const of = changes.filter(c => c.level === level)
   const shown = of.slice(0, 8).map(c => `${c.at} ${c.what}`).join('; ')

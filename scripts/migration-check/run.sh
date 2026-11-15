@@ -16,6 +16,9 @@
 #                               set: `git describe --tags --match 'v*' --abbrev=0`)
 #   MIGRATION_CHECK_NAMESPACE   the container's namespace (mck<random> unless set)
 #   MIGRATION_CHECK_KEEP=1      leave the container running, and say how to remove it
+# An app whose migrations were squashed after the release (the release's oldest migration is not in this tree) is
+# skipped with one line saying so, and the check passes: an installation from before a squash is reinstalled, not
+# upgraded (scripts/regression/squashed.mjs). From the first release after a squash nothing is skipped.
 # It takes under a minute once the Postgres image is on the machine.
 set -euo pipefail
 
@@ -72,7 +75,11 @@ deploy() { # <app> <dir> <database>
     || { cat "$WORK/deploy-$1-$(basename "$2").log" >&2; fail "$1's migrations ($(basename "$2")) did not apply."; }
 }
 
+CHECKED=0
 for app in hq site; do
+  squashed="$(node "$ROOT/scripts/regression/squashed.mjs" "$FROM" "$app")" || fail "could not tell whether $app's migrations were squashed since $FROM."
+  if [ -n "$squashed" ]; then say "$app"; echo "$squashed"; continue; fi
+  CHECKED=$((CHECKED + 1))
   [ -x "$ROOT/$app/node_modules/.bin/prisma" ] || fail "$app's Prisma is not installed: run npm ci in $app first."
   database="check_$app"
   say "$app: the migrations of $FROM, then rows"
@@ -95,4 +102,5 @@ for app in hq site; do
 $lost"
   echo "Every row is still there ($(grep -c . "$WORK/$app-before.txt") counts compared)."
 done
-say 'The migration check passed'
+[ "$CHECKED" -gt 0 ] || say 'The migration check passed: every app was skipped, see above'
+[ "$CHECKED" -eq 0 ] || say 'The migration check passed'

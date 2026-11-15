@@ -134,14 +134,14 @@ describe('remember @SC-2103 @SC-2104', () => {
     expect(await prisma.memoryItem.count()).toBe(0)
   })
 
-  it('replaces a near-duplicate with a newer Rule: the old one is archived, and the new one names it', async () => {
+  it('replaces a near-duplicate with a newer Rule: the old one is archived', async () => {
     const old = await service.remember(atAlice, input({ ...coffee, kind: 'RULE' }))
     const next = await service.remember(atAlice, input({ title: 'Coffee order today', body: `${coffee.body.slice(0, -1)}, always.`, kind: 'RULE' }))
     expect(next).toMatchObject({ status: 'superseded', key: 'coffee-order-today' })
     const oldRow = await prisma.memoryItem.findUniqueOrThrow({ where: { id: (old as { itemId: string }).itemId } })
     const newRow = await prisma.memoryItem.findUniqueOrThrow({ where: { id: (next as { itemId: string }).itemId } })
     expect(oldRow.archived).toBe(true)
-    expect(newRow.supersedesId).toBe(oldRow.id)
+    expect(newRow.archived).toBe(false)
   })
 
   it('joins a near-duplicate Fact onto the one held, and embeds the joined memory again', async () => {
@@ -237,8 +237,8 @@ describe('outcomes @SC-989', () => {
     const added = await service.remember(atAlice, input(coffee))
     const itemId = (added as { itemId: string }).itemId
     await service.recordOutcomes([
-      { itemId, kind: 'INCLUDED', similarity: 0.5, weighted: true, conversationId: 'c1', turnId: 't1' },
-      { itemId, kind: 'USED', conversationId: 'c1', turnId: 't1' },
+      { itemId, kind: 'INCLUDED', similarity: 0.5, weighted: true, turnId: 't1' },
+      { itemId, kind: 'USED', turnId: 't1' },
     ])
     expect((await prisma.memoryOutcome.findMany({ where: { itemId }, orderBy: { kind: 'asc' } })).map(o => [o.kind, o.weighted])).toEqual([['INCLUDED', true], ['USED', false]])
     expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: itemId } })).toMatchObject({ usedCount: 1 })

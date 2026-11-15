@@ -118,7 +118,7 @@ export async function recallOp(ctx: CallerContext, args: RecallArgs): Promise<{ 
     itemId: item.itemId,
     kind: 'RECALLED' as const,
     similarity: item.similarity,
-    ...(ctx.kind === 'turn' ? { conversationId: ctx.turn.conversationId, turnId: ctx.turn.turnId } : {}),
+    ...(ctx.kind === 'turn' ? { turnId: ctx.turn.turnId } : {}),
   })))
   return { items: items.map(forTool), cut }
 }

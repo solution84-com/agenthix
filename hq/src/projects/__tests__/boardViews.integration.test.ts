@@ -19,7 +19,7 @@ vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 vi.mock('../../sessions/siteRuntimeStore', () => import('../../test/fakes/siteRuntimeStore'))
 
 import type { TaskState } from '@prisma/client'
-import { getProjectBoards, moveTaskToBoard } from '../boardOperations'
+import { getProjectBoards } from '../boardOperations'
 import { getAllBoards, getBoard, getBoards } from '../queries'
 import { readTimeline } from '../timeline'
 import { createTask } from '../taskService'
@@ -51,32 +51,21 @@ describe('the deprecated board reads answer from saved views @SC-546', () => {
 
     const boards = await getProjectBoards({ projectId: project.id }, ctx(person))
     expect(boards.map(b => b.id)).toEqual([project.id, bugs.id])
-    expect(boards[0]).toMatchObject({ kind: 'PROJECT_TASKS', name: 'Task state', columns: [], backlogCount: 0, needsYouCount: 1, view: { kind: 'STATE' } })
-    expect(boards[0].viewColumns!.map(c => [c.key, c.count])).toEqual([['BACKLOG', 1], ['TODO', 2], ['IN_PROGRESS', 0], ['DONE', 0]])
-    expect(boards[1]).toMatchObject({ kind: 'WORKFLOW', templateId: null, archivedAt: null, view: { kind: 'TYPE', typeId: bug.id } })
-    expect((await getBoards({ projectId: project.id }, ctx(person) as never)).map(b => [b.id, b.columns])).toEqual([[project.id, []], [bugs.id, []]])
+    expect(boards[0]).toMatchObject({ kind: 'PROJECT_TASKS', name: 'Task state', needsYouCount: 1, view: { kind: 'STATE' } })
+    expect(boards[0].viewColumns.map(c => [c.key, c.count])).toEqual([['BACKLOG', 1], ['TODO', 2], ['IN_PROGRESS', 0], ['DONE', 0]])
+    expect(boards[1]).toMatchObject({ kind: 'WORKFLOW', archivedAt: null, view: { kind: 'TYPE', typeId: bug.id } })
+    expect((await getBoards({ projectId: project.id }, ctx(person) as never)).map(b => [b.id, b.view.kind])).toEqual([[project.id, 'STATE'], [bugs.id, 'TYPE']])
     expect((await getAllBoards(undefined, ctx(person) as never)).filter(b => b.project.id === project.id).map(b => b.id)).toEqual([project.id, bugs.id])
   })
 
-  it("opens the Task state board by the project's id, its tasks in the project's order and no Backlog of its own", async () => {
+  it("opens the Task state board by the project's id, its tasks in the project's order", async () => {
     const { person, project, task } = await world()
     const first = await task('BACKLOG')
     const second = await task('TODO')
     const board = await getBoard({ boardId: project.id }, ctx(person) as never)
-    expect(board).toMatchObject({ id: project.id, projectTasksBoardId: project.id, columns: [], backlog: [], showAlso: [], roundLine: null })
+    expect(board).toMatchObject({ id: project.id, view: { kind: 'STATE' } })
     expect(board.tasks.map(t => t.id)).toEqual([first.id, second.id])
-    expect(board.tasks[0]).toMatchObject({ boardId: project.id, column: null, taskKey: `${project.key}-${first.number}` })
-  })
-
-  it("moving a task onto a board changes nothing, and is refused for another project's board", async () => {
-    const { person, project, task } = await world()
-    const t = await task('TODO')
-    const before = await prisma.task.findUniqueOrThrow({ where: { id: t.id } })
-    expect(await moveTaskToBoard({ taskId: t.id, boardId: project.id }, ctx(person))).toMatchObject({ id: t.id, state: 'TODO' })
-    expect(await prisma.task.findUniqueOrThrow({ where: { id: t.id } })).toEqual(before)
-    const elsewhere = await createProject({ accessLevel: 'OPEN' })
-    await prisma.projectMember.create({ data: { projectId: elsewhere.id, userId: person.id } })
-    await expect(moveTaskToBoard({ taskId: t.id, boardId: elsewhere.id }, ctx(person))).rejects.toMatchObject({ statusCode: 400 })
+    expect(board.tasks[0]).toMatchObject({ state: 'BACKLOG', taskKey: `${project.key}-${first.number}` })
   })
 })
 

@@ -27,13 +27,12 @@ import type {
   ProjectDetail, ProjectIdArgs, ProjectKeyArgs, ProjectListItem, ProjectTaskListItem, TaskByKey, TaskCommentListItem,
   TaskIdArgs, TaskListItem,
 } from '@agenthix/core'
-import { readAllBoards, readBoardFields, readBoardView } from './deprecatedBoardReads'
+import { readAllBoards, readBoardFields, readBoardView } from './boardReads'
 import { WARNED_SITE_SELECT, projectSiteAsShown } from '../sites/resources/projectSiteWarning'
 import { projectDetail, projectFields, projectListItem } from './projectWire'
-import { isTaskState } from './taskArgs'
 import { isTaskState as isNewTaskState } from '@agenthix/core'
 import {
-  LISTED_TASK_INCLUDE, projectTaskListItem, stateWhereOfStatus, TASK_KIND_INCLUDE, taskCommentView, taskProjectFacts,
+  LISTED_TASK_INCLUDE, projectTaskListItem, TASK_KIND_INCLUDE, taskCommentView, taskProjectFacts,
   type TaskProjectFacts,
 } from './taskWire'
 
@@ -126,14 +125,14 @@ export const getProjectByKey: GetProjectByKey<ProjectKeyArgs, ProjectDetail> = a
   return openedProject(project)
 }
 
-/** Deprecated (deprecatedBoardReads.ts): the project's Task state board, then its saved boards. A board is never archived. */
+/** The project's Task state board, then its saved boards (boardReads.ts). A board is never archived. */
 export const getBoards: GetBoards<ProjectBoardsArgs, BoardFields[]> = async ({ projectId }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   await requireProjectVisible(projectId, context.user.id)
   return readBoardFields(projectId)
 }
 
-/** Deprecated (deprecatedBoardReads.ts): one board, a saved one or the project's Task state board, with its tasks. */
+/** One board, a saved one or the project's Task state board, with its tasks (boardReads.ts). */
 export const getBoard: GetBoard<GetBoardArgs, BoardView> = async ({ boardId }, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   const projectId = await requireBoardVisible(boardId, context.user.id)
@@ -142,11 +141,9 @@ export const getBoard: GetBoard<GetBoardArgs, BoardView> = async ({ boardId }, c
 
 export const getTasks: GetTasks<GetTasksArgs, ProjectTaskListItem[]> = async (args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
-  if (args.status !== undefined && !isTaskState(args.status)) throw new HttpError(400, 'status must be TODO, IN_PROGRESS or DONE')
   if (args.state !== undefined && !isNewTaskState(args.state)) throw new HttpError(400, 'state must be BACKLOG, TODO, IN_PROGRESS or DONE')
   await requireProjectVisible(args.projectId, context.user.id)
   const where: Prisma.TaskWhereInput = { projectId: args.projectId, ...(args.includeArchived ? {} : { archived: false }) }
-  if (args.status) where.state = stateWhereOfStatus(args.status)
   if (args.state) where.state = args.state
   const rows = await withLatestResults(await withRunWaitNotes(await withDisplayReasons(await context.entities.Task.findMany({
     where,
@@ -240,7 +237,7 @@ export const getTaskAttachments: GetTaskAttachments<{ taskId: string }, any[]> =
   })
 }
 
-/** Deprecated (deprecatedBoardReads.ts): every board in the person's own projects, each with its counts. */
+/** Every board in the person's own projects, each with its counts (boardReads.ts). */
 export const getAllBoards: GetAllBoards<void, BoardAcrossProjects[]> = async (_args, context) => {
   if (!context.user) throw new HttpError(401, 'Not authenticated')
   return readAllBoards(context.user.id)

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import type { RunCredential } from '@agenthix/core'
+import type { SiteRunCredential } from '../../../server/modelRelay/runAccess'
 
 vi.mock('../../../server/hq/hqConnection', () => ({
   hqConnectionManager: { sendEvent: vi.fn(), connectionState: vi.fn(() => 'connected') },
@@ -32,7 +32,7 @@ const T0 = Date.now()
 const doc = (expiresAt: number) =>
   JSON.stringify({ claudeAiOauth: { accessToken: `at-${expiresAt}`, refreshToken: `rt-${expiresAt}`, expiresAt } })
 
-const granted = (oauthJson: string, grantId: string, loginId = 'login-org'): RunCredential =>
+const granted = (oauthJson: string, grantId: string, loginId = 'login-org'): SiteRunCredential =>
   ({ kind: 'subscription', provider: 'anthropic', oauthJson, grantId, loginId })
 
 let root: string
@@ -42,7 +42,7 @@ const onDisk = (home: string) => fs.readFile(path.join(home, '.credentials.json'
 const harnessRefreshes = (home: string, expiresAt: number) => fs.writeFile(path.join(home, '.credentials.json'), doc(expiresAt))
 
 /** A run's launch as runLaunch does it: counted into the login, then its credential written. */
-async function launch(home: string, credential: RunCredential): Promise<SubscriptionMembership | null> {
+async function launch(home: string, credential: SiteRunCredential): Promise<SubscriptionMembership | null> {
   const membership = joinSubscriptionLogin(home, credential)
   await writeRunCredential(home, credential)
   return membership

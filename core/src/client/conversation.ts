@@ -15,7 +15,7 @@ export type ConversationQueueStateValue = 'WAITING' | 'TAKEN' | 'CANCELLED'
 export type InferenceTurnStateValue = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
 export type OperationKindValue = 'WORKER' | 'TASK' | 'TOOL'
 export type OperationStateValue =
-  | 'WAITING_FOR_APPROVAL' | 'SCHEDULED' | 'ACCEPTED' | 'QUEUED' | 'RUNNING' | 'UNCERTAIN'
+  | 'WAITING_FOR_APPROVAL' | 'ACCEPTED' | 'QUEUED' | 'RUNNING' | 'UNCERTAIN'
   | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'DETACHED'
 
 /** A page of the thread, newest first. */
@@ -36,7 +36,7 @@ export type ReplyStepView = {
   ms?: number
   failed?: boolean
   made?: 'started' | 'set'
-  /** What the step's knowledge calls did, for its detail (since 1.6): one entry per call that worked. */
+  /** What the step's knowledge calls did, for its detail: one entry per call that worked. */
   knowledge?: KnowledgeStepView[]
 }
 
@@ -74,9 +74,9 @@ export type ReplyThinking = { ms: number; steps: ReplyStepView[] }
  */
 export type TextBody = {
   text: string; thinking?: ReplyThinking; skill?: PickedSkill
-  /** Since 1.12, on a person's message: the photos and files they added, kept in the place's shared folder. */
+  /** On a person's message: the photos and files they added, kept in the place's shared folder. */
   shared?: SharedFile[]
-  /** Since 1.12: the model a turn talked on that was not given this message's pictures, by its name; the agent had the files. */
+  /** The model a turn talked on that was not given this message's pictures, by its name; the agent had the files. */
   unseenBy?: string
 }
 /** A quiet line from hq: an access switch, a lead taking over a task's thread. */
@@ -113,10 +113,7 @@ export type ResultBody = {
   taskId?: string
   taskKey?: string
 }
-/**
- * `target.params`: what else the tool's address names to open the item. A memory's target (from 1.23) names the memory
- * by its id, `item`; its `scope`, `agent` and `place` params are deprecated since 1.23 and written no more.
- */
+/** `target.params`: what else the tool's address names to open the item. A memory's target names the memory by its id, `item`. */
 export type ActionBody = { text: string; toolName: string; target?: { kind: string; id: string; label: string; params?: Record<string, string> } }
 export type TaskBody = { taskId: string; taskKey: string; title: string }
 /**
@@ -139,7 +136,7 @@ export type WorkflowApprovalCard = {
   reason?: string
 }
 /**
- * `askedBy` is the agent's name; `what` says what would run ("Run the benchmark"). `workflow` (from 1.5): the card
+ * `askedBy` is the agent's name; `what` says what would run ("Run the benchmark"). `workflow`: the card
  * asks for a workflow version's approval.
  */
 export type ApprovalRequestBody = {
@@ -269,13 +266,13 @@ export type StartConversationResult = { conversationId: string; messageId: strin
 export type SendConversationMessageArgs = {
   conversationId: string; clientMessageId: string; text: string; spoken?: boolean; trailedOff?: boolean
   skill?: PickedSkill
-  /** Since 1.12: the photos and files added to the message, each first kept with `shareConversationFile`. */
+  /** The photos and files added to the message, each first kept with `shareConversationFile`. */
   shared?: SharedFile[]
 }
 
 /**
  * A photo or file added to a conversation's message box, kept in the conversation's own place under its shared folder
- * before the message is sent (since 1.12). `dataUrl` is the file as `data:<type>;base64,<bytes>`; what it is, is read
+ * before the message is sent. `dataUrl` is the file as `data:<type>;base64,<bytes>`; what it is, is read
  * from its bytes. The answer is the file as kept, under the name it was given there.
  */
 export type ShareConversationFileArgs = { conversationId: string; name: string; dataUrl: string }
@@ -309,13 +306,13 @@ export type ModelChoice = {
   price: 1 | 2 | 3
   /** The provider is not working: the choice stays listed, greyed out and marked, and cannot be picked. */
   notWorking?: boolean
-  /** Since 1.12: true when the model takes images, false when it is known to read text only; absent when nobody knows. */
+  /** True when the model takes images, false when it is known to read text only; absent when nobody knows. */
   images?: boolean
 }
 
 export type ModelChoices = {
   current: string | null
-  /** The model this conversation would talk on if nobody picked one, which the list puts first as recommended here; absent from an older hq. */
+  /** The model this conversation would talk on if nobody picked one, which the list puts first as recommended here. */
   recommended?: ModelChoice[]
   /** The person's recently used models, newest first, at most three. */
   recent: ModelChoice[]

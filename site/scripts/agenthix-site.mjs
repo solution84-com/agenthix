@@ -47,7 +47,7 @@ const PROBLEMS = {
 }
 
 export function formatStatus(s) {
-  const lines = [`Site:       ${s.name} (${s.siteId})`]
+  const lines = [`Site:       ${s.siteId}`]
   if (!s.hq) {
     const why = s.problem && PROBLEMS[s.problem]
     if (s.pairedBySecret) lines.push(`HQ:         Not connected. ${why ?? "It did not pair with HQ at this start; the site's log says why."}`)

@@ -72,8 +72,7 @@ program is `host/src/main.ts`; the CLI is `host/src/cli/main.ts`, with every com
 - **It records one installation** in `installation.json` in its state folder (`host/src/state/installation.ts`): the
   namespace, the two ports the installation publishes (HQ's and the Fleet Console's) and its agents' address range. The
   ports are chosen at the commands that install the parts, kept from then on, and carried over the host protocol where a
-  move or a restore gives a machine its ports (`install` and a move received carry `hqPort` and `consolePort`, added
-  in host protocol 1.1). One check (`host/src/install/portCheck.ts`) stands before everything that publishes a port;
+  move or a restore gives a machine its ports (`install` and a move received carry `hqPort` and `consolePort`). One check (`host/src/install/portCheck.ts`) stands before everything that publishes a port;
   [deployment.md](deployment.md#the-ports-an-installation-publishes) describes it.
 - **Every name it stores comes from the install's recorded namespace** (`host/src/state/namespace.ts`): recorded
   once, `agenthix` today, and from then on the source of every container, compose project, network, volume, label and
@@ -172,7 +171,7 @@ lost, `hq console-code --no-machines` starts a new one with none, and each machi
 
 **Agenthix Cloud.** Two separate things connect to Agenthix Cloud, the hosted service from the makers of Agenthix:
 a machine Cloud runs enrols with Cloud's controller ([below](#agenthix-clouds-controller)), and an organisation's hq
-connects to Cloud ([cloud-connection.md](cloud-connection.md)), which the Fleet Console starts from HQ's page.
+connects to Cloud ([cloud-connection.md](cloud-connection.md)), which an organisation admin starts from hq.
 No blanket flag gates either: each feature is governed by its own condition (this machine enrolled with Cloud, this
 HQ connected, the person's account linked), and until that is true it says so where it runs and does nothing else
 ([ADR-0130](../adr/adr-0130-cloud-features-are-gated-by-their-own-conditions.md)). A feature held back at a release
@@ -183,7 +182,7 @@ code's setup on the Fleet Console, a fleet admin's own Cloud sign-in to it, and 
 admins there (`console/src/http/routes/cloud.ts`).
 
 **The host protocol.** Every link between a host service or the Fleet Console and hq (and Cloud's host link) is
-versioned as the host protocol, `HOST_PROTOCOL_VERSION` (`1.2`, `core/src/host/relay.ts`), stated in the
+versioned as the host protocol, `HOST_PROTOCOL_VERSION` (`1.0`, `core/src/host/relay.ts`), stated in the
 `X-Host-Protocol-Version` header when the link is dialled. It follows the same rule as the site protocol
 ([control-channel.md](control-channel.md#protocol-versions)): majors at most one apart work together, and a peer two or
 more apart is answered `426` with the receiver's own version, so each side can say which of the two must upgrade.

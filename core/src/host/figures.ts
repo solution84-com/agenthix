@@ -51,7 +51,7 @@ export type EffectiveCeilings = {
 }
 
 /**
- * The agent protections' rules. Since 1.3, for the live-preview part of the agent range on every machine:
+ * The agent protections' rules. For the live-preview part of the agent range on every machine:
  * `private-addresses` (private ranges, link-local, 100.64/10 and the other reserved ranges) and `public-address` (the
  * machine's own public address, as hq sees it).
  */
@@ -71,10 +71,10 @@ export type ProtectionFigures = {
   checkedAt: string
   /** Why they do not hold, in words a person reads; null while they hold. */
   problem: string | null
-  /** Since 1.3: each rule's drops by agent address; absent from a host service that does not count them. */
+  /** Each rule's drops by agent address; absent from a host service that does not count them. */
   drops?: ProtectionDrop[]
   /**
-   * Since 1.3: whether the machine knows a public address it is seen from (hq's `hq.seenFrom`), so `public-address`
+   * Whether the machine knows a public address it is seen from (hq's `hq.seenFrom`), so `public-address`
    * is one of the rules that must hold; absent or false while none is known.
    */
   publicAddressKnown?: boolean
@@ -116,7 +116,7 @@ export type FrontDoorFigures = {
 export type ResourceUse = {
   /** The one-minute load average. */
   cpuLoad: number
-  /** Since 1.3: the machine's processors, which the load is read against; absent from a host service before. */
+  /** The machine's processors, which the load is read against; absent from a host service before. */
   cpus?: number
   memory: { usedBytes: number; totalBytes: number }
   disk: { freeBytes: number; totalBytes: number }
@@ -138,7 +138,7 @@ export type HostFigures = {
   installs: InstallFigures[]
   backups: BackupFigures
   frontDoor: FrontDoorFigures
-  /** Since 1.3, from HQ's machine only: live apps' preview address and its last checks. */
+  /** From HQ's machine only: live apps' preview address and its last checks. */
   previews?: PreviewsFigures
   scheduledChanges: number
 }

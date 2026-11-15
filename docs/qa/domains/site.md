@@ -28,7 +28,7 @@ The site is a plain Node server (ADR-0086), not a Wasp app, so it has no operati
 | 7 | Run engine & dispatch | AgentRun (execution) | dispatch, queue, run lifecycle, pause, completion and failure, approvals, conversations' processes, ending runs on membership change |
 | 8 | Sessions, runs & transcripts (records) | AgentSession, AgentRun, TranscriptEntry, ToolCallLog | the site's runtime rows and their reads for hq, session naming |
 | 9 | Session drivers (Claude Code, OpenCode) | harness session | the two harness drivers, their processes and events, the harness turn and gate endpoints |
-| 10 | Prompts, agenda & memory | prompt, agenda, pinned memory | building an agent's prompt from sections, place instructions, agenda, memory files and supersession |
+| 10 | Prompts, agenda & memory | prompt, agenda, memory file | building an agent's prompt from sections, place instructions, agenda, memory files and supersession |
 | 11 | Skills & packages | skill, package, package cache | staging skills for a run, skill folders, package delivery, the cache and its eviction, boundary overrides |
 | 12 | MCP server & tools | MCP endpoint, tool registry | the local `/mcp` endpoint, tools served here and tools forwarded to hq, web search |
 | 13 | Workspace storage & files | Workspace, storage boundary, location | storage paths and boundaries, a location's files, owners' folders, workspace rows, removal, containment |
@@ -53,7 +53,7 @@ The site is a plain Node server (ADR-0086), not a Wasp app, so it has no operati
 
 ### 2. Registration & the link to hq
 - **Files:** `src/server/registration/`; `src/server/control/`; `src/server/hq/hqConnection.ts`, `connectionToken.ts`, `connectionStatus.ts`, `linkProblem.ts`, `resolveChannelUrl.ts`, `addressFollow.ts`, `channelMethods.ts`, `channelAnswer.ts`, `hqAnswers.ts`, `dataClient.ts`, `runtimeChannelMethods.ts`, `previewGone.ts`
-- **Ops:** pairing at start from `HQ_URL` and `HQ_PAIRING_SECRET` (hq's own site) and registration by the host service's credential (`HqConnection.connectionToken` as bearer); dial-out, reconnect with backoff, reconcile on reconnect; control-channel methods `site.describe`, `SITE_HQ_ADDRESS_METHOD`, `relay.assign` (handler in domain 20), the deprecated `PREVIEW_METHODS.start`/`stop` (answered as gone); the dispatch table `channelMethods` itself (closed map; unknown method is an error); the `agenthix-site` command's `status` and `unregister` over `control.sock`
+- **Ops:** pairing at start from `HQ_URL` and `HQ_PAIRING_SECRET` (hq's own site) and registration by the host service's credential (`HqConnection.connectionToken` as bearer); dial-out, reconnect with backoff, reconcile on reconnect; control-channel methods `site.describe`, `SITE_HQ_ADDRESS_METHOD`, `relay.assign` (handler in domain 20); the dispatch table `channelMethods` itself (closed map; unknown method is an error); the `agenthix-site` command's `status` and `unregister` over `control.sock`
 - **Note:** the authentication of the channel (bearer, URL policy in `hqUrlPolicy.ts`, the protocol-version check) is here. The handlers the table points to belong to the domains named on each row.
 
 ### 3. Identity & run tokens

@@ -8,15 +8,9 @@ import { Logger } from '../server/utils/logger'
 
 const logger = new Logger('RelayAssignment')
 
-/** `relay.assign` came in site protocol 1.8; a site speaking less is never sent it. */
-const FIRST_WITH_RELAYS = { major: 1, minor: 8 }
 /** After a failed assignment, hq tries again this soon, well inside the old pass's life. */
 export const ASSIGN_RETRY_MS = 60_000
 export const PASS_RENEWAL_MS = RELAY_PASS_TTL_SECONDS * 1000 * RELAY_PASS_RENEWAL_FRACTION
-
-export function speaksRelays(v: ProtocolVersion): boolean {
-  return v.major > FIRST_WITH_RELAYS.major || (v.major === FIRST_WITH_RELAYS.major && v.minor >= FIRST_WITH_RELAYS.minor)
-}
 
 export type RelayAssignmentDeps = {
   /** The site's live control-channel connection, compared by identity to tell a reconnect from the same link. */
@@ -73,7 +67,7 @@ export function createRelayAssigner(deps: RelayAssignmentDeps) {
     /** Called once the site's control channel is connected. Never throws. */
     onSiteConnected(siteId: string): Promise<void> {
       const conn = deps.connection(siteId)
-      if (!conn || !speaksRelays(conn.protocol)) {
+      if (!conn) {
         clearTimeout(timers.get(siteId))
         timers.delete(siteId)
         return Promise.resolve()

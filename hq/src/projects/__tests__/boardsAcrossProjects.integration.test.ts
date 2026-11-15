@@ -28,7 +28,7 @@ describe('the deprecated Boards across projects @SC-655', () => {
     const rows = await listFor(me)
 
     expect(rows.map(r => [r.id, r.name])).toEqual([[mine.id, 'Task state'], [expect.any(String), 'Launch plan']])
-    expect(rows[0]).toMatchObject({ kind: 'PROJECT_TASKS', columns: [], archivedAt: null, view: { kind: 'STATE' } })
+    expect(rows[0]).toMatchObject({ kind: 'PROJECT_TASKS', archivedAt: null, view: { kind: 'STATE' } })
     expect(rows[1].project).toEqual({ id: mine.id, name: 'Mine', key: 'MINE', isPersonal: false })
   })
 
@@ -84,8 +84,7 @@ describe('the deprecated Boards across projects @SC-655', () => {
 
     const [row] = await listFor(me)
 
-    expect(row.backlogCount).toBe(0)
-    expect(row.viewColumns!.map(c => [c.key, c.count])).toEqual([['BACKLOG', 1], ['TODO', 1], ['IN_PROGRESS', 0], ['DONE', 0]])
+    expect(row.viewColumns.map(c => [c.key, c.count])).toEqual([['BACKLOG', 1], ['TODO', 1], ['IN_PROGRESS', 0], ['DONE', 0]])
     expect(row.needsYouCount).toBe(1)
   })
 })

@@ -123,7 +123,7 @@ export function parseHqRelay(v: unknown): HqRelay | null {
   }
 }
 
-/** `fleetAdmin.list`' accounts in their shape; one without an id or a name is dropped. An older hq gives no `since`. */
+/** `fleetAdmin.list`' accounts in their shape; one without an id or a name is dropped. */
 export function parseFleetAdminAccounts(v: unknown): FleetAdminAccount[] {
   if (!Array.isArray(v)) return []
   const out: FleetAdminAccount[] = []

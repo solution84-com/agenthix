@@ -1,5 +1,5 @@
 /**
- * A live app's traffic on a site's relay line (live preview spec section 4, *The app*), since site protocol 1.12. The relay
+ * A live app's traffic on a site's relay line (live preview spec section 4, *The app*). The relay
  * opens one `app.serve` stream, duplex (content.ts), for every HTTP request and every WebSocket a browser makes to an
  * app's address, once its own checks pass (relay/appDoor.ts). The site trusts nothing the relay says: on every stream
  * it verifies the app ticket itself (`verifyRelayToken`, its own id the audience, the line's relay the relay), redeems

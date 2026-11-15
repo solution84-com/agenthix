@@ -104,11 +104,21 @@ if (createResult.status !== 0) {
   }
 }
 
-const migrateResult = spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
+const deploy = () => spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
   cwd: siteRoot,
   stdio: 'inherit',
   env: { ...baseEnv, DATABASE_URL: testUrl },
 })
+let migrateResult = deploy()
+if (migrateResult.status !== 0) {
+  // A test database is disposable: when its history no longer matches the committed migrations (they were squashed,
+  // or a failed run left it part-way), it is made again from empty, once.
+  console.error(`[with-test-db] the migrations don't apply to ${resolvedName}; making it again from empty.`)
+  for (const sql of [`DROP DATABASE IF EXISTS "${resolvedName}" WITH (FORCE)`, `CREATE DATABASE "${resolvedName}"`]) {
+    spawnSync('npx', ['prisma', 'db', 'execute', '--stdin', '--url', adminUrl], { cwd: siteRoot, input: sql, encoding: 'utf8' })
+  }
+  migrateResult = deploy()
+}
 if (migrateResult.status !== 0) {
   console.error('[with-test-db] failed to apply migrations to test database.')
   process.exit(migrateResult.status ?? 1)

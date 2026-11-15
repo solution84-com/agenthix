@@ -141,7 +141,7 @@ async function begin(ws: ReachedWorkspace, target: Target, userId: string, wante
  * it on a done task's branch goes again, unless the site went silent and may still bind it (`reconcile.ts` then).
  */
 async function failed(row: LivePreview, detail: string, siteAnswered = true): Promise<void> {
-  await moveLivePreview(row.id, { state: 'STOPPED', reason: 'failed', signal: null, detail, since: new Date(), stoppedAt: new Date() })
+  await moveLivePreview(row.id, { state: 'STOPPED', reason: 'failed', detail, since: new Date(), stoppedAt: new Date() })
   if (siteAnswered) await releaseCopyAfterStop(row)
 }
 

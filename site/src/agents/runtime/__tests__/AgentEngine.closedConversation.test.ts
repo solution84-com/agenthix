@@ -86,7 +86,7 @@ const CONTEXT: RunContextPayload = {
   chat: { sessionContext: null },
   mounts: { ownerSlugs: {} },
   riskRules: null,
-  credential: { kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-live' },
+  modelAccess: { model: { providerId: 'p-ant', model: 'claude-x' }, provider: { kind: 'api_key', providerId: 'p-ant', vendor: 'anthropic', apiKey: 'sk-live' }, billingProfileId: '' },
   packages: {
     agent: { kind: 'agent', key: 'agent-1', digest: 'a'.repeat(64) },
     org: null,
@@ -239,7 +239,7 @@ describe('a conversation keeps the runtime it started with (adr-0078)', () => {
     const movedAgent = { ...AGENT, runtime: 'claude-sdk' }
     withSession({ runtime: 'opencode' }, movedAgent)
 
-    const outcome = await run({ ...CONTEXT, agent: movedAgent as any, credential: null })
+    const outcome = await run({ ...CONTEXT, agent: movedAgent as any, modelAccess: undefined })
 
     expect(outcome).toEqual({ status: 'COMPLETED' })
     expect(selectRuntime).toHaveBeenLastCalledWith('opencode')
@@ -250,7 +250,7 @@ describe('a conversation keeps the runtime it started with (adr-0078)', () => {
     const movedAgent = { ...AGENT, runtime: 'opencode' }
     withSession({ runtime: 'claude-sdk' }, movedAgent)
 
-    const outcome = await run({ ...CONTEXT, agent: movedAgent as any, credential: null })
+    const outcome = await run({ ...CONTEXT, agent: movedAgent as any, modelAccess: undefined })
 
     expect(outcome).toEqual({ status: 'FAILED' })
     expect(failedError()).toContain('No model credential is configured')
@@ -260,7 +260,7 @@ describe('a conversation keeps the runtime it started with (adr-0078)', () => {
     const nativeAgent = { ...AGENT, runtime: 'opencode' }
     withSession({ runtime: null }, nativeAgent)
 
-    await run({ ...CONTEXT, agent: nativeAgent as any, credential: null })
+    await run({ ...CONTEXT, agent: nativeAgent as any, modelAccess: undefined })
 
     expect(selectRuntime).toHaveBeenLastCalledWith('opencode')
   })

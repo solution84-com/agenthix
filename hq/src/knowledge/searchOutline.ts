@@ -35,7 +35,7 @@ async function outlineOne(deps: KnowledgeDeps, level: Level): Promise<string[]> 
   const answer = await withDeadline(deps.sites.list(level.owner, deps.searchTimeLimitMs), deps.searchTimeLimitMs)
   if (answer === 'timeout') return [levelSearchNote(level.name, 'timeout')]
   if (!answer.ok) return [levelSearchNote(level.name, answer.why)]
-  const pages = answer.value.pages ?? []
+  const pages = answer.value.pages
   const tags = new Map<string, number>()
   for (const p of pages) for (const t of p.tags) tags.set(t, (tags.get(t) ?? 0) + 1)
   const ranked = [...tags].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
@@ -43,7 +43,7 @@ async function outlineOne(deps: KnowledgeDeps, level: Level): Promise<string[]> 
   const more = ranked.length > MAX_TAGS_SHOWN ? `, and ${ranked.length - MAX_TAGS_SHOWN} more` : ''
   return [
     `${level.name}: ${pages.length} ${pages.length === 1 ? 'page' : 'pages'}${answer.value.truncated ? ' (the listing stopped at its bound)' : ''}`,
-    sectionsLine(answer.value.sections ?? []),
+    sectionsLine(answer.value.sections),
     `  tags: ${shown || 'none'}${more}`,
   ]
 }

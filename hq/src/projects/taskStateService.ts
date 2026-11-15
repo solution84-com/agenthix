@@ -29,7 +29,6 @@ export async function createTaskComment({
   authorType,
   agentId,
   userId,
-  connectionId,
   runId,
   content,
   parentId,
@@ -39,8 +38,6 @@ export async function createTaskComment({
   authorType: 'AGENT' | 'USER'
   agentId?: string
   userId?: string
-  /** The person's connection a USER comment arrives through, when it does (adr-0090). */
-  connectionId?: string
   runId?: string
   content: string
   /** The top-level comment of the same task this one replies to. */
@@ -50,7 +47,7 @@ export async function createTaskComment({
 }) {
   if (parentId) await requireReplyParent(taskId, parentId)
   const comment = await prisma.taskComment.create({
-    data: { taskId, authorType, agentId: agentId ?? null, userId: userId ?? null, connectionId: connectionId ?? null, runId: runId ?? null, content, parentId: parentId ?? null, savedFromConversation: savedFromConversation ?? false },
+    data: { taskId, authorType, agentId: agentId ?? null, userId: userId ?? null, runId: runId ?? null, content, parentId: parentId ?? null, savedFromConversation: savedFromConversation ?? false },
     include: { agent: { select: { id: true, name: true, handle: true } } },
   })
   if (!RUN_MARKER.test(content)) {

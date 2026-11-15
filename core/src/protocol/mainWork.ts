@@ -1,5 +1,5 @@
 /**
- * What moves a code workspace's `main` (site protocol 1.12): turning Git on, *Merge into main*, *Restore*, and, for a
+ * What moves a code workspace's `main`: turning Git on, *Merge into main*, *Restore*, and, for a
  * workspace connected to GitHub, pushing `main` and taking in versions pushed there by someone else. Each runs in the
  * commit helper in the workspace's own repository, with hooks off. The shared shapes and the rules every branch
  * method keeps are in `branchWork.ts`.

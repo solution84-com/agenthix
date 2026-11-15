@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../test/db'
 import { createAgent, createUserWithRole, createProject, joinProjectAs } from '../../test/factories'
-import { ctx, makeBoard, makeTask, assignAgent } from './projectsHarness'
+import { ctx, columnOfState, makeBoard, makeTask, assignAgent } from './projectsHarness'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -132,7 +132,7 @@ describe("a task's activity (T0)", () => {
     const created = await createTask({ projectId: c.project.id, title: 'Check the footer links' }, ctx(c.person))
     await updateTask({ taskId: created.id, title: 'Check every footer link', description: 'All pages' }, ctx(c.person))
     await updateTask({ taskId: created.id, assignedAgentId: c.agent.id }, ctx(c.person))
-    await moveTaskToColumn({ taskId: created.id, column: 'done' }, ctx(c.person))
+    await moveTaskToColumn({ taskId: created.id, columnId: await columnOfState(c.project.id, 'DONE') }, ctx(c.person))
     await addTaskComment({ taskId: created.id, content: 'Looks good' }, ctx(c.person))
 
     const rows = await activityOf(created.id)

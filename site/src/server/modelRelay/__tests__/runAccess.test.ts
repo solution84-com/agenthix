@@ -16,8 +16,8 @@ const access: RunModelAccess = {
 }
 
 describe("a run's providers, as the site uses them @SC-1230", () => {
-  it('reads the descriptor first, each relayed provider keyed by the relay path it is reached at', () => {
-    const run = runAccessOf({ modelAccess: access, credential: { kind: 'apiKey', provider: 'google', apiKey: 'ignored' } })
+  it('reads the descriptor, each relayed provider keyed by the relay path it is reached at', () => {
+    const run = runAccessOf({ modelAccess: access })
     expect(run.credential).toEqual({ kind: 'apiKey', providerId: 'p-ant', provider: 'anthropic', apiKey: 'sk-test-fake' })
     expect(run.others).toEqual([
       { kind: 'apiKey', providerId: 'p-or', provider: 'openrouter', apiKey: 'or-test-fake' },
@@ -27,19 +27,18 @@ describe("a run's providers, as the site uses them @SC-1230", () => {
   })
 
   it("gives a person's own subscription as the run's login, never to the relay", () => {
-    const run = runAccessOf({ modelAccess: { ...access, provider: access.others![2] }, credential: null })
+    const run = runAccessOf({ modelAccess: { ...access, provider: access.others![2] } })
     expect(run.credential).toMatchObject({ kind: 'subscription', oauthJson: '{}', grantId: 'g', loginId: 'l', providerId: 'p-mine' })
     expect(isRelayed(run.credential)).toBe(false)
     expect(turnRelayCredentials({ credential: run.credential, fallbackCredentials: run.others }).map(c => c.providerId)).toEqual(['p-or', 'p-cloud'])
   })
 
-  it("reads an older hq's credential and fallbacks, which name no provider id", () => {
-    const run = runAccessOf({ credential: { kind: 'apiKey', provider: 'openai', apiKey: 'k' }, fallbackCredentials: [{ kind: 'apiKey', provider: 'google', apiKey: 'g' }] })
-    expect(run).toEqual({ credential: { kind: 'apiKey', provider: 'openai', apiKey: 'k' }, others: [{ kind: 'apiKey', provider: 'google', apiKey: 'g' }], billingProfileId: null })
+  it('gives the run nothing to reach a model with when hq sent no access', () => {
+    expect(runAccessOf({})).toEqual({ credential: null, others: [], billingProfileId: null })
   })
 
   it('has no billing profile while hq has none', () => {
-    expect(runAccessOf({ modelAccess: { ...access, billingProfileId: '' }, credential: null }).billingProfileId).toBeNull()
+    expect(runAccessOf({ modelAccess: { ...access, billingProfileId: '' } }).billingProfileId).toBeNull()
   })
 })
 

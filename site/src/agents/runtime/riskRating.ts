@@ -1,7 +1,7 @@
 /**
  * Risk rating for tool calls in the HITL audit log.
  *
- * Custom site-wide rules (from SiteConfig.riskRules) are evaluated first,
+ * Custom site-wide rules (sent by hq with the run) are evaluated first,
  * top-to-bottom, first match wins. Built-in defaults apply for anything not
  * covered by a custom rule.
  */

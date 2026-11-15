@@ -6,7 +6,7 @@
  * - a **relay pass**, which lets one site hold a line to one relay. hq gives it to the site with `relay.assign` and
  *   renews it before it ends.
  *
- * Since relay protocol 1.1, also an **app ticket** and a **bundle ticket**, for a live preview's apps and for a
+ * Also an **app ticket** and a **bundle ticket**, for a live preview's apps and for a
  * branch sent between two sites (appTickets.ts).
  *
  * Neither a site nor a relay can make any of them: only hq holds the private key. All are verified in one place,

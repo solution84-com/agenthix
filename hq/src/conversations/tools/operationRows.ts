@@ -94,7 +94,6 @@ export const operationRows: ToolOperationRows = {
       where: { id: operationId },
       data: {
         state: settlement.state,
-        completedAt: new Date(),
         idempotencyKey: `${row.idempotencyKey}:${operationId}`,
         ...(settlement.state === 'COMPLETED'
           ? { resultSummary: sealJson(settlement.result) }

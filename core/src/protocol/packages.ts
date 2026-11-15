@@ -101,34 +101,16 @@ export function packageDigestInput(contents: PackageContents): string {
 }
 
 /**
- * Where a run's skill came from (adr-0084). `boundary` is one agent's skills in a
- * place's files (`.agents/agents/<agentId>/skills/`); `shared` is the place's
- * skills for every agent working there (`.agents/skills/`); `workspace` is a
- * workspace repository's (`.agents/skills/`, `.claude/skills/`, `.github/skills/`);
- * `person` is the person's own, following them into their own conversations. No
- * source is another's prefix followed by a hyphen, so no two sources can
- * produce the same name.
+ * Where a run's skill came from (adr-0084). `platform`, `org` and `agent` are installed skills, by the level they are
+ * installed at (`INSTALLED_SKILL_SOURCE`): built in, the organisation's, or this agent's. `boundary` is one agent's
+ * skills in a place's files (`.agents/agents/<agentId>/skills/`); `shared` is the place's skills for every agent
+ * working there (`.agents/skills/`); `workspace` is a workspace repository's (`.agents/skills/`, `.claude/skills/`,
+ * `.github/skills/`); `person` is the person's own, following them into their own conversations. No source is
+ * another's prefix followed by a hyphen, so no two sources can produce the same name.
  */
 export const SKILL_SOURCES = ['platform', 'org', 'agent', 'boundary', 'shared', 'workspace', 'person'] as const
 
-/**
- * The agent package's own `skills/`: an agent's installed skills now reach a run as `installedSkills`.
- *
- * @deprecated since 1.9; stops working in 3.0. Use `installedSkills` instead.
- */
-export type AgentPackageSkillSource = 'agent'
-
-/**
- * The org package's own `skills/`: the organisation's skills now reach a run as `installedSkills` at the `org` level.
- *
- * @deprecated since 1.10; stops working in 3.0. Use `installedSkills` instead.
- */
-export type OrgPackageSkillSource = 'org'
-
-export type SkillSource =
-  | Exclude<(typeof SKILL_SOURCES)[number], AgentPackageSkillSource | OrgPackageSkillSource>
-  | AgentPackageSkillSource
-  | OrgPackageSkillSource
+export type SkillSource = (typeof SKILL_SOURCES)[number]
 
 export const MAX_SKILL_NAME_LENGTH = 64
 
@@ -197,7 +179,7 @@ export function deliveredSkillName(source: SkillSource, identity: string): strin
  * The skills hq names in a run's dispatch beside its packages (spec part 4 *Defaults and switches*, part 5
  * *Delivery*). Installed and personal skills are content by digest, delivered as packages are; file skills are named
  * by place, path and fingerprint, and the site stages one only when what it reads has that fingerprint (security
- * review H3). Absent from an hq before 1.9.
+ * review H3)..
  */
 export type InstalledSkillLevel = 'builtin' | 'org' | 'agent'
 
@@ -207,7 +189,7 @@ export type InstalledSkillEntry = {
   version: string
   digest: string
   level: InstalledSkillLevel
-  /** The content to deliver: kind `skill`, key the version row id, the same digest. Optional only so 1.9 stays valid; hq always sends it from 1.10, and a site stages no entry without it. */
+  /** The content to deliver: kind `skill`, key the version row id, the same digest. A site stages no entry without it. */
   ref?: PackageRef
 }
 
@@ -235,6 +217,6 @@ export type RunSkillUse = {
   placeId?: string
   path?: string
   personId?: string
-  /** Set when hq named the skill and the site did not stage it, saying why (security review H3, M2). Since 1.10. */
+  /** Set when hq named the skill and the site did not stage it, saying why (security review H3, M2). */
   refused?: string
 }

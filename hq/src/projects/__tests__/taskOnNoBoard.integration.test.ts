@@ -64,19 +64,16 @@ describe("every path that makes a task without naming its place puts it in its T
     await landed(project.id, task.id)
   })
 
-  it("a person's action, even one naming a deprecated board", async () => {
+  it("a person's action", async () => {
     const { admin, project } = await madeProject()
     const task = await createTaskAction({ projectId: project.id, title: 'T' }, ctx(admin))
-    const onBoard = await createTaskAction({ projectId: project.id, title: 'U', boardId: project.id }, ctx(admin))
     await landed(project.id, task.id)
-    await landed(project.id, onBoard.id)
-    expect(onBoard).toMatchObject({ boardId: project.id, column: null })
   })
 
-  it("a person's action naming a deprecated column lands in the state it stands for", async () => {
+  it("a person's action naming a state lands in it", async () => {
     const { admin, project } = await madeProject()
-    const task = await createTaskAction({ projectId: project.id, title: 'T', column: 'in_progress' }, ctx(admin))
-    expect(task).toMatchObject({ state: 'IN_PROGRESS', column: 'in_progress', status: 'IN_PROGRESS' })
+    const task = await createTaskAction({ projectId: project.id, title: 'T', state: 'IN_PROGRESS' }, ctx(admin))
+    expect(task).toMatchObject({ state: 'IN_PROGRESS' })
   })
 
   it("an agent's tool in a person's chat, and a person's connection", async () => {

@@ -182,7 +182,6 @@ describe('create_task in a turn @SC-969', () => {
     expect(outcome.status).toBe('accepted')
     const [op] = await operationsOf(w.conversationId)
     expect(op).toMatchObject({ kind: 'TASK', state: 'COMPLETED' })
-    expect(op.completedAt).not.toBeNull()
     expect(setTaskStart(op)?.toISOString()).toBe('2099-01-05T09:00:00.000Z')
     const task = await prisma.task.findUniqueOrThrow({ where: { id: op.taskId! } })
     expect(task.scheduleAt?.toISOString()).toBe('2099-01-05T09:00:00.000Z')

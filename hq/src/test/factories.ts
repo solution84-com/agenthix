@@ -47,7 +47,6 @@ export async function ensureExecutionSite(data: Record<string, unknown> = {}) {
       label: 'Test Execution Site',
       status: 'ONLINE',
       credentialHash: 'f'.repeat(64),
-      credentialPrefix: 'smc_test_fixture',
       isDefault: true,
       ...data,
     } as any,

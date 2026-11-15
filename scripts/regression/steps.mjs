@@ -83,6 +83,9 @@ export function planSteps(sel, { logs }) {
 
   const coreBuilt = sel.modules.size > 0 || stacks
   add(coreBuilt, plain('core-build', 'prepare', 'core', ['npm', 'run', 'build']))
+  // The site's database client, made from its schema as CI's install makes it: one made before a schema change answers
+  // with the old columns, and the site doesn't start.
+  add(has('site') || stacks, plain('site-client', 'prepare', 'site', ['npx', 'prisma', 'generate']))
   add(has('hq') || stacks, plain('hq-build', 'prepare', '.', ['node', 'scripts/regression/hq-built.mjs', '--build'], { env: HQ_HEAP }))
   add(stacks, plain('relay-build', 'prepare', 'relay', ['npm', 'run', 'build']))
   add(stacks, plain('platform-guide', 'prepare', 'hq', ['node', 'scripts/guide/build-platform-guide.mjs']))

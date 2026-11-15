@@ -21,7 +21,6 @@ export function applyLines(held: LiveLines, e: ConversationOperationLinesEvent):
 
 const STATE_WORDS: Partial<Record<OperationStateValue, string>> = {
   WAITING_FOR_APPROVAL: 'waiting for approval',
-  SCHEDULED: 'scheduled',
   ACCEPTED: 'queued',
   QUEUED: 'queued',
   RUNNING: 'working',

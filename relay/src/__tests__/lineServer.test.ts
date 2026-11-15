@@ -62,9 +62,9 @@ describe('a site dials its relay with a pass @SC-1472 @SC-1562 @SC-1565', () => 
   it('refuses after the version check only once the pass is good, with 426 and its own versions', async () => {
     relay = await startRelay()
     const pass = relay.signer.sign(passClaims())
-    const old = await dialStatus({ port: relay.port, pass, headers: { [SITE_PROTOCOL_VERSION_HEADER]: '1.7' } })
-    expect(old.status).toBe(426)
-    expect(old.headers[RELAY_PROTOCOL_VERSION_HEADER.toLowerCase()]).toBe(RELAY_PROTOCOL_VERSION)
+    const far = await dialStatus({ port: relay.port, pass, headers: { [SITE_PROTOCOL_VERSION_HEADER]: '3.0' } })
+    expect(far.status).toBe(426)
+    expect(far.headers[RELAY_PROTOCOL_VERSION_HEADER.toLowerCase()]).toBe(RELAY_PROTOCOL_VERSION)
     expect((await dialStatus({ port: relay.port, pass, headers: { [RELAY_PROTOCOL_VERSION_HEADER]: '3.0' } })).status).toBe(426)
     expect((await dialStatus({ port: relay.port, pass: 'x', headers: { [RELAY_PROTOCOL_VERSION_HEADER]: '3.0' } })).status).toBe(401)
   })

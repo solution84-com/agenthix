@@ -50,7 +50,6 @@ describe('answering hq over the control channel @SC-295', () => {
     expect(msg.type).toBe('channel.response')
     expect(msg.payload).toMatchObject({
       siteId: 's1',
-      name: 'Box',
       protocolVersion: SITE_PROTOCOL_VERSION,
     })
   })

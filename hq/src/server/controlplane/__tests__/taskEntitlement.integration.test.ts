@@ -235,10 +235,10 @@ describe("a person's connection reaches what its person does, narrowed by its pr
     expect((await taskRow())!.typeId).toBe(before!.typeId)
   })
 
-  it('writes a comment as its person, through the connection — never as an agent it names', async () => {
+  it('writes a comment as its person — never as an agent it names', async () => {
     await taskOps.addCommentOp(connCtx(w.member.id, { connectionId: 'conn-7' }), { taskId: w.task.id, agentId: 'agent-impersonated', content: 'hi' })
     expect(await prisma.taskComment.findFirstOrThrow()).toMatchObject({
-      taskId: w.task.id, authorType: 'USER', userId: w.member.id, connectionId: 'conn-7', content: 'hi', agentId: null,
+      taskId: w.task.id, authorType: 'USER', userId: w.member.id, content: 'hi', agentId: null,
     })
   })
 })

@@ -15,7 +15,7 @@ vi.mock('wasp/server', async () => {
 })
 vi.mock('../../embedding/embedders', () => import('../../../test/fakes/embedders'))
 
-import { forgetMemoryItem, saveMemoryItem, setMemoryPinned, setMemoryScope } from '../actions'
+import { forgetMemoryItem, setMemoryScope } from '../actions'
 import { getMemory, getMemoryChoices, getMemoryMeasurements } from '../queries'
 
 const as = (id: string) => ({ user: { id }, entities: {} }) as never
@@ -119,12 +119,6 @@ describe('the memory screen\'s filters and menus @SC-2108', () => {
     })
     await refused(ask(getMemoryChoices, null), 401)
   })
-
-  it('still answers the fields an older app reads, marked deprecated', async () => {
-    await saved(alice, 'Tea')
-    const [tea] = await ask<Record<string, unknown>[]>(getMemory, alice, { scope: 'AGENT_PERSON' })
-    expect(tea).toMatchObject({ agentId: kernel, placeType: 'project', placeId: shop, scope: 'AGENT_PERSON', scopeLabel: 'Kernel, Shop', pinned: false, writtenBy: 'Kernel' })
-  })
 })
 
 describe('promoting and forgetting @SC-2107 @SC-2110', () => {
@@ -157,14 +151,6 @@ describe('promoting and forgetting @SC-2107 @SC-2110', () => {
     expect(await ask(forgetMemoryItem, alice, { id: tea.id })).toEqual({ ok: true })
     expect(await ask(forgetMemoryItem, alice, { id: tea.id })).toEqual({ ok: false })
     expect(await prisma.memoryItem.count()).toBe(0)
-  })
-
-  it('no longer adds, edits or pins a memory', async () => {
-    const tea = await saved(alice, 'Tea')
-    await refused(ask(saveMemoryItem, alice, { title: 'Tea', body: 'Prefers green tea in the afternoon.', kind: 'FACT' }), 410)
-    await refused(ask(saveMemoryItem, alice, { id: tea.id, title: 'Tea', body: 'Changed by hand, which is not allowed.', kind: 'FACT' }), 410)
-    await refused(ask(setMemoryPinned, alice, { id: tea.id, pinned: true }), 410)
-    expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: tea.id } })).toMatchObject({ title: 'Tea' })
   })
 })
 

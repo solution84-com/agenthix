@@ -75,7 +75,6 @@ describe("a relay's link records @SC-1526", () => {
   it('records when it was seen and its last report, but never revives a removed relay', async () => {
     await ensureHqRelay()
     const { id } = await hqRelay()
-    await prisma.relay.update({ where: { id }, data: { state: 'QUIET' } })
     await recordRelaySeen(id)
     expect(await hqRelay()).toMatchObject({ state: 'ON' })
     const load = { startedAt: '2026-10-26T10:00:00.000Z', sites: ['s1'], openStreams: 2, bytesCarried: 512 }

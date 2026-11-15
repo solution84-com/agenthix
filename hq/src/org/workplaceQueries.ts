@@ -61,7 +61,7 @@ export const getOrgSettingsState = async (_args: unknown, context: Ctx): Promise
     prisma.gitHubInstallation.count(),
     getOrgRunLimits(),
     prisma.siteConfig.findFirst({ select: { riskRules: true } }),
-    prisma.provider.count({ where: { service: { in: ['stt', 'tts'] }, isEnabled: true } }),
+    prisma.provider.count({ where: { service: { in: ['stt', 'tts'] } } }),
   ])
   const llmTypes = providers.map(p => providerTypesOf(p.vendor))
   return {

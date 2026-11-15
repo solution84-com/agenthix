@@ -17,10 +17,10 @@ import { nudgeScheduler } from './schedulerNudge'
 
 export class RoutineError extends Error {}
 
-/** Who made or changed a routine: a person (through a connection, when they used one), or an agent in a run, for its person. */
+/** Who made or changed a routine: a person, or an agent in a run, for its person. */
 export type RoutineActor =
-  | { kind: 'person'; userId: string; connectionId?: string }
-  | { kind: 'agent'; agentId: string; sessionId: string; userId: string }
+  | { kind: 'person'; userId: string }
+  | { kind: 'agent'; agentId: string; userId: string }
 
 /** Why the system switched a routine off. */
 export const ROUTINE_LOST_ACCESS_REASON =
@@ -69,8 +69,6 @@ function actorFields(a: RoutineActor) {
   return {
     createdByUserId: a.userId,
     createdByAgentId: a.kind === 'agent' ? a.agentId : null,
-    createdBySessionId: a.kind === 'agent' ? a.sessionId : null,
-    createdByConnectionId: a.kind === 'person' ? a.connectionId ?? null : null,
   }
 }
 

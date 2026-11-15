@@ -48,12 +48,9 @@ agent. That is the multi-agent mechanism ([ADR-0020](../../adr/adr-0020-task-del
 
 ## The checklist field, which is not a sub-task
 
-The `update_task` tool accepts a `subtasks` list of `{ title, done }` and the prompt text tells agents
-to keep it updated as they work. The `Task` model has no column for it (`hq/schema.prisma`), and
-`update_task` (`updateTaskOp` in `hq/src/server/controlplane/taskWriteOps.ts`, which calls
-`updateTask` in `hq/src/projects/taskService.ts`) passes the fields it is given straight to the
-database update, so a call carrying `subtasks` fails: there is no column to store it in. The older `tick_subtask` tool is deprecated and
-always returns an error (`tickSubtaskOp`). Treat checklists as not built.
+The `update_task` tool takes no `subtasks` list, and the `Task` model has no column for one (`hq/schema.prisma`).
+The older `tick_subtask` tool is deprecated and always returns an error (`tickSubtaskOp`). Treat checklists as not
+built.
 
 ## Not built
 

@@ -7,7 +7,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { compareRanks } from '@agenthix/core'
 import { prisma } from '../../test/db'
-import { createUser, createUserWithRole, createProject, joinProjectAs } from '../../test/factories'
+import { createUser, createProject } from '../../test/factories'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -20,7 +20,6 @@ vi.mock('../../agents/dispatchService', () => import('../../test/fakes/dispatchS
 vi.mock('../../server/socket', () => ({ emitTaskUpdated: vi.fn() }))
 
 import { createTask } from '../taskService'
-import { moveTaskToColumn } from '../actions'
 import { moveTask, EPIC_IN_EPIC } from '../taskColumnService'
 import { ensureBuiltInTaskTypes } from '../taskTypes'
 import { createTaskType } from '../taskTypeService'
@@ -157,20 +156,5 @@ describe('the project\'s one order (D14)', () => {
     const other = await theirs.make('B')
     await expect(moveTask(t.id, { afterTaskId: other.id })).rejects.toMatchObject({ statusCode: 400 })
     await expect(moveTask(t.id, { afterTaskId: t.id })).rejects.toMatchObject({ statusCode: 400 })
-  })
-})
-
-describe('a deprecated column move writes the new place', () => {
-  it('to a column named by its state: that state on its type\'s default column; to the Backlog: Backlog', async () => {
-    const { col, make, project: p } = await project()
-    const member = await createUserWithRole('MEMBER')
-    await joinProjectAs(p.id, member.id)
-    const as = { user: member, entities: {} } as never
-    const t = await make('A', { state: 'TODO' })
-    expect(await row(t.id)).toMatchObject({ state: 'TODO', columnId: col('TODO').id })
-    await moveTaskToColumn({ taskId: t.id, column: 'done' }, as)
-    expect(await row(t.id)).toMatchObject({ state: 'DONE', columnId: col('DONE').id })
-    await moveTaskToColumn({ taskId: t.id, column: null }, as)
-    expect(await row(t.id)).toMatchObject({ state: 'BACKLOG', columnId: col('BACKLOG').id })
   })
 })

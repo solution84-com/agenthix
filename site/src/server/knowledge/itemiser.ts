@@ -20,7 +20,6 @@ import {
   type KnowledgePageListing,
   type KnowledgeSection,
   type LocationListKnowledgeResult,
-  type OwnerFolderFile,
 } from '@agenthix/core'
 import {
   MAX_FILE_BYTES,
@@ -125,7 +124,7 @@ function itemise(sys: FdPaths, root: string, f: Found, exists: ReadonlySet<strin
 export function itemiseKnowledge(owner: KnowledgeOwnerRef, sys: FdPaths = systemFdPaths()): LocationListKnowledgeResult {
   const folder = pagesFolderOf(owner)
   if (folder.kind === 'unsafe') outside(owner)
-  if (folder.kind === 'none') return { files: [], truncated: false, sections: [], pages: [] }
+  if (folder.kind === 'none') return { truncated: false, sections: [], pages: [] }
   const real = folder.real
   const { found, folders, truncated } = walk(sys, real, owner)
   const exists = new Set(found.map(f => f.page))
@@ -141,8 +140,5 @@ export function itemiseKnowledge(owner: KnowledgeOwnerRef, sys: FdPaths = system
     if (slash >= 0) count.set(p.page.slice(0, slash), (count.get(p.page.slice(0, slash)) ?? 0) + 1)
   }
   const sections: KnowledgeSection[] = folders.sort().map(p => ({ path: p, pageCount: count.get(p) ?? 0 }))
-  const files: OwnerFolderFile[] = pages
-    .map(p => ({ path: p.page, size: p.size, modifiedAt: p.modifiedAt }))
-    .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt) || a.path.localeCompare(b.path))
-  return { files, truncated, sections, pages }
+  return { truncated, sections, pages }
 }

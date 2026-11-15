@@ -55,7 +55,7 @@ import type {
   BoardAcrossProjects, BoardFields, BoardSummary, BoardView, GetBoardArgs, ProjectBoardsArgs,
 } from './boards.js'
 import type {
-  AddTaskCommentArgs, CreateTaskArgs, GetTaskByKeyArgs, GetTasksArgs, MoveTaskToBoardArgs, MoveTaskToColumnArgs,
+  AddTaskCommentArgs, CreateTaskArgs, GetTaskByKeyArgs, GetTasksArgs, MoveTaskToColumnArgs,
   ProjectTaskListItem, StopResult, StopTaskSessionArgs, TaskByKey, TaskCommentListItem, TaskCommentView, TaskFields,
   TaskIdArgs, TaskListItem,
 } from './tasks.js'
@@ -117,11 +117,6 @@ export type MobileOperations = {
   addTaskComment: Action<AddTaskCommentArgs, TaskCommentView>
   createTask: Action<CreateTaskArgs, TaskFields>
   moveTaskToColumn: Action<MoveTaskToColumnArgs, TaskFields>
-  /**
-   * A task is on no board (adr-0176).
-   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
-   */
-  moveTaskToBoard: Action<MoveTaskToBoardArgs, TaskFields>
   getTaskSession: Query<TaskIdArgs, TaskSessionView | null>
   stopTask: Action<TaskIdArgs, StopResult>
   stopTaskSession: Action<StopTaskSessionArgs, StopResult>
@@ -168,7 +163,7 @@ export const MOBILE_OPERATIONS: { readonly [K in MobileOperationName]: MobileOpe
   getProjects: 'query', getProject: 'query', getProjectByKey: 'query', getProjectCards: 'query',
   getProjectBoards: 'query', getBoards: 'query', getAllBoards: 'query', getBoard: 'query', getTasks: 'query',
   getMyTasks: 'query', getTask: 'query', getTaskByKey: 'query', getTaskComments: 'query', addTaskComment: 'action',
-  createTask: 'action', moveTaskToColumn: 'action', moveTaskToBoard: 'action', getTaskSession: 'query',
+  createTask: 'action', moveTaskToColumn: 'action', getTaskSession: 'query',
   stopTask: 'action', stopTaskSession: 'action',
   getMyRuns: 'query', getMyRunsGoingCount: 'query', getRunsPage: 'query', getRunDetail: 'query',
   getToolCallLog: 'query', getToolCallOutput: 'query', getSessionPendingManifest: 'query', approveManifest: 'action',

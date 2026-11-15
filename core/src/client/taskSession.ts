@@ -108,7 +108,6 @@ export type TaskSessionView = {
   totalCacheWriteTokens: number
   createdAt: Date
   updatedAt: Date
-  expiresAt: Date | null
   taskId: string | null
   primaryOwnerType: WorkspaceOwnerType | null
   primaryOwnerId: string | null

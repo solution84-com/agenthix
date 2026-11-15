@@ -46,7 +46,7 @@ const STATE: Record<LivePreviewSummary['state']['state'], LivePreview['state']> 
   starting: 'STARTING', running: 'RUNNING', paused: 'PAUSED', stopped: 'STOPPED',
 }
 
-export type Move = Pick<Prisma.LivePreviewUpdateInput, 'state' | 'reason' | 'signal' | 'detail' | 'since' | 'stoppedAt' | 'headCommit'>
+export type Move = Pick<Prisma.LivePreviewUpdateInput, 'state' | 'reason' | 'detail' | 'since' | 'stoppedAt' | 'headCommit'>
 
 /**
  * A row's fields from the site's summary. `detailOf` writes hq's own sentence for a pause or a stop; the site's is
@@ -60,7 +60,6 @@ export function moveFromSummary(s: LivePreviewSummary, detailOf: (s: LivePreview
   return {
     state,
     reason: paused?.reason ?? null,
-    signal: paused?.signal ?? null,
     detail: paused ? detailOf(s.state) : null,
     since: at,
     ...(state === 'STOPPED' ? { stoppedAt: at } : {}),

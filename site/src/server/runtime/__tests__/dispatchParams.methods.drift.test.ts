@@ -50,8 +50,6 @@ const fullContext: Required<RunContextPayload> = {
   },
   mounts: { ownerSlugs: { p1: 'atlas' } },
   riskRules: null,
-  credential: { kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-live' },
-  fallbackCredentials: [{ kind: 'apiKey', provider: 'openrouter', apiKey: 'sk-or' }],
   modelAccess: {
     model: { providerId: 'prov-anthropic', model: 'claude-sonnet-5' },
     provider: { kind: 'api_key', providerId: 'prov-anthropic', vendor: 'anthropic', apiKey: 'sk-test-fake' },
@@ -66,7 +64,6 @@ const fullContext: Required<RunContextPayload> = {
   credentialProblem: 'No credential is configured for this boundary.',
   packages,
   person: { timezone: 'Australia/Sydney' },
-  pinnedMemory: [{ key: 'tea', scope: 'agent_person', title: 'Tea', body: 'Prefers tea.' }],
   memory: { items: [{ key: 'tables', kind: 'rule', title: 'Tables', body: 'When comparing options, use a table.' }], hinted: [{ key: 'host', title: 'Host' }] },
   installedSkills: [{ identity: 'agenthix/code-review', version: '1.3.0', digest: 'd'.repeat(64), level: 'agent' }],
   fileSkills: [{ placeId: 'p1', path: '.agents/skills/release', fingerprint: 'e'.repeat(64), group: 'place' }],

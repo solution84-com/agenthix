@@ -30,19 +30,14 @@ export type RunRow = {
   agentId: string
   sessionId: string
   taskId: string | null
-  /** The routine whose firing started it (adr-0177); null for a task's run or a reply. ABSENT from a site before 1.15. */
+  /** The routine whose firing started it (adr-0177); null for a task's run or a reply.. */
   routineId?: string | null
-  parentRunId: string | null
-  rootRunId: string | null
   status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
   inputText: string
   outputText: string | null
-  thought: string | null
   model: string
   error: string | null
   usage: TokenUsage | null
-  /** The history of the run's model attempts and errors, as stored: arbitrary JSON by design (nothing writes it now; it defaults to `[]`). */
-  diagnosticLog: JsonValue
   /** `SUPERSEDED`: the request was replaced by something newer in its task or conversation. */
   manifestStatus: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUPERSEDED' | null
   /** What a deferred run asks to be approved for; null when it asked for nothing. */
@@ -66,6 +61,6 @@ export type RunRow = {
   agentPackageDigest: string | null
   orgPackageDigest: string | null
   platformPackageDigest: string | null
-  /** The skills the run had staged; null before it staged any. ABSENT from a site before 1.9. */
+  /** The skills the run had staged; null before it staged any.. */
   skillsUsed?: RunSkillUse[] | null
 }

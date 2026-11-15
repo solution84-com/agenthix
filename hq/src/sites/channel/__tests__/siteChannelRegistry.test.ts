@@ -229,14 +229,6 @@ describe("the organisation's switches on every request (adr-0172, site protocol 
     expect(JSON.parse(ws.sent[0]).payload.features).toEqual({ usageBilling: false })
   })
 
-  it('sends none to a site speaking a protocol before 1.12', async () => {
-    const reg = new SiteChannelRegistry(store, switchesSource({ marketplace: true }))
-    const ws = fakeSocket()
-    await reg.add('s1', ws as never, { major: 1, minor: 11 })
-    reg.request('s1', 'site.describe', {}, 50).catch(() => {})
-    expect(JSON.parse(ws.sent[0]).payload).toEqual({ method: 'site.describe', params: {} })
-  })
-
   it('fails as offline when the site went away while the switches were read', async () => {
     let release: (v: Record<string, boolean>) => void = () => {}
     const reg = new SiteChannelRegistry(store, { fresh: () => null, read: () => new Promise(r => { release = r }) })

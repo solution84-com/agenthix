@@ -1,5 +1,5 @@
 /**
- * Reading a code workspace's branches and `main` (site protocol 1.12): what the workspace view's branch select, Git's
+ * Reading a code workspace's branches and `main`: what the workspace view's branch select, Git's
  * panel, a file's changes and `main`'s versions are drawn from. Read only, all of it, and read from the workspace's
  * own repository, which no agent can write; the copies are never read here. The shared shapes and the rules every
  * method keeps are in `branchWork.ts`.
@@ -19,7 +19,7 @@ export const BRANCH_READ_METHODS = {
   versions: 'git.versions',
   /** One folder's entries at a commit or a branch's tip: what Files shows, tracked files only. */
   listTree: 'git.listTree',
-  /** Since 1.13: one of `main`'s versions' own changes, against the version before it. */
+  /** One of `main`'s versions' own changes, against the version before it. */
   versionChanges: 'git.versionChanges',
 } as const
 

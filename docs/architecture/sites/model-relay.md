@@ -50,8 +50,7 @@ turn ends is cut off. Once the run is stopped the token names nothing, whatever 
 **Every provider the turn may use is given to it.** hq's resolver ([model-resolution.md](../model-resolution.md)) chooses
 the run's model and its provider, and the dispatch carries a **provider descriptor** for it and for each other provider a
 helper of the run may be sent to (`hq/src/routing/reaching.ts`, `runModelAccess`), as a set. The relay picks by provider.
-A provider with no descriptor is left out; its requests are refused, and the turn fails only if it needs one. An hq
-that speaks site protocol 1.0 sends `credential` and `fallbackCredentials` instead, which a site still reads.
+A provider with no descriptor is left out; its requests are refused, and the turn fails only if it needs one.
 
 ## What the relay checks
 

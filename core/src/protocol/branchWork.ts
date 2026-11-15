@@ -1,5 +1,5 @@
 /**
- * Code work on branches (site protocol 1.12, live preview spec parts 2 and 3): what hq asks a site to do with a code
+ * Code work on branches (live preview spec parts 2 and 3): what hq asks a site to do with a code
  * workspace's repository and its branches' working copies, on the control channel. This file holds the shared shapes
  * and the methods that make, commit in, bring back, rename and remove; `branchReads.ts` holds the reads and
  * `mainWork.ts` turning Git on, merging, restoring and GitHub.

@@ -91,28 +91,18 @@ describe('runtime row modules (site) @SC-347', () => {
     expect(rowsForId[0].title).toBe('Original title')
   })
 
-  it('deleteSession cascades by sessionId — runs (including sub-runs), transcript entries and tool calls; false on a missing id', async () => {
+  it('deleteSession cascades by sessionId — runs, transcript entries and tool calls; false on a missing id', async () => {
     const seed = makeSeed()
     await sessionRows.upsertSessionFromSeed(seed)
 
-    const parentRun = await prisma.agentRun.create({
+    const run = await prisma.agentRun.create({
       data: { sessionId: seed.id, agentId: seed.agentId, inputText: 'do the thing', model: 'claude-sonnet-5' },
-    })
-    await prisma.agentRun.create({
-      data: {
-        sessionId: seed.id,
-        agentId: seed.agentId,
-        inputText: 'sub task',
-        model: 'claude-sonnet-5',
-        parentRunId: parentRun.id,
-        rootRunId: parentRun.id,
-      },
     })
     await prisma.transcriptEntry.create({
       data: { sessionId: seed.id, role: 'USER', content: 'hello' },
     })
     await prisma.toolCallLog.create({
-      data: { runId: parentRun.id, toolName: 'bash', toolInput: {}, riskLevel: 'SAFE' },
+      data: { runId: run.id, toolName: 'bash', toolInput: {}, riskLevel: 'SAFE' },
     })
 
     const deleted = await sessionRows.deleteSession(seed.id)
@@ -121,7 +111,7 @@ describe('runtime row modules (site) @SC-347', () => {
     expect(await prisma.agentSession.findUnique({ where: { id: seed.id } })).toBeNull()
     expect(await prisma.agentRun.findMany({ where: { sessionId: seed.id } })).toHaveLength(0)
     expect(await prisma.transcriptEntry.findMany({ where: { sessionId: seed.id } })).toHaveLength(0)
-    expect(await prisma.toolCallLog.findMany({ where: { runId: parentRun.id } })).toHaveLength(0)
+    expect(await prisma.toolCallLog.findMany({ where: { runId: run.id } })).toHaveLength(0)
 
     const secondDelete = await sessionRows.deleteSession(seed.id)
     expect(secondDelete).toBe(false)
@@ -406,31 +396,6 @@ describe('runtime row modules (site) @SC-347', () => {
     expect(calls.map((c) => c.id)).toEqual([call1.id, call2.id])
 
     expect(await runRows.getRun('does-not-exist')).toBeNull()
-  })
-
-  it('deleting a parent run directly (not via the session) sets the sub-run\'s parentRunId to null instead of cascading', async () => {
-    const seed = makeSeed()
-    await sessionRows.upsertSessionFromSeed(seed)
-
-    const parentRun = await prisma.agentRun.create({
-      data: { sessionId: seed.id, agentId: seed.agentId, inputText: 'parent', model: 'claude-sonnet-5' },
-    })
-    const subRun = await prisma.agentRun.create({
-      data: {
-        sessionId: seed.id,
-        agentId: seed.agentId,
-        inputText: 'sub',
-        model: 'claude-sonnet-5',
-        parentRunId: parentRun.id,
-        rootRunId: parentRun.id,
-      },
-    })
-
-    await prisma.agentRun.delete({ where: { id: parentRun.id } })
-
-    const survivingSubRun = await runRows.getRun(subRun.id)
-    expect(survivingSubRun).not.toBeNull()
-    expect(survivingSubRun!.parentRunId).toBeNull()
   })
 
   it('listTranscript(tail) returns the NEWEST N entries, still ascending — finding 1', async () => {

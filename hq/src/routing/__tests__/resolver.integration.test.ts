@@ -77,7 +77,7 @@ describe('the resolver, reading what is stored', () => {
     if (!answer.ok) throw new Error(answer.problem.message)
     expect(answer.resolution).toMatchObject({ runtime: 'claude-sdk', basis: 'INCLUDED' })
 
-    const asThem = { siteId: 's1', sessionId: 'sess1', runner: { kind: 'person' as const, userId: person.id } }
+    const asThem = { siteId: 's1', runner: { kind: 'person' as const, userId: person.id } }
     const given = await runModelAccess(answer.resolution, [], asThem)
     expect(given?.provider).toMatchObject({ kind: 'subscription', providerId: sub.id })
     expect(await prisma.subscriptionGrant.count({ where: { providerId: sub.id } })).toBe(1)

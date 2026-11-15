@@ -9,7 +9,6 @@ vi.mock('wasp/server', () => ({
   HttpError: class HttpError extends Error { constructor(readonly statusCode: number, message?: string) { super(message) } },
 }))
 vi.mock('../../../storage/workspaceStore', () => ({ SiteUnreachableError: class extends Error {} }))
-vi.mock('../onSite', () => ({ SiteTooOldToShare: class extends Error {} }))
 
 import { shareConversationFileWith, type ShareFileDeps } from '../shareFile'
 

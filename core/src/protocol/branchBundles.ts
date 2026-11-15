@@ -1,6 +1,5 @@
 /**
- * A branch sent between two sites as a Git bundle (live preview spec section 5, *On another site*), since site
- * protocol 1.12. A live preview on a site other than its workspace's cannot share the branch's copy, so:
+ * A branch sent between two sites as a Git bundle (live preview spec section 5, *On another site*). A live preview on a site other than its workspace's cannot share the branch's copy, so:
  *
  * 1. **The branch goes there.** hq asks the workspace's site to make a bundle of the branch (or of `main`):
  *    `bundle.make`, run in the commit helper, written to the site's own data folder, never an agent's. The site answers

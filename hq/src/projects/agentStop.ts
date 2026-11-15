@@ -27,7 +27,7 @@ export type PendingTask = { id: string; runState: string; runStateReason: string
 /** No start time is left on a task taken out of line: a Run at… is a wait like any other (N4). */
 export const CLEARED_START_TIME = {
   scheduleAt: null, scheduleNextDueAt: null,
-  scheduleSetByUserId: null, scheduleSetByAgentId: null, scheduleSetBySessionId: null, scheduleSetByConnectionId: null,
+  scheduleSetByUserId: null, scheduleSetByAgentId: null,
 } as const
 
 /**

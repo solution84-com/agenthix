@@ -80,7 +80,7 @@ describe('making a personal project @SC-1207', () => {
     const person = await createUser()
     // ensureExecutionSite returns the existing default, so a second site is made directly.
     const other = await prisma.executionSite.create({
-      data: { siteId: 's2', label: 'Second site', status: 'ONLINE', credentialHash: 'e'.repeat(64), credentialPrefix: 'smc_test_second', isDefault: false, protocolVersion: SITE_PROTOCOL_VERSION },
+      data: { siteId: 's2', label: 'Second site', status: 'ONLINE', credentialHash: 'e'.repeat(64), isDefault: false, protocolVersion: SITE_PROTOCOL_VERSION },
     })
     await prisma.userStoragePlacement.create({ data: { userId: person.id, siteId: other.id } })
 

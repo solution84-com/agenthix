@@ -19,9 +19,6 @@ export interface ManifestConversion {
   id: number
   slug: string
   pem: string
-  webhook_secret?: string
-  client_id?: string
-  client_secret?: string
 }
 
 /**
@@ -72,16 +69,14 @@ export async function convertManifestCode(code: string): Promise<ManifestConvers
   return res.json() as Promise<ManifestConversion>
 }
 
-/** Persist the conversion — private key, client secret and webhook secret encrypted at rest. */
+/** Persist the conversion: the App's id, slug and private key, the key encrypted at rest. The client and webhook secrets
+ * it also carries are used for nothing, so they are not kept. */
 export async function storeAppFromConversion(c: ManifestConversion): Promise<void> {
   await prisma.gitHubApp.create({
     data: {
       appId: c.id,
       slug: c.slug,
       privateKey: encryptSecret(c.pem),
-      webhookSecret: c.webhook_secret ? encryptSecret(c.webhook_secret) : null,
-      clientId: c.client_id ?? null,
-      clientSecret: c.client_secret ? encryptSecret(c.client_secret) : null,
     },
   })
 }

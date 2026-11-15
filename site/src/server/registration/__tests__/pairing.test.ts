@@ -81,7 +81,6 @@ describe('connecting to hq from the pairing secret', () => {
     expect(call.where).toEqual({ id: 'singleton' })
     expect(call.create).toMatchObject({
       id: 'singleton',
-      orgId: null,
       status: 'PENDING',
       hqUrl: 'http://localhost:4101',
       hqWsUrl: 'ws://localhost:4101' + HQ_SITE_CHANNEL_PATH,

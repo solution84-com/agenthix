@@ -57,20 +57,20 @@ describe('set_task_schedule — an agent only when a person asked (spec §3)', (
     expect((await t1()).scheduleAt).toBeNull()
   })
 
-  it("in a person's chat, sets it on behalf of that person and records the agent and session", async () => {
+  it("in a person's chat, sets it on behalf of that person and records the agent", async () => {
     const at = inAnHour()
     expect(await setTaskScheduleOp(danasChat(), { taskId: 't1', at })).toMatchObject({ scheduled: true })
     expect(await t1()).toMatchObject({
-      onBehalfOfUserId: dana, scheduleSetByUserId: dana, scheduleSetByAgentId: 'agent-1', scheduleSetBySessionId: 'chat-1',
+      onBehalfOfUserId: dana, scheduleSetByUserId: dana, scheduleSetByAgentId: 'agent-1',
       scheduleNextDueAt: new Date(at),
     })
   })
 
-  it("through a person's connection, sets it as that person and records the connection — the agents switch does not apply", async () => {
+  it("through a person's connection, sets it as that person — the agents switch does not apply", async () => {
     await projectAutomation(w.projectId, { agentSchedules: false })
     await setTaskScheduleOp(connectionCaller({ userId: w.u1, connectionId: 'conn-9' }), { taskId: 't1', at: inAnHour() })
     expect(await t1()).toMatchObject({
-      onBehalfOfUserId: w.u1, scheduleSetByUserId: w.u1, scheduleSetByAgentId: null, scheduleSetBySessionId: null, scheduleSetByConnectionId: 'conn-9',
+      onBehalfOfUserId: w.u1, scheduleSetByUserId: w.u1, scheduleSetByAgentId: null,
     })
   })
 

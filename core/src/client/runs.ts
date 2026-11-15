@@ -20,20 +20,10 @@ export type RunStarter = {
 /** Why a queued task's run waits; the client turns it into words. */
 export type RunWaitNote =
   | { kind: 'line'; position: number; agentName: string; agentBusy: boolean }
-  /**
-   * Rounds are gone (adr-0175); hq never sends it.
-   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
-   */
-  | { kind: 'round'; roundOpen: boolean; nextAt: string | null }
-  /**
-   * The automation switch is gone (adr-0175); hq never sends it.
-   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
-   */
-  | { kind: 'automationOff' }
   /** Its site is at its containers-at-once ceiling; `siteName` as people read it. */
   | { kind: 'slot'; siteName: string | null }
   | { kind: 'noAgent' }
-  /** From 1.9: a run on a branch waits for the other runs in its project's container to end. */
+  /** A run on a branch waits for the other runs in its project's container to end. */
   | { kind: 'branch' }
 
 /** One row of the Runs panel: a task's run, or a run in one of the person's conversations. */

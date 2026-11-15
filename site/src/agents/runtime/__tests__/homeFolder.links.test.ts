@@ -12,7 +12,7 @@ vi.mock('../../../server/utils/logger', () => ({
   Logger: vi.fn().mockImplementation(function () { return ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), success: vi.fn() }) }),
 }))
 
-import type { PinnedMemoryItem } from '@agenthix/core'
+import type { RunMemory } from '@agenthix/core'
 import { releasePinnedMemory, writePinnedMemory } from '../pinnedMemoryFiles'
 import { ensureRealFolders, removeFromRunStaging } from '../homeFolder'
 import { writeCredentialFile } from '../credentialFile'
@@ -35,7 +35,7 @@ afterEach(async () => {
 })
 
 const claudeOf = (home: string) => path.join(home, '.claude')
-const ITEM: PinnedMemoryItem = { key: 'k', scope: 'agent_person', title: 'Mine', body: 'my pinned item' }
+const MEMORY: RunMemory = { items: [{ key: 'k', kind: 'fact', title: 'Mine', body: 'my pinned item' }], hinted: [] }
 const runStaging = () => ({ serverDir: staging, visibleDir: '/run/staging', shared: false })
 
 /** Every file under `dir`, with its content, so a test can say nothing in it changed. */
@@ -60,7 +60,7 @@ describe('pinned memory is written into run staging, outside the home a run can 
   it('is written, read at /run/staging, cleared when left behind and removed, whatever the run did to its home', async () => {
     await plants[0][1]()
     const before = await snapshot(other)
-    expect(await writePinnedMemory(runStaging(), 's1', [ITEM])).toBe('/run/staging/pinned-memory/s1/pinned.md')
+    expect(await writePinnedMemory(runStaging(), 's1', MEMORY)).toBe('/run/staging/pinned-memory/s1/pinned.md')
     expect(await fs.readFile(path.join(staging, 'pinned-memory', 's1', 'pinned.md'), 'utf-8')).toContain('my pinned item')
     await fs.mkdir(path.join(staging, 'pinned-memory', 'gone'))
     await writePinnedMemory(runStaging(), 's2', undefined)

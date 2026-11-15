@@ -59,9 +59,9 @@ describe('getOrgSettingsState @SC-665', () => {
     await prisma.aiProvider.create({ data: { name: 'Anthropic', vendor: 'anthropic', credentialKind: 'api_key', secret: 'x' } })
     await prisma.aiProvider.create({ data: { name: 'OpenRouter', vendor: 'openrouter', credentialKind: 'api_key', secret: 'x' } })
     await prisma.aiProvider.create({ data: { name: 'AssemblyAI', vendor: 'assemblyai', credentialKind: 'api_key', secret: 'x' } })
-    await prisma.gitHubInstallation.create({ data: { installationId: 1, accountLogin: 'acme', accountType: 'Organization' } })
+    await prisma.gitHubInstallation.create({ data: { installationId: 1, accountLogin: 'acme', accountType: 'Organization', accountId: 1 } })
     await prisma.siteConfig.create({ data: { riskRules: [{ pattern: 'rm -rf', riskLevel: 'HIGH' }] } })
-    await prisma.provider.create({ data: { service: 'stt', name: 'assemblyai', apiKey: 'x', isEnabled: true } })
+    await prisma.provider.create({ data: { service: 'stt', name: 'assemblyai', apiKey: 'x' } })
 
     const state = await getOrgSettingsState(undefined, ctx(admin))
     expect(state.modelProviders).toEqual(['Anthropic', 'OpenRouter'])

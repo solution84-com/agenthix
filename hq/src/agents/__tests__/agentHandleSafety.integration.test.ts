@@ -203,7 +203,7 @@ describe('deleting an agent', () => {
   async function agentOnTwoSites() {
     const siteA = await ensureExecutionSite()
     const siteB = await prisma.executionSite.create({
-      data: { siteId: 'site-b', label: 'Second', status: 'ONLINE', credentialHash: 'e'.repeat(64), credentialPrefix: 'smc_test_b', isDefault: false } as any,
+      data: { siteId: 'site-b', label: 'Second', status: 'ONLINE', credentialHash: 'e'.repeat(64), isDefault: false } as any,
     })
     const agent = await seedAgent({ handle: 'scout' })
     for (const site of [siteA, siteB]) {

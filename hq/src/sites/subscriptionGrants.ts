@@ -37,7 +37,6 @@ import { prisma } from 'wasp/server'
 import {
   type CapabilityRunner,
   type SubscriptionRefreshedEvent,
-  type SubscriptionRunCredential,
 } from '@agenthix/core'
 import { encryptSecret } from '../server/crypto/secretCrypto'
 import { Logger } from '../server/utils/logger'
@@ -59,8 +58,8 @@ export const SUBSCRIPTION_GRANT_TTL_MS = 7 * 24 * 60 * 60 * 1000
  */
 export const REFRESHED_EXPIRY_CEILING_MS = 7 * 24 * 60 * 60 * 1000
 
-/** Where a run handed a subscription goes: the site, its session, and who it runs for. */
-export type GrantTarget = { siteId: string; sessionId: string; runner: CapabilityRunner }
+/** Where a run handed a subscription goes: the site, and who it runs for. */
+export type GrantTarget = { siteId: string; runner: CapabilityRunner }
 
 /** The stored sign-in a subscription document came from. */
 export type StoredLogin = { providerId: string; signedInAt: Date }
@@ -84,7 +83,13 @@ function runnerId(runner: CapabilityRunner): string | null {
 }
 
 /** A subscription as hq reads it from its store, before it is handed to a run as a grant. */
-export type UngrantedSubscription = Omit<SubscriptionRunCredential, 'grantId' | 'loginId'>
+export type UngrantedSubscription = { kind: 'subscription'; provider: 'anthropic'; oauthJson: string }
+
+/**
+ * A subscription handed to a run, as its provider descriptor carries it: `grantId` names this one hand-over, to this
+ * site for this run; `loginId` the stored sign-in the document came from.
+ */
+export type GrantedSubscription = UngrantedSubscription & { grantId: string; loginId: string }
 
 /**
  * Records that `login` is being handed to a run on `target.siteId`, and names
@@ -95,14 +100,13 @@ export async function grantSubscription(
   login: StoredLogin,
   target: GrantTarget,
   now: Date = new Date(),
-): Promise<SubscriptionRunCredential> {
+): Promise<GrantedSubscription> {
   await prisma.subscriptionGrant.deleteMany({ where: { expiresAt: { lt: now } } })
   const grant = await prisma.subscriptionGrant.create({
     data: {
       providerId: login.providerId,
       signedInAt: login.signedInAt,
       siteId: target.siteId,
-      sessionId: target.sessionId,
       runnerKind: target.runner.kind,
       runnerId: runnerId(target.runner),
       expiresAt: new Date(now.getTime() + SUBSCRIPTION_GRANT_TTL_MS),

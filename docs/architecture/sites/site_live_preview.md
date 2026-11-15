@@ -139,8 +139,8 @@ site reports capacity in `site.health`; hq raises a notice to fleet admins when 
 
 ## Versions
 
-Site protocol 1.12 added `livePreview.*`, `site.livePreviews`, `app.serve`, duplex streams, `bundle.*` and
-`branch.bringBackBundle`, and deprecated `preview.start`, `preview.stop` and `preview.connect`, which answer as gone. See
+The site protocol carries `livePreview.*`, `site.livePreviews`, `app.serve`, duplex streams, `bundle.*` and
+`branch.bringBackBundle`; the earlier `preview.*` methods are not part of it. See
 [versioning.md](../versioning.md).
 
 ## Related

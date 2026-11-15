@@ -1,6 +1,6 @@
 /**
  * Apps, services and install scripts in a live preview (live preview spec section 4, *The app*), as hq and the site
- * say them on the control channel, since site protocol 1.12.
+ * say them on the control channel.
  *
  * - **Apps.** The agent's `start_app`, `stop_app` and `list_apps` reach hq's data path, which finds the run's branch
  *   and its live preview, records the app the first time on that branch (giving it its id) and asks the site:

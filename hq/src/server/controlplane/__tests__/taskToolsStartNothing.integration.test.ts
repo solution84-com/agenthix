@@ -48,9 +48,9 @@ describe("create_task starts nothing unless asked to @SC-111", () => {
     expect(await created(res)).toMatchObject({ runState: 'RUN_NONE', queueDepth: 0 })
   })
 
-  it("a person's connection creates it on behalf of its person, through the connection (adr-0090)", async () => {
+  it("a person's connection creates it on behalf of its person (adr-0090)", async () => {
     const res = await createTaskOp(connectionCaller({ userId: w.u1, connectionId: 'conn-9' }), { title: 'x', projectId: w.projectId, assignedAgentId: 'agent-2' })
-    expect(await created(res)).toMatchObject({ runState: 'RUN_NONE', onBehalfOfUserId: w.u1, createdByConnectionId: 'conn-9', state: 'BACKLOG' })
+    expect(await created(res)).toMatchObject({ runState: 'RUN_NONE', onBehalfOfUserId: w.u1, state: 'BACKLOG' })
   })
 
   it('a connection whose person no longer reaches the project creates nothing', async () => {

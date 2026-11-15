@@ -93,7 +93,7 @@ const CONTEXT: RunContextPayload = {
   chat: { sessionContext: null },
   mounts: { ownerSlugs: {} },
   riskRules: null,
-  credential: { kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-live' },
+  modelAccess: { model: { providerId: 'p-ant', model: 'claude-x' }, provider: { kind: 'api_key', providerId: 'p-ant', vendor: 'anthropic', apiKey: 'sk-live' }, billingProfileId: '' },
   packages: {
     agent: { kind: 'agent', key: 'agent-1', digest: 'a'.repeat(64) },
     org: null,

@@ -27,7 +27,6 @@ import {
   type LocationListArtefactsResult,
   type LocationListKnowledgeParams,
   type LocationListKnowledgeResult,
-  type LocationReadArtefactParams,
   type LocationReadKnowledgeParams,
   type OwnerFolderFile,
   type StorageOwnerRef,
@@ -45,22 +44,10 @@ import {
 
 const ownerShape = { ownerType: z.enum(WORKSPACE_OWNER_TYPES), ownerId: z.string().min(1) }
 
-/**
- * An artefact is one file directly in `artefacts/`, so it is named, never
- * pathed: no separator, and not `.` or `..`.
- */
-const artefactName = z
-  .string()
-  .min(1)
-  .refine(name => !name.includes('/') && !name.includes('\\') && name !== '.' && name !== '..')
-
 export const listArtefactsParams = z.object(ownerShape)
-export const readArtefactParams = z
-  .object({ ...ownerShape, name: artefactName, maxBytes: z.number().int().nonnegative() })
 export const listKnowledgeParams = z.object(knowledgeOwnerShape).refine(orgIdIsFixed)
 /**
- * A page by its path in the owner's knowledge pages, or with `versionId` one of its kept versions (site protocol
- * 1.7). Read from the knowledge root, outside the owner's folder (`../knowledge/knowledgeRead.ts`); the organisation's
+ * A page by its path in the owner's knowledge pages, or with `versionId` one of its kept versions. Read from the knowledge root, outside the owner's folder (`../knowledge/knowledgeRead.ts`); the organisation's
  * knowledge too.
  */
 export const readKnowledgeParams = z
@@ -75,10 +62,9 @@ export const readKnowledgeParams = z
 /** Pinned against core's types, as `./locationFileMethods.ts` pins its own. */
 const _wireMirrorsCore: [
   Exact<z.infer<typeof listArtefactsParams>, LocationListArtefactsParams>,
-  Exact<z.infer<typeof readArtefactParams>, LocationReadArtefactParams>,
   Exact<z.infer<typeof listKnowledgeParams>, LocationListKnowledgeParams>,
   Exact<z.infer<typeof readKnowledgeParams>, LocationReadKnowledgeParams>,
-] = [true, true, true, true]
+] = [true, true, true]
 void _wireMirrorsCore
 
 function newestFirst(a: OwnerFolderFile, b: OwnerFolderFile): number {
@@ -141,7 +127,7 @@ export async function listArtefacts(params: unknown): Promise<LocationListArtefa
 
 /**
  * The itemiser (`../knowledge/itemiser.ts`): the sections and pages of the owner's knowledge pages, each with its
- * index entry and its problems. `files` stays for hq on site protocol 1.6.
+ * index entry and its problems.
  */
 export async function listKnowledge(params: unknown): Promise<LocationListKnowledgeResult> {
   const owner = parseParams(listKnowledgeParams, params, LOCATION_FILE_METHODS.listKnowledge)

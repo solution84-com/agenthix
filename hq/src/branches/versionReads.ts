@@ -5,9 +5,8 @@
  */
 import { HttpError } from 'wasp/server'
 import {
-  BRANCH_READ_METHODS, GIT_VERSIONS_MAX, isCommitId, type CommitId, type GitRev, type GitVersionsResult, type ProtocolVersion,
+  BRANCH_READ_METHODS, GIT_VERSIONS_MAX, isCommitId, type CommitId, type GitRev, type GitVersionsResult,
 } from '@agenthix/core'
-import { siteChannelRegistry } from '../sites/channel'
 import { siteCall } from './siteCalls'
 import { reachWorkspace, requireUser, type ReachedWorkspace } from './workspaceAccess'
 import { asBranchHttp } from './refusals'
@@ -78,22 +77,13 @@ export async function mainVersionRev(ws: ReachedWorkspace, version: unknown): Pr
   return { commit: version }
 }
 
-/** `git.versionChanges` came in site protocol 1.13; a site speaking less is never asked. */
-const FIRST_WITH_VERSION_CHANGES = { major: 1, minor: 13 }
-
-export function speaksVersionChanges(v: ProtocolVersion): boolean {
-  return v.major > FIRST_WITH_VERSION_CHANGES.major || (v.major === FIRST_WITH_VERSION_CHANGES.major && v.minor >= FIRST_WITH_VERSION_CHANGES.minor)
-}
-
 /**
  * The files one of main's versions changed against the version before it (the first, against nothing). The site
- * refuses a commit that is not on main's first-parent line. Null when the site is too old to say.
+ * refuses a commit that is not on main's first-parent line.
  */
 export async function getMainVersionChanges(args: { workspaceId: string; version: string }, context: Ctx): Promise<MainVersionChangesView> {
   const ws = await reachWorkspace(args?.workspaceId, requireUser(context), 'read')
   if (!isCommitId(args?.version)) throw new HttpError(400, NOT_A_VERSION)
   const version = args.version
-  const conn = siteChannelRegistry.get(ws.logicalSiteId)
-  if (conn && !speaksVersionChanges(conn.protocol)) return null
   return asBranchHttp(() => siteCall(ws.logicalSiteId, BRANCH_READ_METHODS.versionChanges, { workspace: ws.ref, version }))
 }

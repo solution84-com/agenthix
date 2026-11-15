@@ -68,7 +68,7 @@ export async function stopAs(row: LivePreview, by: LivePreviewStopper, detail?: 
   const site = await siteOf(row)
   const name = site?.name ?? 'its site'
   const moved = await moveLivePreview(row.id, {
-    state: 'STOPPED', reason: by, signal: null, detail: detail ?? stoppedDetail(by, name), since: new Date(), stoppedAt: new Date(),
+    state: 'STOPPED', reason: by, detail: detail ?? stoppedDetail(by, name), since: new Date(), stoppedAt: new Date(),
   })
   if (!moved) return { stopped: false }
   await afterStopped(row)

@@ -124,7 +124,7 @@ describe('dispatchChatRun', () => {
 
     expect(dispatched().payload.context.modelAccess?.provider).toMatchObject({ kind: 'subscription', providerId: login.id })
     expect(await prisma.subscriptionGrant.findMany({ where: { providerId: login.id } })).toEqual([
-      expect.objectContaining({ siteId: site.siteId, sessionId: session.id, runnerKind: 'person', runnerId: person.id }),
+      expect.objectContaining({ siteId: site.siteId, runnerKind: 'person', runnerId: person.id }),
     ])
   })
 })

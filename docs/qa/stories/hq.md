@@ -4517,7 +4517,7 @@ As a member, I want the files of a workspace with Git to open with the same prev
 **Acceptance criteria:**
 - AC-454a: a workspace's file opens through the same relay, frame, states and Download as any file, and an image or a PDF is drawn as one.
 - AC-454b: on a branch, or at an older version of `main`, the file is as that commit holds it and not as the folder now does.
-- AC-454c: a site too old to read a past version says an admin can upgrade it, and never shows the file on disk in its place.
+- ~~AC-454c: a site too old to read a past version says an admin can upgrade it, and never shows the file on disk in its place.~~ **Retired 2026-11-15**: every site speaks the 1.0 protocol, which reads a file at a commit, so no site is too old to read one.
 
 ---
 

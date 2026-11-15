@@ -45,11 +45,11 @@ beforeEach(async () => {
   const project = await createProject({ name: 'Shop' })
   projectId = project.id
   await joinProjectAs(projectId, personId, 'MEMBER')
-  await prisma.org.create({ data: { name: 'Test organisation', conversationArchiveAfterDays: 90 } })
+  await prisma.org.create({ data: { name: 'Test organisation' } })
 })
 
 describe('the idle sweep @SC-974', () => {
-  it('archives a conversation idle past the organisation\'s days, and only that', async () => {
+  it('archives a conversation idle past the period, and only that', async () => {
     const idle = await conversation()
     const recent = await conversation({ lastMessageAt: ago(10) })
     await stale(idle.id)
@@ -58,12 +58,10 @@ describe('the idle sweep @SC-974', () => {
     expect(await statusOf(recent.id)).toBe('ACTIVE')
   })
 
-  it('follows the days the organisation sets', async () => {
+  it('leaves one idle for less than the period', async () => {
     const c = await conversation()
     await stale(c.id, 40)
     expect(await archiveIdleConversations()).toBe(0)
-    await prisma.org.updateMany({ data: { conversationArchiveAfterDays: 30 } })
-    expect(await archiveIdleConversations()).toBe(1)
   })
 
   it('leaves alone one kept out of archiving, and one with work going on', async () => {

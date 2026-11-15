@@ -1,5 +1,5 @@
 /**
- * Scanning a place for skills in its files (site protocol 1.10), on the control channel. The site lists every skill
+ * Scanning a place for skills in its files, on the control channel. The site lists every skill
  * folder under the roots below, under the same bounds as staging, and returns what it read; it stores nothing and
  * never follows a symbolic link. hq checks the person's access to the place before it asks; the params carry no person
  * (adr-0042). Hidden entries are left out of every fingerprint, so a fingerprint here is exactly what staging would
@@ -68,7 +68,7 @@ export interface LocationScanSkillsResult {
 }
 
 /**
- * Writing and removing one of a place's skill folders (site protocol 1.11): publishing a place's skill, rolling it
+ * Writing and removing one of a place's skill folders: publishing a place's skill, rolling it
  * back, putting it back, adding an installed skill to a place, and removing one. Only a place's own skills and one
  * agent's are written, never a workspace's repository, whose versions are its commits. `location.writeSkill` is a
  * content method: its params name the place, the folder and the fingerprint, and the stream carries the files as a

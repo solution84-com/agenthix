@@ -67,8 +67,7 @@ const FINISH_REASON: Record<string, Extract<LeadStreamEvent, { type: 'finish' }>
 }
 
 function toolChoiceOf(choice: LeadRequest['toolChoice']) {
-  if (!choice) return {}
-  return { toolChoice: choice === 'none' ? ('none' as const) : { type: 'tool' as const, toolName: choice.tool } }
+  return choice === 'none' ? { toolChoice: 'none' as const } : {}
 }
 
 /**

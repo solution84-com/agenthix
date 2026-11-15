@@ -12,10 +12,10 @@ function row(state: OperationStateValue, over: Partial<OperationActivityView> = 
 }
 
 describe('what the work bar lists @SC-972', () => {
-  it('holds work queued, working or waiting for the okay, and nothing ended or set for a time', () => {
+  it('holds work queued, working or waiting for the okay, and nothing ended', () => {
     const rows = [
       row('QUEUED'), row('ACCEPTED'), row('RUNNING'), row('UNCERTAIN'), row('WAITING_FOR_APPROVAL'),
-      row('SCHEDULED'), row('COMPLETED'), row('FAILED'), row('CANCELLED'), row('DETACHED'),
+      row('COMPLETED'), row('FAILED'), row('CANCELLED'), row('DETACHED'),
     ]
     const bar = workBar(rows)
     expect([...bar.requests, ...bar.others].map((r) => r.state).sort()).toEqual(['ACCEPTED', 'QUEUED', 'RUNNING', 'UNCERTAIN', 'WAITING_FOR_APPROVAL'])
@@ -43,7 +43,7 @@ describe('what the work bar lists @SC-972', () => {
   })
 
   it('is empty when nothing is live', () => {
-    const bar = workBar([row('COMPLETED'), row('SCHEDULED')])
+    const bar = workBar([row('COMPLETED'), row('CANCELLED')])
     expect(bar.working).toBe(0)
     expect(bar.requests).toEqual([])
     expect(bar.others).toEqual([])

@@ -44,7 +44,7 @@ describe('what a run context carries', () => {
     expect(context.mounts).toEqual({ ownerSlugs: { [person.id]: 'personal' } })
     expect(context).not.toHaveProperty('roster')
     expect(context.riskRules).toEqual([{ pattern: 'x' }])
-    expect(context.credential).toBeNull()
+    expect(context).not.toHaveProperty('credential')
     expect(context.modelAccess).toMatchObject({
       model: { providerId: provider.id, model: 'claude-sonnet-4-6' },
       provider: { kind: 'api_key', providerId: provider.id, vendor: 'anthropic', apiKey: 'sk-test-live' },

@@ -8,7 +8,7 @@
 import {
   LOCATION_FILE_METHODS, LocationFileError, PACKAGE_FORMAT_VERSION, SKILL_TREE_MAX_BYTES, SKILL_TREE_MAX_DEPTH,
   SKILL_TREE_MAX_ENTRIES, placeSkillFolder,
-  type LocationRef, type LocationScanSkillsResult, type LocationWriteSkillParams, type ProtocolVersion, type ScanWorkspace,
+  type LocationRef, type LocationScanSkillsResult, type LocationWriteSkillParams, type ScanWorkspace,
   type SkillFolderTransfer,
 } from '@agenthix/core'
 import { siteChannelRegistry } from '../../sites/channel'
@@ -58,17 +58,9 @@ export async function readSkillFolder(loc: LocationRef, dir: string): Promise<Pa
   return files.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
 }
 
-/** The first site protocol with `location.writeSkill` and `location.removeSkill`. */
-const FIRST_WITH_SKILL_WRITES = { major: 1, minor: 11 }
 export const SKILL_WRITE_TIMEOUT_MS = 60_000
 
-export function speaksSkillWrites(v: ProtocolVersion): boolean {
-  return v.major > FIRST_WITH_SKILL_WRITES.major || (v.major === FIRST_WITH_SKILL_WRITES.major && v.minor >= FIRST_WITH_SKILL_WRITES.minor)
-}
-
 export class SkillFolderWriteUnavailableError extends LifecycleError {}
-
-const OLD_SITE = `The place's Execution Site is too old to write a skill's files: update it, then try again. ${NOTHING}`
 
 /** What a site's refusal means for the person, by its code; the site's own words stay in hq's log. */
 function refusedBySite(err: LocationFileError): SkillFolderWriteUnavailableError {
@@ -87,10 +79,7 @@ async function siteForWrite(loc: LocationRef, dir: string): Promise<string> {
   if (!placeSkillFolder(dir) || loc.workspaceId) {
     throw new SkillFolderWriteUnavailableError(`HQ writes only a place's own skills and an agent's, never a repository's. ${NOTHING}`, 409)
   }
-  const siteId = await resolveStorageSite(loc)
-  const conn = siteChannelRegistry.get(siteId)
-  if (conn && !speaksSkillWrites(conn.protocol)) throw new SkillFolderWriteUnavailableError(OLD_SITE, 409)
-  return siteId
+  return resolveStorageSite(loc)
 }
 
 function sendAndAwaitEnd(stream: ContentStream, body: Buffer): Promise<void> {

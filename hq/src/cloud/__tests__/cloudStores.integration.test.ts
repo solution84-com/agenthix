@@ -73,11 +73,11 @@ withFeature('cloud', () => {
   describe('the Fleet Console no longer connects HQ to Cloud @SC-1090', () => {
     const services = cloudConsoleServices()
 
-    it('a fleet admin may read the state, and connecting and disconnecting are refused with where to do them', async () => {
+    it('a fleet admin may read the state, and there is nothing to connect or disconnect with', async () => {
       const sam = await createUserWithRole('ADMIN', { fleetAdmin: true })
       expect(await services['cloud.state']({ byUserId: sam.id })).toEqual({ connection: null, connecting: null, lastAttempt: null, runByCloud: false, problem: null })
-      await expect(services['cloud.connect']({ byUserId: sam.id })).rejects.toMatchObject({ code: 'not_allowed', message: expect.stringContaining('Manage organisation › AI') })
-      await expect(services['cloud.disconnect']({ byUserId: sam.id })).rejects.toMatchObject({ code: 'not_allowed' })
+      expect(services).not.toHaveProperty('cloud.connect')
+      expect(services).not.toHaveProperty('cloud.disconnect')
       expect(await cloudKeyStore.read()).toBeNull()
       expect(cloud.requests).toEqual([])
     })
@@ -129,11 +129,10 @@ withFeature('cloud', () => {
   describe('an HQ that Agenthix Cloud runs @SC-1123', () => {
     const services = cloudConsoleServices()
 
-    it('says so when its host service told it, and its connection cannot be dropped from the Fleet Console', async () => {
+    it('says so when its host service told it', async () => {
       vi.stubEnv('HQ_RUN_BY_CLOUD', 'true')
       const sam = await createUserWithRole('ADMIN', { fleetAdmin: true })
       expect((await services['cloud.state']({ byUserId: sam.id })).runByCloud).toBe(true)
-      await expect(services['cloud.disconnect']({ byUserId: sam.id })).rejects.toMatchObject({ code: 'not_allowed' })
       expect(cloud.requests).toEqual([])
     })
   })

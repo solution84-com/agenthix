@@ -78,7 +78,7 @@ export type CreatingMint = { place: WorkflowPlace; person: string; installationR
  */
 export async function mintForCreating(
   req: CreatingMint, deps: GateDeps = gateDeps,
-): Promise<{ token: string; installation: RuledInstallation & { accountId: number } }> {
+): Promise<{ token: string; installation: RuledInstallation }> {
   await requirePerson(req.place, req.person, 'work', deps)
   const inst = await requireInstallationFor(await deps.installation({ id: req.installationRowId }), req.place, deps)
   const t = await mint({ installationId: inst.installationId, permissions: requirePermissions({ administration: 'write' }) }, deps)

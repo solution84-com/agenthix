@@ -46,7 +46,7 @@ async function seedSession(db: SeedDb, seed: DemoSeed, ids: ReturnType<typeof se
   })
   await db.agentRun.create({
     data: {
-      id: run.id, agentId, sessionId: s.id, taskId, rootRunId: run.id, model: seed.activity.model, inputText: run.input,
+      id: run.id, agentId, sessionId: s.id, taskId, model: seed.activity.model, inputText: run.input,
       createdAt: startedAt, startedAt, endedAt, status: run.status, outputText: run.status === 'FAILED' ? null : run.output,
       error: run.error ?? null, usage: { inputTokens: 18_400, outputTokens: 2_100, totalTokens: 20_500 },
       auditSummary: audit(run.tool ? 1 : 0), ...manifestOf(run),

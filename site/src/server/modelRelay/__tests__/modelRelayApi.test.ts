@@ -7,9 +7,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import http from 'node:http'
 import type { AddressInfo } from 'node:net'
 import express from 'express'
-import type { ApiKeyRunCredential } from '@agenthix/core'
 import { createModelRelayHandler } from '../modelRelayApi'
-import type { RelayCredential } from '../runAccess'
+import type { RelayApiKeyCredential, RelayCredential } from '../runAccess'
 import { clearRelayTurn, issueRelayToken, pointRelayToken, resetRelayTokensForTests, revokeRelayToken } from '../relayTokens'
 import { resetGateRunsForTests, stopGateRun } from '../../../agents/runtime/toolGateRuns'
 
@@ -26,7 +25,7 @@ let answer: (req: http.IncomingMessage, res: http.ServerResponse) => void
 const logs: string[] = []
 const source = { ok: true }
 
-const KEYS: Record<string, ApiKeyRunCredential> = {
+const KEYS: Record<string, RelayApiKeyCredential> = {
   anthropic: { kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-ant-REAL' },
   google: { kind: 'apiKey', provider: 'google', apiKey: 'g-REAL' },
   openai_compatible: { kind: 'apiKey', provider: 'openai_compatible', apiKey: 'sk-compat-REAL', baseUrl: '' },

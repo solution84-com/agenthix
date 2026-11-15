@@ -10,9 +10,8 @@
  * no memory.
  */
 import { prisma } from 'wasp/server'
-import type { PinnedMemoryItem, ProtocolVersion, RunMemory, RunStartedBy } from '@agenthix/core'
+import type { RunMemory, RunStartedBy } from '@agenthix/core'
 import { personalOwnerOf } from '../projects/personalProject'
-import { siteChannelRegistry } from '../sites/channel'
 import type { OverrideBoundary } from '../agents/overrides/agentOverrideService'
 import { Logger } from '../server/utils/logger'
 import type { MemoryPrincipal, Place } from './contract'
@@ -95,20 +94,3 @@ export async function memoryForRun(run: RunFor, deps: RunMemoryDeps = defaultDep
 }
 
 const defaultDeps: RunMemoryDeps = { probe: defaultProbe, markRecalled, timeLimitMs: RUN_MEMORY_TIME_LIMIT_MS }
-
-const FIRST_WITH_RUN_MEMORY = { major: 1, minor: 19 }
-
-export function speaksRunMemory(v: ProtocolVersion): boolean {
-  return v.major > FIRST_WITH_RUN_MEMORY.major || (v.major === FIRST_WITH_RUN_MEMORY.major && v.minor >= FIRST_WITH_RUN_MEMORY.minor)
-}
-
-/**
- * A site before 1.19 reads only the deprecated `pinnedMemory`: it is given the items found in full that way, so its
- * runs keep their memory file. A site that is not connected now is treated as one that reads `memory`.
- */
-export function pinnedForOlderSite(siteId: string | undefined, memory: RunMemory | null): PinnedMemoryItem[] | null {
-  if (!siteId || !memory || memory.items.length === 0) return null
-  const conn = siteChannelRegistry.get(siteId)
-  if (!conn || speaksRunMemory(conn.protocol)) return null
-  return memory.items.map(item => ({ key: item.key, scope: 'person' as const, title: item.title, body: item.body }))
-}

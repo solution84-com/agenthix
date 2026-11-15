@@ -20,10 +20,10 @@ export interface ScheduleInput {
 }
 
 export type ScheduleSetter =
-  /** A person — through one of their connections when they used one (adr-0090). */
-  | { kind: 'person'; userId: string; connectionId?: string }
-  /** An agent in a run: its session, and the person the run was for. */
-  | { kind: 'agent'; agentId: string; sessionId: string; userId: string }
+  /** A person. */
+  | { kind: 'person'; userId: string }
+  /** An agent in a run, and the person the run was for. */
+  | { kind: 'agent'; agentId: string; userId: string }
 
 export class ScheduleError extends Error {}
 
@@ -83,8 +83,6 @@ export async function setTaskSchedule(
       onBehalfOfUserId: setter.userId,
       scheduleSetByUserId: setter.userId,
       scheduleSetByAgentId: setter.kind === 'agent' ? setter.agentId : null,
-      scheduleSetBySessionId: setter.kind === 'agent' ? setter.sessionId : null,
-      scheduleSetByConnectionId: setter.kind === 'person' ? setter.connectionId ?? null : null,
     },
     select: { scheduleAt: true, scheduleNextDueAt: true },
   })
@@ -98,7 +96,7 @@ export async function clearTaskSchedule(taskId: string): Promise<void> {
     where: { id: taskId },
     data: {
       scheduleAt: null, scheduleNextDueAt: null,
-      scheduleSetByUserId: null, scheduleSetByAgentId: null, scheduleSetBySessionId: null, scheduleSetByConnectionId: null,
+      scheduleSetByUserId: null, scheduleSetByAgentId: null,
     },
   })
 }

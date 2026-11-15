@@ -97,7 +97,7 @@ export type SeedTask = {
 
 export type SeedComment = { task: string; by: { person: string } | { agent: string }; content: string; at: SeedMinutes }
 
-export type SeedAttachment = { task: string; uuid: string; fileName: string; mimeType: string; sizeBytes: number; at: SeedMinutes }
+export type SeedAttachment = { task: string; uuid: string; fileName: string; sizeBytes: number; at: SeedMinutes }
 
 export type SeedRoutine = {
   id: string

@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { RELAY_SITE_LINE_PATH, type ProtocolVersion, type RelayAssignParams } from '@agenthix/core'
-import { createRelayAssigner, speaksRelays, PASS_RENEWAL_MS, ASSIGN_RETRY_MS, type RelayAssignmentDeps } from '../relayAssignment'
+import { createRelayAssigner, PASS_RENEWAL_MS, ASSIGN_RETRY_MS, type RelayAssignmentDeps } from '../relayAssignment'
 
 vi.mock('../../server/utils/logger', () => ({ Logger: class { info() {} warn() {} error() {} } }))
 
-const V18: ProtocolVersion = { major: 1, minor: 8 }
+const V1: ProtocolVersion = { major: 1, minor: 0 }
 
 function harness(overrides: Partial<RelayAssignmentDeps> = {}) {
-  const connections = new Map<string, { protocol: ProtocolVersion }>([['site-1', { protocol: V18 }]])
+  const connections = new Map<string, { protocol: ProtocolVersion }>([['site-1', { protocol: V1 }]])
   const sent: Array<{ siteId: string; params: RelayAssignParams }> = []
   let passes = 0
   const deps: RelayAssignmentDeps = {
@@ -38,15 +38,6 @@ describe('relay assignment on a site connecting @SC-1528', () => {
     await expect(assigner.onSiteConnected('site-1')).resolves.toBeUndefined()
     expect(sent).toEqual([])
     assigner.stop()
-  })
-
-  it('sends nothing to a site speaking a protocol before relays', async () => {
-    const { assigner, connections, sent } = harness()
-    connections.set('site-1', { protocol: { major: 1, minor: 7 } })
-    await assigner.onSiteConnected('site-1')
-    expect(sent).toEqual([])
-    expect(speaksRelays({ major: 2, minor: 0 })).toBe(true)
-    expect(speaksRelays({ major: 1, minor: 8 })).toBe(true)
   })
 
   it('sends nothing to a site that is not connected, or that went while its pass was made', async () => {
@@ -85,7 +76,7 @@ describe('pass renewal @SC-1528', () => {
     vi.useFakeTimers()
     const { assigner, connections, sent } = harness()
     await assigner.onSiteConnected('site-1')
-    connections.set('site-1', { protocol: V18 }) // a reconnect is a new connection object
+    connections.set('site-1', { protocol: V1 }) // a reconnect is a new connection object
     await vi.advanceTimersByTimeAsync(PASS_RENEWAL_MS)
     expect(sent).toHaveLength(1)
     assigner.stop()

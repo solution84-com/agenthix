@@ -42,7 +42,7 @@ let seq = 0
 function makeSite(data: Record<string, unknown> = {}) {
   seq++
   return prisma.executionSite.create({
-    data: { siteId: `site-${seq}`, label: `Site ${seq}`, credentialHash: 'a'.repeat(64), credentialPrefix: 'smc_prefix', ...data },
+    data: { siteId: `site-${seq}`, label: `Site ${seq}`, credentialHash: 'a'.repeat(64), ...data },
   })
 }
 
@@ -66,7 +66,6 @@ describe('getExecutionSites @SC-282', () => {
     expect(result[1]).toMatchObject({ status: 'ONLINE', projectCount: 0 })
     for (const row of result) {
       expect(row).not.toHaveProperty('credentialHash')
-      expect(row).not.toHaveProperty('credentialPrefix')
       expect(row).not.toHaveProperty('protocolVersion')
       expect(row).not.toHaveProperty('siteUrl')
     }
@@ -94,8 +93,8 @@ describe('getExecutionSites @SC-282', () => {
 describe('describeExecutionSite @SC-295 @SC-296', () => {
   it('returns what the site reported, asked over its channel', async () => {
     const admin = await createUserWithRole('ADMIN', { fleetAdmin: true })
-    h.request.mockResolvedValue({ siteId: 's1', name: 'Box', protocolVersion: '6.0', startedAt: 'now' })
-    await expect(describeExecutionSite({ siteId: 's1' }, ctx(admin))).resolves.toMatchObject({ name: 'Box' })
+    h.request.mockResolvedValue({ siteId: 's1', protocolVersion: '6.0', startedAt: 'now' })
+    await expect(describeExecutionSite({ siteId: 's1' }, ctx(admin))).resolves.toMatchObject({ siteId: 's1', protocolVersion: '6.0' })
     expect(h.request).toHaveBeenCalledWith('s1', 'site.describe', {})
   })
 

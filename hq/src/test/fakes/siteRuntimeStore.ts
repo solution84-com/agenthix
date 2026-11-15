@@ -69,7 +69,7 @@ export function addSession(siteId: string, partial: Partial<SessionRow> & { id: 
   const row: SessionRow = {
     sessionKey: `key-${partial.id}`, agentId: 'agent-1', userId: 'user-1', title: null, status: 'ACTIVE', closedReason: null,
     runtime: null, sessionType: 'chat', model: null, metadata: {}, totalInputTokens: 0, totalOutputTokens: 0,
-    totalCacheReadTokens: 0, totalCacheWriteTokens: 0, createdAt: now(), updatedAt: now(), expiresAt: null, taskId: null,
+    totalCacheReadTokens: 0, totalCacheWriteTokens: 0, createdAt: now(), updatedAt: now(), taskId: null,
     primaryOwnerType: null, primaryOwnerId: null, primaryWorkspaceId: null, contextUse: null, ...partial,
   }
   site(siteId).sessions.set(row.id, row)
@@ -78,8 +78,8 @@ export function addSession(siteId: string, partial: Partial<SessionRow> & { id: 
 
 export function addRun(siteId: string, partial: Partial<RunRow> & { id: string }): RunRow {
   const row: RunRow = {
-    agentId: 'agent-1', sessionId: 'session-1', taskId: null, parentRunId: null, rootRunId: null, status: 'COMPLETED',
-    inputText: '', outputText: null, thought: null, model: 'model-1', error: null, usage: null, diagnosticLog: null,
+    agentId: 'agent-1', sessionId: 'session-1', taskId: null, status: 'COMPLETED',
+    inputText: '', outputText: null, model: 'model-1', error: null, usage: null,
     manifestStatus: null, pendingManifest: null, approvedManifest: null, manifestDecidedById: null, manifestDecidedAt: null, contextUse: null,
     auditSummary: null,
     metadata: null, startedAt: null, endedAt: null, createdAt: now(), agentPackageDigest: null, orgPackageDigest: null,

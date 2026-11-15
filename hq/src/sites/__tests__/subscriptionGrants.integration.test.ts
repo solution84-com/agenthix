@@ -60,7 +60,7 @@ const grants = () => prisma.subscriptionGrant.findMany({ orderBy: { createdAt: '
 
 async function supply(row: LoginRow, siteId = 'site-1', now = new Date(T0)) {
   const credential: UngrantedSubscription = { kind: 'subscription', provider: 'anthropic', oauthJson: (await storedDocument(row))! }
-  return grantSubscription(credential, { providerId: row.id, signedInAt: SIGNED_IN }, { siteId, sessionId: 's1', runner: RUNNER }, now)
+  return grantSubscription(credential, { providerId: row.id, signedInAt: SIGNED_IN }, { siteId, runner: RUNNER }, now)
 }
 
 beforeEach(async () => {
@@ -78,7 +78,7 @@ describe('grantSubscription — recording a hand-over @SC-1231', () => {
 
     expect(credential.loginId).toBe(loginIdOf({ providerId: row.id, signedInAt: SIGNED_IN }))
     expect(await grants()).toEqual([expect.objectContaining({
-      id: credential.grantId, providerId: row.id, signedInAt: SIGNED_IN, siteId: 'site-1', sessionId: 's1',
+      id: credential.grantId, providerId: row.id, signedInAt: SIGNED_IN, siteId: 'site-1',
       runnerKind: 'person', runnerId: (RUNNER as { userId: string }).userId, expiresAt: new Date(T0 + SUBSCRIPTION_GRANT_TTL_MS),
     })])
   })
@@ -185,7 +185,7 @@ describe('acceptSubscriptionRefresh — only a site that ran with the login @SC-
     const row = await storeLogin(T0 + 8 * HOUR)
     const other = await createUser()
     const credential: UngrantedSubscription = { kind: 'subscription', provider: 'anthropic', oauthJson: (await storedDocument(row))! }
-    const { grantId } = await grantSubscription(credential, { providerId: row.id, signedInAt: SIGNED_IN }, { siteId: 'site-1', sessionId: 's1', runner: { kind: 'person', userId: other.id } }, new Date(T0))
+    const { grantId } = await grantSubscription(credential, { providerId: row.id, signedInAt: SIGNED_IN }, { siteId: 'site-1', runner: { kind: 'person', userId: other.id } }, new Date(T0))
 
     const outcome = await acceptSubscriptionRefresh('site-1', { grantId: grantId!, oauthJson: doc(T0 + 16 * HOUR), expiresAt: T0 + 16 * HOUR }, T0)
 
@@ -218,7 +218,7 @@ describe('acceptSubscriptionRefresh — only a site that ran with the login @SC-
 describe("a person's subscription keeps working past its access token's lifetime", () => {
   it('hands each run the newest token the last run refreshed, with nobody signing in again', async () => {
     const row = await storeLogin(T0 + 8 * HOUR)
-    const target = { siteId: 'site-1', sessionId: 's1', runner: RUNNER }
+    const target = { siteId: 'site-1', runner: RUNNER }
 
     // Four runs, each starting after the token the previous run was handed
     // has lapsed, each refreshing it once and reporting it back.

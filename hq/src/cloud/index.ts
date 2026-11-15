@@ -37,7 +37,6 @@ export function runByCloud(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.HQ_RUN_BY_CLOUD === 'true'
 }
 
-const CONNECT_IN_HQ = "Agenthix Cloud is connected and disconnected in HQ, under Manage organisation › AI, under Your providers, by an organisation admin."
 const BAD_URL = 'CLOUD_URL is not an https address, so HQ does not know where Agenthix Cloud is.'
 
 let instance: CloudConnection | null = null
@@ -154,7 +153,7 @@ async function mustBeFleetAdmin(userId: string): Promise<void> {
 
 const facts = platformFacts(platformFactsStore)
 
-export function cloudConsoleServices(): Pick<ConsoleServices, 'cloud.state' | 'cloud.connect' | 'cloud.disconnect' | 'cloud.askCount' | 'cloud.offers' | 'cloud.dismissOffer'> {
+export function cloudConsoleServices(): Pick<ConsoleServices, 'cloud.state' | 'cloud.askCount' | 'cloud.offers' | 'cloud.dismissOffer'> {
   return {
     'cloud.state': async ({ byUserId }) => {
       await mustBeOn()
@@ -162,11 +161,6 @@ export function cloudConsoleServices(): Pick<ConsoleServices, 'cloud.state' | 'c
       const c = cloudConnection()
       return { ...(c ? await c.state() : { connection: null, connecting: null, lastAttempt: null, problem: null }), runByCloud: runByCloud() }
     },
-    // Connecting moved into hq's admin area (adminCloud.ts); the console link's methods stay so an older Fleet Console is answered.
-    /** @deprecated since 1.0; stops working in 3.0. Use Providers in hq's admin area. */
-    'cloud.connect': async () => { await mustBeOn(); throw new ConsoleRefusal('not_allowed', CONNECT_IN_HQ) },
-    /** @deprecated since 1.0; stops working in 3.0. Use Providers in hq's admin area. */
-    'cloud.disconnect': async () => { await mustBeOn(); throw new ConsoleRefusal('not_allowed', CONNECT_IN_HQ) },
     'cloud.askCount': async ({ byUserId }) => {
       await mustBeOn()
       await mustBeFleetAdmin(byUserId)

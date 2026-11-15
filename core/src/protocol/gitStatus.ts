@@ -1,5 +1,5 @@
 /**
- * A folder's git status at a glance (site protocol 1.8), on the control channel: what hq asks a site when a workspace
+ * A folder's git status at a glance, on the control channel: what hq asks a site when a workspace
  * or the Files tool opens, and again on focus, to draw one line above the files. Read only: nothing is checked out,
  * committed or fetched, and nothing in the repository's own configuration runs (the site's handler says how).
  *

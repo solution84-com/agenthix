@@ -27,10 +27,10 @@ export function requireVersionId(id: unknown, changing: boolean): string {
 export async function listPages(deps: PeopleKnowledgeDeps, owner: KnowledgeOwner, userId: string): Promise<KnowledgePagesList> {
   const access = await deps.open(owner, userId)
   const listing = await fromSite(deps, 'list', false, () => deps.sites.list(access.ref, LIST_TIME_LIMIT_MS))
-  const pages = listing.pages ?? []
+  const pages = listing.pages
   const last = await deps.authors.lastChanges(access.ref, pages.map(p => ({ page: p.page, version: p.version })))
   return {
-    sections: listing.sections ?? [],
+    sections: listing.sections,
     pages: pages.map(p => {
       const lastChange = last.get(p.page)
       return lastChange ? { ...p, lastChange } : p

@@ -6,7 +6,7 @@
  * new required field). Whether two ends work together is `checkProtocolCompatibility` (compatibility.ts): majors at
  * most one apart, the newer side speaking the older side's major.
  */
-export const SITE_PROTOCOL_VERSION = '1.19'
+export const SITE_PROTOCOL_VERSION = '1.0'
 
 /**
  * How long a site waits without hearing anything from hq before it treats the
