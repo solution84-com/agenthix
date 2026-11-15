@@ -12,7 +12,7 @@ export function countTasksByRunState(
   tasks: readonly Task[],
 ): Record<TaskRunState, number> {
   const out: Record<TaskRunState, number> = {
-    RUN_NONE: 0, RUN_QUEUED: 0, RUN_THROTTLED: 0, RUN_ACTIVE: 0, RUN_BLOCKED: 0, RUN_FAILED: 0,
+    RUN_NONE: 0, RUN_QUEUED: 0, RUN_ACTIVE: 0, RUN_BLOCKED: 0, RUN_FAILED: 0,
   }
   for (const t of tasks) out[t.runState]++
   return out

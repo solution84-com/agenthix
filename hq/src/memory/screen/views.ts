@@ -53,20 +53,5 @@ export async function viewsOf(rows: Row[]): Promise<MemoryItemView[]> {
     title: r.title, body: r.body, kind: r.kind as MemoryItemKindValue, tags: r.tags, archived: r.archived,
     recallCount: r.recallCount, usedCount: r.usedCount, lastRecalledAt: r.lastRecalledAt?.toISOString() ?? null,
     createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString(),
-    ...deprecatedFields(r, agent(r.agentId)?.name ?? 'Every agent', place(r.placeType, r.placeId)?.name ?? 'Everywhere', agent(r.writtenByAgentId)?.name ?? null),
   }))
-}
-
-/** The fields an app on client protocol 1.21 reads, kept until its next major (docs/architecture/versioning.md). */
-function deprecatedFields(r: Row, agentName: string, placeName: string, writtenBy: string | null) {
-  const placeType = r.placeType === 'user' ? 'user' as const : r.placeType === 'project' ? 'project' as const : null
-  return {
-    agentId: r.agentId,
-    placeType,
-    placeId: placeType ? r.placeId : null,
-    scope: r.agentId ? 'AGENT_PERSON' as const : 'PERSON' as const,
-    scopeLabel: `${agentName}, ${placeName}`,
-    pinned: false,
-    writtenBy,
-  }
 }

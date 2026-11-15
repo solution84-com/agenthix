@@ -112,7 +112,7 @@ describe('dispatchTaskRun', () => {
     const { provider } = await orgModel('anthropic', 'sk-test-org')
     await dispatchTaskRun(task.id, agent, 'person')
     const { payload } = dispatched()
-    expect(payload.context.credential).toBeNull()
+    expect(payload.context).not.toHaveProperty('credential')
     expect(payload.context.modelAccess?.provider).toMatchObject({ providerId: provider.id, apiKey: 'sk-test-org' })
   })
 })

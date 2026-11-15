@@ -10,7 +10,7 @@ import http from 'node:http'
 import https from 'node:https'
 import net from 'node:net'
 import type { AddressInfo } from 'node:net'
-import type { ApiKeyRunCredential } from '@agenthix/core'
+import type { RelayApiKeyCredential } from '../runAccess'
 import { createModelRelayHandler } from '../modelRelayApi'
 import { bypassesProxy, proxyDecision } from '../relayProxy'
 import { issueRelayToken, pointRelayToken, resetRelayTokensForTests } from '../relayTokens'
@@ -138,7 +138,7 @@ afterAll(async () => {
   await Promise.all([relay, proxy, provider].map(s => new Promise(r => s.close(r))))
 })
 
-const KEYS: ApiKeyRunCredential[] = [
+const KEYS: RelayApiKeyCredential[] = [
   { kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-ant-REAL' },
   { kind: 'apiKey', provider: 'openai_compatible', apiKey: 'sk-compat-REAL', baseUrl: 'http://ignored' },
 ]

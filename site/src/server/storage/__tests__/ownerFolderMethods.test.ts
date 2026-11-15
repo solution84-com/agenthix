@@ -16,7 +16,6 @@ import {
   LocationFileError,
   type LocationListArtefactsParams,
   type LocationListKnowledgeParams,
-  type LocationReadArtefactParams,
   type LocationReadKnowledgeParams,
 } from '@agenthix/core'
 
@@ -26,7 +25,6 @@ import {
   listArtefacts,
   listArtefactsParams,
   listKnowledgeParams,
-  readArtefactParams,
   readKnowledgeParams,
 } from '../ownerFolderMethods'
 import { channelMethods } from '../../hq/channelMethods'
@@ -114,12 +112,10 @@ describe('the wire', () => {
 
   it('validates exactly the fields each core params type declares, and no caller', () => {
     const listA: Record<keyof LocationListArtefactsParams, true> = { ownerType: true, ownerId: true }
-    const readA: Record<keyof LocationReadArtefactParams, true> = { ownerType: true, ownerId: true, name: true, maxBytes: true }
     const listK: Record<keyof LocationListKnowledgeParams, true> = { ownerType: true, ownerId: true }
     const readK: Record<keyof LocationReadKnowledgeParams, true> = { ownerType: true, ownerId: true, relPath: true, maxBytes: true, versionId: true }
     const pairs: [{ shape: object }, object][] = [
       [listArtefactsParams, listA],
-      [readArtefactParams, readA],
       [listKnowledgeParams, listK],
       [readKnowledgeParams, readK],
     ]
@@ -133,16 +129,9 @@ describe('the wire', () => {
     expect(listKnowledgeParams.safeParse({ ownerType: 'org', ownerId: 'org' }).success).toBe(true)
     expect(listKnowledgeParams.safeParse({ ownerType: 'org', ownerId: 'other' }).success).toBe(false)
   })
-
-  it('takes an artefact by name, never by a path', () => {
-    for (const name of ['a/b.md', '../x.md', '..', '.', 'a\\b.md', '']) {
-      expect(readArtefactParams.safeParse({ ...owner, name, maxBytes: 10 }).success).toBe(false)
-    }
-    expect(readArtefactParams.safeParse({ ...owner, name: 'pricing-options.pdf', maxBytes: 10 }).success).toBe(true)
-  })
 })
 
-describe('the knowledge methods site protocol 1.7 added', () => {
+describe('the knowledge methods', () => {
   it('reads a kept version, and the organisation\'s knowledge by its one id @SC-1390 @SC-1392', () => {
     expect(readKnowledgeParams.safeParse({ ...owner, relPath: 'a.md', maxBytes: 10 }).success).toBe(true)
     expect(readKnowledgeParams.safeParse({ ...owner, relPath: 'a.md', maxBytes: 10, versionId: 'v1' }).success).toBe(true)

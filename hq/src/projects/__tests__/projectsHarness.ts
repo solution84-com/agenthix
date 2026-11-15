@@ -1,5 +1,5 @@
 import { prisma } from '../../test/db'
-import { createUserWithRole, createAgent, createProject, createTestTask } from '../../test/factories'
+import { createUserWithRole, createAgent, createProject, createTestTask, taskTypeOf } from '../../test/factories'
 
 // Shared by the projects integration tests. The vi.mock blocks stay in each test
 // file: vitest hoists them per file.
@@ -30,6 +30,11 @@ export function makeTask(projectId: string, data: Record<string, unknown> = {}) 
   return createTestTask({
     data: { title: `Task ${taskSeq}`, projectId, number: taskSeq, onBehalfOfUserId: 'person-1', ...data } as any,
   })
+}
+
+/** The project's Task type's column for a state, which a task with no type yet moves to (moveTaskToColumn). */
+export async function columnOfState(projectId: string, state: 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'DONE'): Promise<string> {
+  return (await prisma.typeColumn.findFirstOrThrow({ where: { typeId: await taskTypeOf(projectId), state } })).id
 }
 
 /** A saved board: a view of the project's tasks by state unless `data` says otherwise (adr-0176). */

@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { prisma } from '../../test/db'
 import { createProject, createAgent, createUser, createUserWithRole, joinProjectAs } from '../../test/factories'
-import { ctx, makeBoard, makeTask, assignAgent, projectState } from './projectsHarness'
+import { ctx, columnOfState, makeBoard, makeTask, assignAgent, projectState } from './projectsHarness'
 
 vi.mock('wasp/server', async () => {
   const actual = await vi.importActual<any>('wasp/server')
@@ -27,7 +27,6 @@ import {
   archiveTask, deleteTask, runTask, stopTask, dismissTaskRun,
 } from '../actions'
 import { startAgentInProject, startAllAgents, stopAgentInProject } from '../agentLineOperations'
-import { moveTaskToBoard } from '../boardOperations'
 import { saveBoardView } from '../boardViewOperations'
 import { createMilestone, updateTaskPlan } from '../planOperations'
 import * as taskRunnerFake from '../../test/fakes/TaskRunner'
@@ -57,10 +56,9 @@ const writes: Case[] = [
   ['updateTask assigning an agent', (c) => updateTask({ taskId: c.task.id, assignedAgentId: c.agent.id }, ctx(c.caller))],
   // An epic has no agent, so the task made an epic has none.
   ['updateTaskPlan', (c) => updateTaskPlan({ taskId: c.task.id, isEpic: true }, ctx(c.caller)), { assignedAgentId: null }],
-  ['moveTaskToColumn into Done', (c) => moveTaskToColumn({ taskId: c.task.id, column: 'done' }, ctx(c.caller))],
-  ['moveTaskToColumn into In progress', (c) => moveTaskToColumn({ taskId: c.task.id, column: 'in_progress' }, ctx(c.caller))],
-  ['moveTaskToColumn into Backlog', (c) => moveTaskToColumn({ taskId: c.task.id, column: null }, ctx(c.caller))],
-  ['moveTaskToBoard', (c) => moveTaskToBoard({ taskId: c.task.id, boardId: c.other.id }, ctx(c.caller))],
+  ['moveTaskToColumn into Done', async (c) => moveTaskToColumn({ taskId: c.task.id, columnId: await columnOfState(c.project.id, 'DONE') }, ctx(c.caller))],
+  ['moveTaskToColumn into In progress', async (c) => moveTaskToColumn({ taskId: c.task.id, columnId: await columnOfState(c.project.id, 'IN_PROGRESS') }, ctx(c.caller))],
+  ['moveTaskToColumn into Backlog', async (c) => moveTaskToColumn({ taskId: c.task.id, columnId: await columnOfState(c.project.id, 'BACKLOG') }, ctx(c.caller))],
   ['addTaskComment', (c) => addTaskComment({ taskId: c.task.id, content: 'hello' }, ctx(c.caller))],
   ['saveBoardView', (c) => saveBoardView({ projectId: c.project.id, name: 'New', kind: 'STATE' }, ctx(c.caller))],
   ['createMilestone', (c) => createMilestone({ projectId: c.project.id, name: 'M', date: '2026-12-01' }, ctx(c.caller))],

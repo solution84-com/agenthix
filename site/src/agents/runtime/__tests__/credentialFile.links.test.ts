@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import type { RunCredential } from '@agenthix/core'
+import type { SiteRunCredential } from '../../../server/modelRelay/runAccess'
 
 vi.mock('../../../server/hq/hqConnection', () => ({
   hqConnectionManager: { sendEvent: vi.fn(), connectionState: vi.fn(() => 'connected') },
@@ -30,7 +30,7 @@ const NOW = Date.now()
 
 const doc = (expiresAt: number, who = 'x') =>
   JSON.stringify({ claudeAiOauth: { accessToken: `at-${who}-${expiresAt}`, refreshToken: `rt-${who}-${expiresAt}`, expiresAt } })
-const granted = (oauthJson: string, grantId: string, loginId: string): RunCredential =>
+const granted = (oauthJson: string, grantId: string, loginId: string): SiteRunCredential =>
   ({ kind: 'subscription', provider: 'anthropic', oauthJson, grantId, loginId })
 
 let root: string

@@ -107,7 +107,6 @@ const CONTEXT: RunContextPayload = {
   chat: { sessionContext: null },
   mounts: { ownerSlugs: {} },
   riskRules: null,
-  credential: null,
   packages: {
     agent: { kind: 'agent', key: 'agent-1', digest: 'a'.repeat(64) },
     org: null,
@@ -233,7 +232,7 @@ describe('a run with no model credential @SC-782', () => {
   })
 
   it('does not fire when a credential was supplied', async () => {
-    const outcome = await run({ ...CONTEXT, credential: { kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-live' } })
+    const outcome = await run({ ...CONTEXT, modelAccess: { model: { providerId: 'p-ant', model: 'claude-x' }, provider: { kind: 'api_key', providerId: 'p-ant', vendor: 'anthropic', apiKey: 'sk-live' }, billingProfileId: '' } })
 
     expect(outcome).not.toEqual({ status: 'FAILED' })
     expect(selectRuntime).toHaveBeenCalledWith('claude-sdk')

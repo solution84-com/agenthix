@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Board } from 'wasp/entities'
-import { labelsOf, stateWhereOfStatus, taskCommentView, taskFields, type TaskWithKind } from '../taskWire'
+import { labelsOf, taskCommentView, taskFields, type TaskWithKind } from '../taskWire'
 import { boardFields } from '../projectWire'
 
 const at = new Date('2026-10-21T09:00:00Z')
@@ -65,20 +65,6 @@ describe('a task as the client protocol declares it @SC-1142', () => {
       .toMatchObject({ typeId: 'ty', columnId: 'co', rank: 'i', state: 'TODO', executionState: 'WAITING' })
   })
 
-  it('derives the deprecated status and isEpic from its state and its type, never stored', () => {
-    expect(taskFields(taskRow())).toMatchObject({ status: 'TODO', isEpic: false })
-    expect(taskFields(taskRow({ state: 'IN_PROGRESS' })).status).toBe('IN_PROGRESS')
-    expect(taskFields(taskRow({ state: 'DONE' })).status).toBe('DONE')
-    expect(taskFields(taskRow({ type: { kind: 'EPIC' } })).isEpic).toBe(true)
-    expect(taskFields(taskRow({ type: { kind: 'CUSTOM' } })).isEpic).toBe(false)
-  })
-
-  it('reads a deprecated status filter as the states it stood for', () => {
-    expect(stateWhereOfStatus('TODO')).toEqual({ in: ['BACKLOG', 'TODO'] })
-    expect(stateWhereOfStatus('DONE')).toEqual({ in: ['DONE'] })
-    expect(stateWhereOfStatus('nonsense')).toEqual({ in: [] })
-  })
-
   it("carries the task's model choice", () => {
     expect(taskFields(taskRow({ modelChoice: 'fast' })).modelChoice).toBe('fast')
     expect(taskFields(taskRow()).modelChoice).toBeNull()
@@ -86,19 +72,18 @@ describe('a task as the client protocol declares it @SC-1142', () => {
 })
 
 describe("a task on no board and a board as a saved view, as a client is given them @SC-1142", () => {
-  it("answers a task's deprecated board place from its project and state", () => {
-    expect(taskFields(taskRow())).toMatchObject({ boardId: 'p1', column: null, status: 'TODO' })
-    expect(taskFields(taskRow({ state: 'IN_PROGRESS' }))).toMatchObject({ boardId: 'p1', column: 'in_progress', status: 'IN_PROGRESS' })
-    expect(taskFields(taskRow({ state: 'DONE' }))).toMatchObject({ column: 'done', status: 'DONE' })
+  it('names no board on a task', () => {
+    expect(taskFields(taskRow())).not.toHaveProperty('boardId')
+    expect(taskFields(taskRow())).not.toHaveProperty('column')
   })
 
-  it('says what a saved board shows, with the deprecated fields empty', () => {
+  it('says what a saved board shows', () => {
     const board: Board = {
       id: 'b2', name: 'Bugs', projectId: 'p1', createdAt: at, updatedAt: at,
       view: 'TYPE', typeId: 't1', fieldId: null, filter: { sprint: { current: true }, other: 1 },
     }
     expect(boardFields(board)).toEqual({
-      id: 'b2', name: 'Bugs', projectId: 'p1', kind: 'WORKFLOW', templateId: null, columns: [], archivedAt: null,
+      id: 'b2', name: 'Bugs', projectId: 'p1', kind: 'WORKFLOW', archivedAt: null,
       createdAt: at, updatedAt: at, view: { kind: 'TYPE', typeId: 't1', fieldId: null, filter: { sprint: { current: true } } },
     })
   })

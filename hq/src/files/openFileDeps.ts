@@ -19,7 +19,7 @@ import { siteChannelRegistry, ChannelRequestFailed } from '../sites/channel'
 import { displaySiteName, displayRelayName } from '../shared/siteName'
 import { isRelayConnected, issueFileTicket } from '../relays'
 import { browserAddressOf } from '../relays/relayAddress'
-import { OpenRefused, tooOldFor, type OpenFileDeps, type SiteAndRelay } from './openFile'
+import { OpenRefused, type OpenFileDeps, type SiteAndRelay } from './openFile'
 
 /** Short of the channel's default: a person is waiting on a file opening, and a site that slow is as good as away. */
 export const FILE_ABOUT_TIMEOUT_MS = 10_000
@@ -90,9 +90,6 @@ export async function siteAndRelay(siteId: string): Promise<SiteAndRelay | null>
 }
 
 export async function aboutOnSite(siteId: string, ref: SiteFileRef): Promise<FileAboutResult> {
-  // An older site would answer a file at a commit with the file on disk: it is never asked.
-  const conn = siteChannelRegistry.get(siteId)
-  if (conn && tooOldFor(ref, conn.protocol)) throw new OpenRefused('site-unavailable', 'upgrade')
   try {
     return await siteChannelRegistry.request(siteId, FILE_ABOUT_METHOD, ref, FILE_ABOUT_TIMEOUT_MS)
   } catch (err) {

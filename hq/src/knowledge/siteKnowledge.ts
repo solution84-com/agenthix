@@ -1,5 +1,5 @@
 /**
- * The knowledge methods on the site that holds an owner's pages (`location.*Knowledge`, site protocol 1.7): a project's
+ * The knowledge methods on the site that holds an owner's pages (`location.*Knowledge`): a project's
  * on its own site, a person's on their storage site, the organisation's where it was placed. **Nothing here checks
  * who is asking** — the service has decided that before it calls. Every failure becomes one of a fixed set of reasons
  * (`SiteFailure`); the error itself, which can name a site's address or a path, only reaches the log.
@@ -79,9 +79,8 @@ function request<M extends ControlMethod>(owner: KnowledgeOwnerRef, method: M, p
 
 export const siteKnowledge: KnowledgeSites = {
   grep: (owner, grep, timeoutMs) =>
-    // `query` and `maxChars` are for a site on 1.6, which would answer the old way; a 1.7 site ignores them.
-    request(owner, LOCATION_FILE_METHODS.searchKnowledge, { ...wireOwner(owner), query: grep.pattern, maxChars: 0, grep }, timeoutMs)
-      .then(a => (a.ok && a.value.grep === undefined ? { ok: false as const, why: 'outdated' as const } : a.ok ? { ok: true as const, value: a.value.grep! } : a)),
+    request(owner, LOCATION_FILE_METHODS.searchKnowledge, { ...wireOwner(owner), grep }, timeoutMs)
+      .then(a => (a.ok ? { ok: true as const, value: a.value.grep } : a)),
   list: (owner, timeoutMs) => request(owner, LOCATION_FILE_METHODS.listKnowledge, wireOwner(owner), timeoutMs),
   read: (owner, page, versionId) =>
     settle(LOCATION_FILE_METHODS.readKnowledge, owner, async () => {

@@ -31,11 +31,11 @@ export const BOARD_DROP_SETS: Readonly<Record<BoardKind, 'column' | 'state' | 'f
  * a type. Every part is optional.
  */
 export type BoardFilter = {
-  /** `none` (since 1.17): the tasks in no sprint. */
+  /** `none`: the tasks in no sprint. */
   sprint?: { current: true } | { sprintId: string } | { none: true }
   epicId?: string
   agentId?: string
-  /** Since 1.17: one type's tasks, on a board of the task state, the execution state or a field. */
+  /** One type's tasks, on a board of the task state, the execution state or a field. */
   typeId?: string
 }
 

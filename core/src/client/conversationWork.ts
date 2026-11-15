@@ -30,18 +30,18 @@ export type OperationActivityView = {
   /** While it waits for the person's okay: what it wants to run and why, from its latest request. */
   request?: { what: string; reason: string; askedBy: string } | null
   /**
-   * From 1.5, while it waits: a workflow version's approval card. `canAnswer` is whether the viewer administers the
+   * While it waits: a workflow version's approval card. `canAnswer` is whether the viewer administers the
    * workflow's place, the only people its buttons are for.
    */
   workflowCard?: (WorkflowApprovalCard & { canAnswer: boolean }) | null
   /**
-   * From 1.9, while it waits: an agent's ask to merge its branch into `main`, answered *Merge* or *Not now* (approve
+   * While it waits: an agent's ask to merge its branch into `main`, answered *Merge* or *Not now* (approve
    * or decline). `canAnswer` is whether the viewer may merge there: a Member or Admin of the project, or the person
    * whose own storage it is.
    */
   mergeCard?: MergeApprovalCard | null
   /**
-   * From 1.9, while it waits: an agent's ask to let a package whose install script the rule blocked run it in its
+   * While it waits: an agent's ask to let a package whose install script the rule blocked run it in its
    * branch's copy, with no live preview open (adr-0170), answered *Allow* or *Not now*. `canAnswer` as for `mergeCard`.
    */
   packageCard?: PackageApprovalCard | null

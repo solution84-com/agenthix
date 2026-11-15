@@ -129,12 +129,12 @@ describe('the console link’s methods @SC-924', () => {
 
   it('the connection to Cloud names the fleet admin asking, and passes on nothing else @SC-1099', async () => {
     const { calls, handle } = recording()
-    for (const method of ['cloud.state', 'cloud.connect', 'cloud.disconnect']) {
+    for (const method of ['cloud.state']) {
       expect(await handle(method, { byUserId: 'u-1', cloudUrl: 'https://elsewhere.example', publicKey: 'x' })).toMatchObject({ ok: true })
       expect(await handle(method, {}), method).toMatchObject({ ok: false, code: 'malformed' })
       expect(await handle(method, { byUserId: null }), method).toMatchObject({ ok: false, code: 'malformed' })
     }
-    expect(calls).toEqual(['cloud.state', 'cloud.connect', 'cloud.disconnect'].map(method => ({ method, params: { byUserId: 'u-1' } })))
+    expect(calls).toEqual([{ method: 'cloud.state', params: { byUserId: 'u-1' } }])
   })
 
   it('the ask count and the offers name the fleet admin, and an offer is one of the three @SC-1112', async () => {

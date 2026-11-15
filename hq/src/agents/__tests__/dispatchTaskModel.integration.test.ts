@@ -79,7 +79,7 @@ describe("a task's run takes the default model @SC-955 @SC-1193", () => {
     const { payload } = dispatched()
     expect(payload.model).toBe(OPEN_ROUTER)
     expect(payload.session).toMatchObject({ runtime: 'opencode', model: OPEN_ROUTER })
-    expect(payload.context.credential).toBeNull()
+    expect(payload.context).not.toHaveProperty('credential')
     expect(payload.context.modelAccess).toMatchObject({ provider: { kind: 'api_key', providerId: provider.id, vendor: 'openrouter', apiKey: 'sk-test-or' } })
     expect(payload.context.credentialProblem).toBeUndefined()
   })

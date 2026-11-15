@@ -18,12 +18,12 @@ export type UserSettingsView = {
   /** The person set `timezone` themselves, so a device's zone no longer replaces it. */
   timezoneChosen: boolean
   /**
-   * The person's Adaptive voice (since 1.18): what an agent adds to a voice conversation beyond speaking its reply,
+   * The person's Adaptive voice: what an agent adds to a voice conversation beyond speaking its reply,
    * on by default. Off, the agent says nothing until its reply starts; how it notices you have finished does not change.
    */
   adaptiveVoice?: boolean
   /**
-   * The person's voice sounds (since 1.21): the short sounds of a call (voice on and off, mute, a lost connection),
+   * The person's voice sounds: the short sounds of a call (voice on and off, mute, a lost connection),
    * on by default.
    */
   voiceSounds?: boolean
@@ -36,7 +36,7 @@ export type UserSettingsView = {
 export type SetPersonNameArgs = { userId: string; displayName: string | null }
 export type SetPersonNameResult = { displayName: string | null }
 /**
- * `dataUrl`: a JPEG, PNG or WebP image as a base64 data URL; hq re-encodes it. `type` (since 1.22): the person's
+ * `dataUrl`: a JPEG, PNG or WebP image as a base64 data URL; hq re-encodes it. `type`: the person's
  * avatar, as before when it is left out, or their cover.
  */
 export type UploadPersonPictureArgs = { userId: string; dataUrl: string; type?: 'avatar' | 'cover' }

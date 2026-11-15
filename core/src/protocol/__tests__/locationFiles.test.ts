@@ -112,9 +112,8 @@ describe('location.remove', () => {
 })
 
 describe("an owner's artefacts and knowledge @SC-760", () => {
-  it('are four methods of their own, under the location. prefix', () => {
+  it('are methods of their own, under the location. prefix', () => {
     expect(LOCATION_FILE_METHODS.listArtefacts).toBe('location.listArtefacts')
-    expect(LOCATION_FILE_METHODS.readArtefact).toBe('location.readArtefact')
     expect(LOCATION_FILE_METHODS.listKnowledge).toBe('location.listKnowledge')
     expect(LOCATION_FILE_METHODS.readKnowledge).toBe('location.readKnowledge')
   })
@@ -156,12 +155,11 @@ describe('the knowledge gate and history (1.7)', () => {
     expect(Object.keys(edit)).not.toContain('by')
   })
 
-  it('keep the query form beside the Grep form, so a site on 1.6 still answers @SC-1017', () => {
+  it('search with Grep\'s parameters @SC-1017', () => {
     const search: LocationSearchKnowledgeParams = {
-      ownerType: 'user', ownerId: '7', query: 'staging approv', maxChars: 8000,
-      grep: { pattern: 'staging.*(approv|sign.?off)', '-n': true, output_mode: 'content' },
+      ownerType: 'user', ownerId: '7', grep: { pattern: 'staging.*(approv|sign.?off)', '-n': true, output_mode: 'content' },
     }
-    expect(search.grep?.pattern).toContain('staging')
+    expect(search.grep.pattern).toContain('staging')
   })
 })
 

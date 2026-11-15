@@ -211,9 +211,9 @@ describe("a run's pinned memory leaves run staging when the run ends", () => {
     const sink = createRunLaunchSink()
     sink.claudeHome = claudeDir
     sink.pinnedMemory = { staging, sessionId: 'sess1' }
-    await writePinnedMemory({ serverDir: staging, visibleDir: '/run/staging', shared: false }, 'sess1', [
-      { key: 'diet', scope: 'person', title: 'Vegetarian', body: 'Eats no meat.' },
-    ])
+    await writePinnedMemory({ serverDir: staging, visibleDir: '/run/staging', shared: false }, 'sess1', {
+      items: [{ key: 'diet', kind: 'fact', title: 'Vegetarian', body: 'Eats no meat.' }], hinted: [],
+    })
     const folder = path.join(staging, 'pinned-memory', 'sess1')
     expect(await exists(path.join(folder, 'pinned.md'))).toBe(true)
 

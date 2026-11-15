@@ -1,22 +1,19 @@
 /**
  * A run's memory (ADR-0188; spec, Recall): the same search a turn makes, with the run's brief as the query, under
- * the run's person, agent and place; nothing for a run that is for no person; the deprecated pinned items only for a
- * site that reads nothing newer.
+ * the run's person, agent and place; and nothing for a run that is for no person.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const userRow = vi.hoisted(() => vi.fn())
 const personalOwner = vi.hoisted(() => vi.fn())
-const siteConn = vi.hoisted(() => vi.fn())
 
 vi.mock('wasp/server', () => ({ prisma: { user: { findUnique: userRow } } }))
 vi.mock('../../projects/personalProject', () => ({ personalOwnerOf: personalOwner }))
-vi.mock('../../sites/channel', () => ({ siteChannelRegistry: { get: siteConn } }))
 vi.mock('../../conversations/memory/probe', () => ({ probe: vi.fn() }))
 
 import type { RecalledItem } from '../contract'
 import type { TurnProbe } from '../../conversations/memory/probe'
-import { memoryForRun, pinnedForOlderSite, type RunFor, type RunMemoryDeps } from '../runMemory'
+import { memoryForRun, type RunFor, type RunMemoryDeps } from '../runMemory'
 
 const recalled = (key: string, kind: RecalledItem['kind']): RecalledItem & { weighted: boolean } => ({
   itemId: `id-${key}`, key, title: key, body: `${key} body`, kind, tags: [], writtenAt: '', weighted: false,
@@ -40,7 +37,6 @@ const run = (over: Partial<RunFor> = {}): RunFor => ({
 beforeEach(() => {
   userRow.mockReset().mockResolvedValue({ deactivatedAt: null })
   personalOwner.mockReset().mockResolvedValue(null)
-  siteConn.mockReset().mockReturnValue(null)
 })
 
 describe("a run's memory @SC-2106", () => {
@@ -91,23 +87,5 @@ describe("a run's memory @SC-2106", () => {
   it('starts the run without memory when the search fails or is slow', async () => {
     expect(await memoryForRun(run(), deps({ probe: vi.fn(async () => { throw new Error('embedder down') }) }))).toBeNull()
     expect(await memoryForRun(run(), deps({ probe: vi.fn(() => new Promise<TurnProbe>(() => {})), timeLimitMs: 10 }))).toBeNull()
-  })
-})
-
-describe('the deprecated pinned items, for an older site @SC-2106', () => {
-  const memory = { items: [{ key: 'tables', kind: 'rule', title: 'Tables', body: 'Use a table.' }], hinted: [] }
-
-  it('are the items found in full, for a site before 1.19 only', () => {
-    siteConn.mockReturnValue({ protocol: { major: 1, minor: 18 } })
-    expect(pinnedForOlderSite('s1', memory)).toEqual([{ key: 'tables', scope: 'person', title: 'Tables', body: 'Use a table.' }])
-    siteConn.mockReturnValue({ protocol: { major: 1, minor: 19 } })
-    expect(pinnedForOlderSite('s1', memory)).toBeNull()
-  })
-
-  it('are nothing when there is no memory or the site is not connected', () => {
-    siteConn.mockReturnValue({ protocol: { major: 1, minor: 18 } })
-    expect(pinnedForOlderSite('s1', null)).toBeNull()
-    siteConn.mockReturnValue(null)
-    expect(pinnedForOlderSite('s1', memory)).toBeNull()
   })
 })

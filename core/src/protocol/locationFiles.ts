@@ -56,16 +56,16 @@ export * from './locationSkills.js'
 export const LOCATION_FILE_METHODS = {
   /** Control channel: the entries directly under a location, or under one directory inside it. */
   listFiles: 'location.listFiles',
-  /** Control channel (1.8): a location's files whose names hold a fragment, best first — `./locationFind.ts`. */
+  /** Control channel: a location's files whose names hold a fragment, best first — `./locationFind.ts`. */
   findFiles: 'location.findFiles',
-  /** Control channel (1.10): the skill folders in a place's files and its workspaces — `./locationSkills.ts`. */
+  /** Control channel: the skill folders in a place's files and its workspaces — `./locationSkills.ts`. */
   scanSkills: 'location.scanSkills',
-  /** Content transport (1.11): one of a place's skill folders made to hold exactly the files streamed — `./locationSkills.ts`. */
+  /** Content transport: one of a place's skill folders made to hold exactly the files streamed — `./locationSkills.ts`. */
   writeSkill: 'location.writeSkill',
-  /** Control channel (1.11): one of a place's skill folders removed — `./locationSkills.ts`. */
+  /** Control channel: one of a place's skill folders removed — `./locationSkills.ts`. */
   removeSkill: 'location.removeSkill',
   /**
-   * Content transport (1.14): one photo or file a person added to a conversation, written into the place's shared
+   * Content transport: one photo or file a person added to a conversation, written into the place's shared
    * folder under a name of its own, never over another file — `../storage/sharedFiles.ts`.
    */
   shareFile: 'location.shareFile',
@@ -85,7 +85,7 @@ export const LOCATION_FILE_METHODS = {
   /**
    * Control channel: the files directly in an owner's `artefacts/` folder.
    *
-   * This and the three below are addressed by the OWNER rather than by a
+   * This and the knowledge methods below are addressed by the OWNER rather than by a
    * `LocationRef`: `artefacts/` and `knowledge/` sit BESIDE the owner's
    * `files/`, so no location names them, and a location-relative path reaching
    * them would be an escape from the location. A fourth field on `LocationRef`
@@ -93,29 +93,21 @@ export const LOCATION_FILE_METHODS = {
    * these use.
    */
   listArtefacts: 'location.listArtefacts',
-  /**
-   * Content transport: one artefact's bytes, addressed by its file name in `artefacts/`. Deprecated since 1.8 (its
-   * entry in `SiteContentMethods`): hq no longer calls it, since a relay serves an artefact on a ticket (`files.serve`).
-   */
-  readArtefact: 'location.readArtefact',
   /** Control channel: an owner's knowledge sections and pages, each page with its index entry and problems. */
   listKnowledge: 'location.listKnowledge',
   /** Content transport: one page's bytes, or one kept version's. */
   readKnowledge: 'location.readKnowledge',
-  /**
-   * Control channel: search an owner's knowledge pages with Grep's parameters, by ripgrep (since 1.7); before that,
-   * a bounded excerpt of the files matching a query. Owner-addressed like the four above.
-   */
+  /** Control channel: search an owner's knowledge pages with Grep's parameters, by ripgrep. Owner-addressed like those above. */
   searchKnowledge: 'location.searchKnowledge',
-  /** Control channel, the gate (1.7): a whole page written, carrying the version it started from. */
+  /** Control channel, the gate: a whole page written, carrying the version it started from. */
   writeKnowledge: 'location.writeKnowledge',
-  /** Control channel, the gate (1.7): one passage of a page replaced. */
+  /** Control channel, the gate: one passage of a page replaced. */
   editKnowledge: 'location.editKnowledge',
-  /** Control channel, the gate (1.7): a page deleted (kept until pruned), or a page or version removed for good. */
+  /** Control channel, the gate: a page deleted (kept until pruned), or a page or version removed for good. */
   deleteKnowledge: 'location.deleteKnowledge',
-  /** Control channel, the gate (1.7): a kept version saved back as the page. */
+  /** Control channel, the gate: a kept version saved back as the page. */
   restoreKnowledge: 'location.restoreKnowledge',
-  /** Control channel (1.7): a page's kept versions, or the recently deleted pages. */
+  /** Control channel: a page's kept versions, or the recently deleted pages. */
   knowledgeVersions: 'location.knowledgeVersions',
 } as const
 
@@ -392,36 +384,24 @@ export interface LocationListArtefactsResult {
   entries: OwnerFolderFile[]
 }
 
-/**
- * One artefact, by its file name directly in `artefacts/` — a name, never a
- * path. `maxBytes` is the most hq will take: a larger file is refused
- * `too_large` before a byte is sent.
- */
-export interface LocationReadArtefactParams extends StorageOwnerRef {
-  name: string
-  maxBytes: number
-}
-
 export interface LocationListKnowledgeParams extends KnowledgeOwnerRef {}
 
 /**
  * An owner's knowledge, up to `KNOWLEDGE_LIST_MAX_FILES` pages and
- * `KNOWLEDGE_LIST_MAX_DEPTH` deep. Hidden entries and links are not listed.
- * Since 1.7 a site answers `sections` and `pages`, each page with its index
- * entry and its problems; `files` stays for hq on 1.6, the same pages' paths.
+ * `KNOWLEDGE_LIST_MAX_DEPTH` deep: its sections and its pages, each page with
+ * its index entry and its problems. Hidden entries and links are not listed.
  */
 export interface LocationListKnowledgeResult {
-  /** @deprecated since 1.7; stops working in 3.0. Use `pages` instead. */
-  files: OwnerFolderFile[]
   truncated: boolean
-  sections?: KnowledgeSection[]
-  pages?: KnowledgePageListing[]
+  sections: KnowledgeSection[]
+  pages: KnowledgePageListing[]
 }
 
 /**
  * One page, by its path inside the owner's knowledge pages, or with
  * `versionId` one of its kept versions (a deleted page's included).
- * `maxBytes` as for an artefact.
+ * `maxBytes` is the most hq will take: a larger page is refused `too_large`
+ * before a byte is sent.
  */
 export interface LocationReadKnowledgeParams extends KnowledgeOwnerRef {
   relPath: string
@@ -429,41 +409,19 @@ export interface LocationReadKnowledgeParams extends KnowledgeOwnerRef {
   versionId?: string
 }
 
-/**
- * Search an owner's knowledge. Since 1.7, with `grep`, the site runs ripgrep with Grep's parameters and answers in
- * `grep`; it then ignores `query` and `maxChars`, which hq still fills (the pattern, and its size cap) so that a site
- * on 1.6 answers the old way: the query split into terms, the best matching lines with a few lines of context,
- * until `maxChars` of text.
- */
+/** Search an owner's knowledge: the site runs ripgrep with Grep's parameters and answers in `grep`. */
 export interface LocationSearchKnowledgeParams extends KnowledgeOwnerRef {
-  /** @deprecated since 1.7; stops working in 3.0. Use `grep` instead. */
-  query: string
-  /** @deprecated since 1.7; stops working in 3.0. Use `grep` instead. */
-  maxChars: number
-  grep?: KnowledgeGrepParams
+  grep: KnowledgeGrepParams
 }
 
-/** A run of lines from one knowledge file, 1-based and inclusive, paths relative to `knowledge/`. */
-export interface KnowledgeSearchExcerpt {
-  path: string
-  startLine: number
-  endLine: number
-  text: string
-}
-
-/** A site on 1.7 answers a `grep` search in `grep`, with the three older fields empty. */
 export interface LocationSearchKnowledgeResult {
-  /** @deprecated since 1.7; stops working in 3.0. Use `grep` instead. */
-  excerpts: KnowledgeSearchExcerpt[]
-  /** @deprecated since 1.7; stops working in 3.0. Use `grep` instead. */
-  cut: string[]
   /** The site stopped reading files at the listing bound, so matches may be missing. */
   truncated: boolean
-  grep?: KnowledgeGrepResult
+  grep: KnowledgeGrepResult
 }
 
 /**
- * `location.shareFile` (1.14): the stream carries the file's bytes, exactly `size` of them. The site writes them into
+ * `location.shareFile`: the stream carries the file's bytes, exactly `size` of them. The site writes them into
  * `SHARED_FOLDER` of the place's files under `name` (`sharedNameProblem` must pass), or, when a file of that name is
  * there, under the first free `numberedSharedName`, refusing a link anywhere on the way; it answers on the stream with
  * a `LocationShareFileResult` as JSON, then ends.

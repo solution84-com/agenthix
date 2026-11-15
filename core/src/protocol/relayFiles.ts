@@ -1,5 +1,5 @@
 /**
- * The site protocol's half of relays (adr-0153), since site protocol 1.8:
+ * The site protocol's half of relays (adr-0153):
  *
  * - `relay.assign`, on the control channel: hq tells a site which relay to hold a line to, with the pass that admits
  *   it. Sent again with the same relay before the pass ends, it renews the pass and the line carries on; sent with

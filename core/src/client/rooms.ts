@@ -10,17 +10,10 @@ export const ROOM_SOCKET = {
   /** Client → server, with the task's id: its comments, its run's events and its approvals. */
   subscribeToTask: 'subscribeToTask',
   /**
-   * Client → server, with a saved board's id, or (since 1.17) a project's id, which every board of the project shows,
-   * the built-in ones included: which of their tasks changed.
+   * Client → server, with a saved board's id, or a project's id, which every board of the project shows, the built-in
+   * ones included: which of their tasks changed.
    */
   subscribeToBoard: 'subscribeToBoard',
-  /**
-   * Client → server, nothing sent. hq answers it with nothing: no screen shows the dashboard it once sent.
-   * @deprecated since 1.10; stops working in 3.0. Nothing replaces it.
-   */
-  subscribeToDashboard: 'subscribeToDashboard',
-  /** @deprecated since 1.10; stops working in 3.0. Nothing replaces it. */
-  unsubscribeFromDashboard: 'unsubscribeFromDashboard',
 } as const
 
 /** What a room's join sends: the session's, task's or board's id, as a plain string. */

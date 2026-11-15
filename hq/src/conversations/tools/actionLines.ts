@@ -106,8 +106,7 @@ export interface ActionWriter {
 
 /**
  * Only a memory the person asked for gets a line (ADR-0188): one quiet line, "Kernel remembered this", whose target
- * names the memory by its id (`params.item`), the dialog's way in. The scope parameters an older line carries
- * (`scope`, `agent`, `place`) are deprecated: nothing writes them now.
+ * names the memory by its id (`params.item`), the dialog's way in.
  */
 function skipsLine(toolName: string, result: Args): boolean {
   return toolName === 'remember' && result.requested !== true

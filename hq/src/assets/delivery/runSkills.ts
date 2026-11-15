@@ -2,9 +2,9 @@
  * What a run is told about skills (spec part 5 *Delivery per turn*): built-ins not switched off, installed skills
  * every agent or this agent has at their pinned versions, the place's switched-on skills in files, and the person's
  * published skills on a turn of their own conversation; then the clash order, installed, project, person (D16), with
- * what was set aside and why. Sent to a site that speaks 1.10 or later; an older one is sent none of it.
+ * what was set aside and why.
  */
-import type { FileSkillEntry, InstalledSkillEntry, PersonSkillEntry, ProtocolVersion } from '@agenthix/core'
+import type { FileSkillEntry, InstalledSkillEntry, PersonSkillEntry } from '@agenthix/core'
 import { prisma } from 'wasp/server'
 import type { Db } from '../../packages/packageStore'
 import { siteChannelRegistry } from '../../sites/channel'
@@ -18,12 +18,6 @@ import { placeSkillPath } from '../places/scan'
 import { personalSkillsApply, personSkillsFor, type RunFor } from './personSkills'
 
 const logger = new Logger('RunSkills')
-
-const FIRST_WITH_RUN_SKILLS = { major: 1, minor: 10 }
-
-export function speaksRunSkills(v: ProtocolVersion): boolean {
-  return v.major > FIRST_WITH_RUN_SKILLS.major || (v.major === FIRST_WITH_RUN_SKILLS.major && v.minor >= FIRST_WITH_RUN_SKILLS.minor)
-}
 
 export type RunSkillsInput = RunFor & { agentId: string; siteId: string; workspaceIds: string[] }
 
@@ -102,8 +96,7 @@ function runLocationIsRepository(input: RunSkillsInput): RepositoryCheck {
   return locationIsRepository(input.siteId, loc)
 }
 
-/** Whether a site is sent a run's skills: only one that speaks the protocol that carries them. */
+/** Whether a site is sent a run's skills: only one connected now, since resolving them reads its places. */
 export function siteTakesRunSkills(siteId: string): boolean {
-  const conn = siteChannelRegistry.get(siteId)
-  return conn !== null && speaksRunSkills(conn.protocol)
+  return siteChannelRegistry.get(siteId) !== null
 }

@@ -1,5 +1,5 @@
 /**
- * The knowledge methods' shapes (agent knowledge spec, parts 2 and 3; site protocol 1.7), split from
+ * The knowledge methods' shapes (agent knowledge spec, parts 2 and 3), split from
  * `locationFiles.ts` on the file-size rule and re-exported from it; the method names stay in
  * `LOCATION_FILE_METHODS` there. Every one is addressed by an owner, like `location.listKnowledge`, and names a page
  * by its path inside that owner's knowledge pages (`processes/release.md`), never by a level: which level an owner's

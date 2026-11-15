@@ -47,7 +47,7 @@ function fakeSite(lines: SiteLines, siteId: string, serve: (s: Opened) => void):
   }
 }
 
-const order = (from = 'site-a', to = 'site-b') => ({ type: 'relay.bundle' as const, version: '1.1', transferId: 'transfer_0123456789abcdefghij', ticket: 'eyJ.t.s', from, to })
+const order = (from = 'site-a', to = 'site-b') => ({ type: 'relay.bundle' as const, version: '1.0', transferId: 'transfer_0123456789abcdefghij', ticket: 'eyJ.t.s', from, to })
 const BYTES = Buffer.alloc(3 * 1024 * 1024, 7)
 
 function setup(source: (s: Opened) => void, destination: (s: Opened) => void = () => {}) {

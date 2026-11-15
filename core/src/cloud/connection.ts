@@ -21,8 +21,8 @@
  *    (./hqAddress.ts).
  * 5. **Disconnecting** — a signed request to `CLOUD_CONNECT_REVOKE_PATH` (in the manner of RFC 7009) revokes the key's
  *    registration. Cloud disconnecting from its side revokes it too, and hq learns of it from `invalid_client`.
- * 6. **The protocol's version** — every call hq makes carries `X-Cloud-Protocol-Version` (`CLOUD_PROTOCOL_VERSION`,
- *    1.1) and `User-Agent: hq/<release>`, and every answer carries Cloud's own. Two majors or more apart is refused
+ * 6. **The protocol's version** — every call hq makes carries `X-Cloud-Protocol-Version` (`CLOUD_PROTOCOL_VERSION`)
+ *    and `User-Agent: hq/<release>`, and every answer carries Cloud's own. Two majors or more apart is refused
  *    with 426 by whichever side sees it first (./version.ts).
  *
  * Requests are `application/x-www-form-urlencoded`, as RFC 6749 has them; every answer is JSON. A refusal is the

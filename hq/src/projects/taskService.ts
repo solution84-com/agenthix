@@ -21,7 +21,7 @@ import { actorOf, changedFields, recordTaskActivity, type TaskActor } from './ta
 import { withExecutionState } from './executionState'
 import { lockProjectOrder, placeData, rankAtEnd, resolveNewTaskPlace } from './taskPlace'
 import { notifyBoardsOfTasks } from './boardNotify'
-import { stateWhereOfStatus, TASK_KIND_INCLUDE } from './taskWire'
+import { TASK_KIND_INCLUDE } from './taskWire'
 
 export { archiveTask, unarchiveTask } from './taskArchive'
 

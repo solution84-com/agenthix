@@ -55,7 +55,7 @@ describe('location.listKnowledge: the itemiser @SC-1391', () => {
     const result = await listKnowledge(owner)
     expect(result.truncated).toBe(false)
     expect(result.sections).toEqual([{ path: 'processes', pageCount: 1 }])
-    const release = result.pages!.find(p => p.page === 'processes/release.md')!
+    const release = result.pages.find(p => p.page === 'processes/release.md')!
     expect(release).toEqual({
       page: 'processes/release.md',
       title: 'Release',
@@ -67,24 +67,18 @@ describe('location.listKnowledge: the itemiser @SC-1391', () => {
       version: createHash('sha256').update(text).digest('hex'),
       problems: [],
     })
-    expect(result.pages!.map(p => p.page)).toEqual(['overview.md', 'processes/release.md'])
-  })
-
-  it('keeps the deprecated files list for hq on 1.6, newest first', async () => {
-    await put('old.md', good('Old'), '2026-01-01T00:00:00.000Z')
-    await put('new.md', good('New'), '2026-01-03T00:00:00.000Z')
-    expect((await listKnowledge(owner)).files.map(f => f.path)).toEqual(['new.md', 'old.md'])
+    expect(result.pages.map(p => p.page)).toEqual(['overview.md', 'processes/release.md'])
   })
 
   it('lists a hand-placed file with broken front matter under its problems, titled from its file name', async () => {
     await put('notes/scratch.md', '---\ntitle: [unclosed\n\nno end of the front matter\n')
     await put('plain.md', 'No front matter at all.\n')
     const result = await listKnowledge(owner)
-    const scratch = result.pages!.find(p => p.page === 'notes/scratch.md')!
+    const scratch = result.pages.find(p => p.page === 'notes/scratch.md')!
     expect(scratch.title).toBe('scratch')
     expect(scratch.problems.length).toBeGreaterThan(0)
     expect(scratch.problems.every(p => p.message.length > 0)).toBe(true)
-    const plain = result.pages!.find(p => p.page === 'plain.md')!
+    const plain = result.pages.find(p => p.page === 'plain.md')!
     expect(plain.title).toBe('plain')
     expect(plain.problems.map(p => p.code)).toContain('front_matter_missing')
   })
@@ -105,8 +99,8 @@ describe('location.listKnowledge: the itemiser @SC-1391', () => {
     await put('big.md', good('Big', '', 'x'.repeat(KNOWLEDGE_LIMITS.maxPageBytes)))
     await put('Not A Page.md', good('Odd'))
     const result = await listKnowledge(owner)
-    expect(result.pages!.find(p => p.page === 'big.md')!.problems.map(p => p.code)).toContain('too_large')
-    expect(result.pages!.find(p => p.page === 'Not A Page.md')!.problems.map(p => p.code)).toContain('name_invalid')
+    expect(result.pages.find(p => p.page === 'big.md')!.problems.map(p => p.code)).toContain('too_large')
+    expect(result.pages.find(p => p.page === 'Not A Page.md')!.problems.map(p => p.code)).toContain('name_invalid')
   })
 
   it('skips hidden entries and never follows or lists a link', async () => {
@@ -116,7 +110,7 @@ describe('location.listKnowledge: the itemiser @SC-1391', () => {
     await fs.symlink(path.join(outside, 'secret.md'), path.join(pages, 'escape.md'))
     await fs.symlink(outside, path.join(pages, 'linked-dir'))
     const result = await listKnowledge(owner)
-    expect(result.pages!.map(p => p.page)).toEqual(['kept.md'])
+    expect(result.pages.map(p => p.page)).toEqual(['kept.md'])
     expect(result.sections).toEqual([])
   })
 
@@ -138,7 +132,7 @@ describe('location.listKnowledge: the itemiser @SC-1391', () => {
 
   it('answers empty when there are no pages yet', async () => {
     await fs.rm(path.dirname(pages), { recursive: true, force: true })
-    expect(await listKnowledge(owner)).toEqual({ files: [], truncated: false, sections: [], pages: [] })
+    expect(await listKnowledge(owner)).toEqual({ truncated: false, sections: [], pages: [] })
   })
 
   it('refuses a pages folder that is a link, naming no path on the disk', async () => {

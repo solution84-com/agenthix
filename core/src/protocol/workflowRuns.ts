@@ -1,7 +1,7 @@
 /**
  * Workflow runs between hq and the site that holds the place's storage (spec part 2, *From run to result*). hq sends
  * a run instruction on the control channel; the site rechecks the version's hash, runs each step in an executor
- * container of its own, and reports step events and the result as site events. Added in site protocol 1.4.
+ * container of its own, and reports step events and the result as site events.
  *
  * ## The run instruction carries secrets
  *
@@ -38,7 +38,7 @@
  *
  * ## A run aimed at a live preview
  *
- * Since 1.12, `livePreview` names a live preview the run is for: a place's *Start live preview* or *Reload live
+ * `livePreview` names a live preview the run is for: a place's *Start live preview* or *Reload live
  * preview* workflow (live preview spec section 4, *Secrets*; adr-0171). hq sends it to the site the live preview runs
  * on, which must hold that live preview, running, on the instruction's workspace; else it refuses with
  * `live_preview_unavailable`. The steps run as any run's do, in executor containers, on the live preview's copy
@@ -102,15 +102,14 @@ export const WORKFLOW_MASK_FORM_CLASS_BYTES: Readonly<Record<Exclude<WorkflowMas
 
 /**
  * One form of one secret's value: its length in bytes, its HMAC-SHA-256 under `WorkflowMaskingMaterial.key` in hex,
- * and its class. Added in site protocol 1.5: `class`, optional so the addition is not breaking; a form without one is
- * taken as `raw` and looked for everywhere. hq always sends it.
+ * and its class. A form without `class` is taken as `raw` and looked for everywhere; hq always sends it.
  */
 export type WorkflowMaskForm = {
   length: number
   hmac: string
   secretName: string
   class?: WorkflowMaskFormClass
-  /** Added in site protocol 1.5, with `tagSpan`: the form's tag, from 0 below 2^`WORKFLOW_MASK_TAG_BITS`. */
+  /** With `tagSpan`: the form's tag, from 0 below 2^`WORKFLOW_MASK_TAG_BITS`. */
   tag?: number
   /** How many of the form's bytes the tag covers, from its second: at least 1, at most `WORKFLOW_MASK_TAG_SPAN_MAX`. */
   tagSpan?: number
@@ -125,7 +124,7 @@ export type WorkflowMaskingMaterial = {
   /** Made for this run, base64; never reused. */
   key: string
   forms: WorkflowMaskForm[]
-  /** Added in site protocol 1.5: the odd base, below 2^32, every form's tag is hashed under; made for this run. */
+  /** The odd base, below 2^32, every form's tag is hashed under; made for this run. */
   tagBase?: number
 }
 
@@ -152,7 +151,7 @@ export type WorkflowRunInstruction = {
   masking: WorkflowMaskingMaterial
   /** Set when a step names `GITHUB_TOKEN`. */
   github: WorkflowRunGitHub | null
-  /** Added in site protocol 1.12: the live preview the run hands its secrets to (see the module's note). */
+  /** The live preview the run hands its secrets to (see the module's note). */
   livePreview?: WorkflowRunLivePreview
 }
 
@@ -164,7 +163,7 @@ export const LIVE_PREVIEW_SECRETS_DIR = '/run/secrets'
 
 export const WORKFLOW_RUN_REFUSALS = [
   'hash_mismatch', 'invalid_instruction', 'workspace_missing', 'image_missing', 'already_known', 'busy',
-  /** Since 1.12: the run names a live preview this site does not hold running, on that workspace. */
+  /** The run names a live preview this site does not hold running, on that workspace. */
   'live_preview_unavailable',
 ] as const
 export type WorkflowRunRefusal = (typeof WORKFLOW_RUN_REFUSALS)[number]

@@ -35,7 +35,7 @@ describe('the switches hq sends with a request @SC-1775', () => {
     const sent: HQConnectionMessage[] = []
     let seen: unknown = null
     await answerChannelRequest(
-      { version: '1.12', type: 'channel.request', siteId: 's1', requestId: 'r1', payload: { method: 'real', features: { usageBilling: true, nope: true } } } as never,
+      { version: '1.0', type: 'channel.request', siteId: 's1', requestId: 'r1', payload: { method: 'real', features: { usageBilling: true, nope: true } } } as never,
       's1',
       reply => sent.push(reply),
       { real: async () => { seen = currentSwitches(); return 'ok' } },
@@ -48,7 +48,7 @@ describe('the switches hq sends with a request @SC-1775', () => {
     const sent: HQConnectionMessage[] = []
     const handler = vi.fn(async () => 'done')
     await answerChannelRequest(
-      { version: '1.12', type: 'channel.request', siteId: 's1', requestId: 'r1', payload: { method: 'flagged' } } as never,
+      { version: '1.0', type: 'channel.request', siteId: 's1', requestId: 'r1', payload: { method: 'flagged' } } as never,
       's1',
       reply => sent.push(reply),
       { flagged: featureMethod('usageBilling', handler) },

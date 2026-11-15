@@ -1,10 +1,8 @@
 /**
- * The client protocol's deprecated board reads (`getProjectBoards`, `getBoards`, `getAllBoards`, `getBoard`;
- * deprecated since 1.16, they stop working in 3.0), answered from boards as saved views (adr-0176) for the mobile
- * app that still names them. A project's boards are its built-in Task state board, named by the project's own id
- * (deprecatedBoardPlace.ts), and its saved boards. Every deprecated field has its empty value: no `columns`, no
- * Backlog, nothing shown also, no template, no round line; `view` and `viewColumns` say what each board is.
- * Access is the caller's to check; these only read.
+ * The client protocol's board reads (`getProjectBoards`, `getBoards`, `getAllBoards`, `getBoard`), answered from
+ * boards as saved views (adr-0176) for the mobile app. A project's boards are its built-in Task state board, named by
+ * the project's own id, and its saved boards; `view` and `viewColumns` say what each board is. Access is the caller's
+ * to check; these only read.
  */
 import { prisma } from 'wasp/server'
 import type { Prisma } from '@prisma/client'
@@ -22,9 +20,9 @@ import { listBoards, type BoardListEntry } from './boardListService'
 import { readBoard } from './boardViewService'
 import { readBoardViewsAcrossProjects } from './boardViewsAcrossProjects'
 
-export function sprintView(s: { id: string; number: number; name: string | null; startDate: Date; finishDate: Date; finishedAt: Date | null }, now = new Date()): SprintView {
+export function sprintView(s: { id: string; projectId: string; number: number; name: string | null; startDate: Date; finishDate: Date; finishedAt: Date | null }, now = new Date()): SprintView {
   return {
-    id: s.id, number: s.number, name: s.name, label: sprintTitle(s), startDate: s.startDate, finishDate: s.finishDate,
+    id: s.id, projectId: s.projectId, number: s.number, name: s.name, label: sprintTitle(s), startDate: s.startDate, finishDate: s.finishDate,
     finishedAt: s.finishedAt, daysLeft: s.finishedAt ? 0 : daysLeft(s, now),
   }
 }
@@ -32,10 +30,10 @@ export function sprintView(s: { id: string; number: number; name: string | null;
 /** A board has no sprints of its own: every board's `currentSprint` is its project's (adr-0176). */
 async function projectCurrentSprint(projectId: string): Promise<SprintView | null> {
   const s = await prisma.sprint.findFirst({ where: { projectId, finishedAt: null }, orderBy: { number: 'asc' } })
-  return s ? { ...sprintView(s), projectId } : null
+  return s ? sprintView(s) : null
 }
 
-/** The boards a deprecated read lists: the Task state board, by the project's id, and the saved ones. */
+/** The boards a read lists: the Task state board, by the project's id, and the saved ones. */
 function listed(projectId: string, entries: BoardListEntry[]): Array<BoardListEntry & { id: string }> {
   return entries
     .filter(e => e.id !== null || e.kind === 'STATE')
@@ -49,7 +47,7 @@ const workflowKind = (e: { builtIn: boolean }) => (e.builtIn ? 'PROJECT_TASKS' a
 
 function summaryOf(e: BoardListEntry & { id: string }, sprint: SprintView | null): BoardSummary {
   return {
-    id: e.id, name: e.name, kind: workflowKind(e), archivedAt: null, templateId: null, columns: [], backlogCount: 0,
+    id: e.id, name: e.name, kind: workflowKind(e), archivedAt: null,
     view: viewOf(e), viewColumns: e.spread.map(c => ({ key: c.key, name: c.name, colour: c.colour, count: c.count })),
     needsYouCount: e.needsYouCount, currentSprint: sprint,
   }
@@ -68,7 +66,7 @@ export async function readBoardFields(projectId: string): Promise<BoardFields[]>
   ])
   const dates = new Map(rows.map(r => [r.id, r]))
   return listed(projectId, entries).map(e => ({
-    id: e.id, name: e.name, projectId, kind: workflowKind(e), templateId: null, columns: [], view: viewOf(e),
+    id: e.id, name: e.name, projectId, kind: workflowKind(e), view: viewOf(e),
     archivedAt: null,
     createdAt: dates.get(e.id)?.createdAt ?? project.createdAt, updatedAt: dates.get(e.id)?.updatedAt ?? project.createdAt,
   }))
@@ -82,7 +80,7 @@ export async function readAllBoards(userId: string): Promise<BoardAcrossProjects
 
 const CARD_INCLUDE = { assignedAgent: { select: { id: true, name: true, handle: true } }, ...TASK_KIND_INCLUDE } satisfies Prisma.TaskInclude
 
-/** A task as a deprecated board shows it: the row, its agent, why its run waits, its key, and whether it needs a person. */
+/** A task as a board shows it: the row, its agent, why its run waits, its key, and whether it needs a person. */
 async function taskCards(where: Prisma.TaskWhereInput, projectKey: string): Promise<TaskCard[]> {
   const rows = await prisma.task.findMany({ where, include: CARD_INCLUDE, orderBy: RANK_ORDER })
   const shown = await withLatestResults(await withRunWaitNotes(await withDisplayReasons(rows)))
@@ -103,11 +101,11 @@ export async function readBoardView(boardId: string, projectId: string): Promise
   const shownIds = read.columns.flatMap(c => c.cards.map(card => card.id))
   const { spec } = read.board
   return {
-    id: boardId, name: read.board.name, kind: builtIn ? 'PROJECT_TASKS' : 'WORKFLOW', archivedAt: null, templateId: null,
-    projectId, project: taskProjectRef(project), projectTasksBoardId: projectId, columns: [],
+    id: boardId, name: read.board.name, kind: builtIn ? 'PROJECT_TASKS' : 'WORKFLOW', archivedAt: null,
+    projectId, project: taskProjectRef(project),
     view: { kind: spec.kind, typeId: spec.typeId, fieldId: spec.fieldId, filter: spec.filter },
     viewColumns: read.columns.map(c => ({ key: c.key, name: c.name, colour: c.colour, count: c.count })),
     tasks: await taskCards({ id: { in: shownIds }, projectId }, project.key),
-    backlog: [], showAlso: [], currentSprint: sprint, roundLine: null,
+    currentSprint: sprint,
   }
 }

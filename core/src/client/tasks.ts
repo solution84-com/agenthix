@@ -7,18 +7,11 @@
 import type { TaskRunState } from '../models/task.js'
 import type { TaskState, TaskTypeRef, TypeColumnRef } from '../tasks/taskModel.js'
 import type { ExecutionState } from '../tasks/executionState.js'
-import type { BoardWorkflowKind } from '../models/board.js'
-import type { BoardColumn } from './boards.js'
 import type { ProjectFields } from './projects.js'
 import type { RunWaitNote } from './runs.js'
 
 export type { TaskRunState } from '../models/task.js'
 
-/**
- * A task's state on the board it was on: To do in the Backlog.
- * @deprecated since 1.16; stops working in 3.0. Use `TaskState` instead.
- */
-export type BoardTaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE'
 export type TaskPriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH'
 export type CommentAuthorType = 'AGENT' | 'USER'
 
@@ -35,38 +28,26 @@ export type TaskFields = {
   description: string | null
   projectId: string
   number: number
-  /**
-   * A task is on no board (adr-0176): hq sends its project's id, which names the project's Task state board.
-   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
-   */
-  boardId: string
-  /**
-   * The old default column its state stands for (`todo`, `in_progress`, `done`); null in Backlog.
-   * @deprecated since 1.16; stops working in 3.0. Use `columnId` instead.
-   */
-  column: string | null
-  /** Its type (since 1.16); absent from an hq before it. */
+  /** Its type; absent while it has none. */
   typeId?: string
-  /** One of its type's columns (since 1.16). */
+  /** One of its type's columns; absent while it has none. */
   columnId?: string
-  /** Its task state, the state of its column, Backlog first (since 1.16). */
-  state?: TaskState
-  /** Its place in the project's one order (since 1.16): compared as text, never shown. */
+  /** Its task state, the state of its column, Backlog first. */
+  state: TaskState
+  /** Its place in the project's one order: compared as text, never shown. */
   rank?: string
   sprintId: string | null
-  /** The model its runs use, when one was picked for the task (since 1.15); null or absent: the agent's own. */
+  /** The model its runs use, when one was picked for the task; null or absent: the agent's own. */
   modelChoice?: string | null
-  /** @deprecated since 1.16; stops working in 3.0. Use `state` instead. */
-  status: BoardTaskStatus
   assignedAgentId: string | null
   priority: TaskPriorityLevel
   labels: string[]
   archived: boolean
   doneAt: Date | null
-  /** @deprecated since 1.16; stops working in 3.0. Use `executionState` instead. */
+  /** Where its latest run stands, in more detail than `executionState`: queued, running, or what it waits for. */
   runState: TaskRunState
-  /** What an agent is doing with it now, set by the system from its latest run (since 1.16). */
-  executionState?: ExecutionState
+  /** What an agent is doing with it now, set by the system from its latest run. */
+  executionState: ExecutionState
   runStateReason: string | null
   runId: string | null
   /** Its latest run's result, as that run stated it: null when that run stated none, or it has had no run. */
@@ -83,44 +64,22 @@ export type TaskFields = {
   scheduleNextDueAt: Date | null
   scheduleSetByUserId: string | null
   scheduleSetByAgentId: string | null
-  /**
-   * A routine makes no task (adr-0177).
-   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
-   */
-  routineId: string | null
-  /**
-   * A routine makes no task (adr-0177).
-   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
-   */
-  roundAt: Date | null
   planStart: Date | null
   planFinish: Date | null
-  /**
-   * An epic is a task of type Epic.
-   * @deprecated since 1.16; stops working in 3.0. Use `typeId` instead.
-   */
-  isEpic: boolean
   epicId: string | null
   milestoneId: string | null
   createdAt: Date
   updatedAt: Date
 }
 
-/**
- * The board a listed task is on, with its columns.
- * @deprecated since 1.16; stops working in 3.0. Use `TaskTypeRef` instead.
- */
-export type TaskBoardRef = { id: string; name: string; kind: BoardWorkflowKind; columns: BoardColumn[] }
 export type TaskProjectRef = { id: string; name: string; key: string }
 
-/** A task in a project's list (`getTasks`): its agent, its board and why its run waits. */
+/** A task in a project's list (`getTasks`): its agent, its type and column, and why its run waits. */
 export type ProjectTaskListItem = TaskFields & {
   assignedAgent: AgentRef | null
-  /** @deprecated since 1.16; stops working in 3.0. Use `type` instead. */
-  board: TaskBoardRef
-  /** Its type (since 1.16). */
+  /** Its type; absent while it has none. */
   type?: TaskTypeRef
-  /** Its column, by name: a screen shows the column only, never the state beside it (since 1.16). */
+  /** Its column, by name: a screen shows the column only, never the state beside it. */
   typeColumn?: TypeColumnRef
   runWait: RunWaitNote | null
 }
@@ -140,9 +99,9 @@ export type TaskCommentFields = {
   userId: string | null
   runId: string | null
   content: string
-  /** The top-level comment this one replies to (since 1.14); null or absent on a top-level comment. Replies go one level deep. */
+  /** The top-level comment this one replies to; null or absent on a top-level comment. Replies go one level deep. */
   parentId?: string | null
-  /** Whether it was saved from the task's conversation (since 1.15); absent or false: written in the comments. */
+  /** Whether it was saved from the task's conversation; absent or false: written in the comments. */
   savedFromConversation?: boolean
   createdAt: Date
 }
@@ -157,21 +116,16 @@ export type TaskCommentListItem = TaskCommentView & { userName: string | null }
 
 export type GetTasksArgs = {
   projectId: string
-  /**
-   * A task is on no board.
-   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
-   */
-  boardId?: string
-  /** @deprecated since 1.16; stops working in 3.0. Use `state` instead. */
-  status?: BoardTaskStatus
-  /** Only tasks in this task state (since 1.16). */
+  /** Only tasks in this task state. */
   state?: TaskState
   includeArchived?: boolean
 }
 export type TaskIdArgs = { taskId: string }
 export type GetTaskByKeyArgs = { taskKey: string }
-/** `parentId` makes it a reply to that top-level comment of the same task. */
-/** `savedFromConversation` marks a comment saved from the task's conversation (since 1.15). */
+/**
+ * `parentId` makes it a reply to that top-level comment of the same task; `savedFromConversation` marks a comment
+ * saved from the task's conversation.
+ */
 export type AddTaskCommentArgs = { taskId: string; content: string; parentId?: string | null; savedFromConversation?: boolean }
 
 /** An optional field sent as null is as one left out. */
@@ -179,22 +133,11 @@ export type CreateTaskArgs = {
   projectId: string
   title: string
   description?: string | null
-  /**
-   * A task is on no board (adr-0176): hq reads nothing from it.
-   * @deprecated since 1.16; stops working in 3.0. Use `typeId` instead.
-   */
-  boardId?: string | null
-  /**
-   * A task state, by the old column names (`todo`, `in_progress`, `done`) or the state; any other: Backlog. Not read
-   * when `typeId`, `columnId` or `state` is given.
-   * @deprecated since 1.16; stops working in 3.0. Use `columnId` instead.
-   */
-  column?: string | null
-  /** One of the project's task types (since 1.16); omitted: Task. */
+  /** One of the project's task types; omitted: Task. */
   typeId?: string | null
-  /** One of the type's columns (since 1.16); omitted: the type's default Backlog column, unless `state` is given. */
+  /** One of the type's columns; omitted: the type's default Backlog column, unless `state` is given. */
   columnId?: string | null
-  /** A task state, landing on the type's default column for it (since 1.16). */
+  /** A task state, landing on the type's default column for it. */
   state?: TaskState | null
   assignedAgentId?: string | null
   /** Any case: "high" and "HIGH" are one. */
@@ -202,28 +145,8 @@ export type CreateTaskArgs = {
   labels?: string[]
 }
 
-/** `columnId` names one of the task's type's columns; the deprecated `column` a task state, null for Backlog. */
-export type MoveTaskToColumnArgs = {
-  taskId: string
-  /**
-   * A task state, by the old column names (`todo`, `in_progress`, `done`) or the state; null: Backlog. Any other is
-   * refused.
-   * @deprecated since 1.16; stops working in 3.0. Use `columnId` instead.
-   */
-  column: string | null
-  /**
-   * A task is on no board.
-   * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
-   */
-  boardId?: string
-  /** One of the task's type's columns (since 1.16); when given, `column` is not read. */
-  columnId?: string
-}
-/**
- * A task is on no board (adr-0176): the move changes nothing, and answers the task; another project's board is refused.
- * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
- */
-export type MoveTaskToBoardArgs = { taskId: string; boardId: string }
+/** `columnId` names one of the task's type's columns. */
+export type MoveTaskToColumnArgs = { taskId: string; columnId: string }
 
 /** How many runs a Stop cancelled on the task's site. */
 export type StopResult = { cancelled: number }

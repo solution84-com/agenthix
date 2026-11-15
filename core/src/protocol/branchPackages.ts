@@ -1,6 +1,6 @@
 /**
  * Install scripts in a branch's copy with no live preview open (adr-0170), as hq and the site say them on the control
- * channel, since site protocol 1.12. Every code-work run installs with scripts off and is offered `install_packages`,
+ * channel. Every code-work run installs with scripts off and is offered `install_packages`,
  * which runs the scripts of packages that pass the rule in the run's own container. A package the rule blocks is asked
  * about only when the agent finds no other: the site says `branch.packageBlocked`, hq puts a card in the branch's task
  * thread or conversation for a Member or Admin, and their yes is `branch.packageUse`. With a live preview open, the

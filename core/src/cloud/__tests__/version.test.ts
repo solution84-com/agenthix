@@ -4,8 +4,8 @@ import {
 } from '../version.js'
 
 describe('the Cloud protocol version @SC-1131', () => {
-  it('is 1.1, in its own header, refused with 426', () => {
-    expect(CLOUD_PROTOCOL_VERSION).toBe('1.1')
+  it('is 1.0, in its own header, refused with 426', () => {
+    expect(CLOUD_PROTOCOL_VERSION).toBe('1.0')
     expect(CLOUD_PROTOCOL_VERSION_HEADER).toBe('X-Cloud-Protocol-Version')
     expect(CLOUD_UPGRADE_REQUIRED_STATUS).toBe(426)
   })
@@ -25,7 +25,7 @@ describe('the Cloud protocol version @SC-1131', () => {
     expect(checkCloudAnswerProtocol('  ')).toMatchObject({ ok: true, peer: 'same' })
     expect(checkCloudAnswerProtocol('2.0')).toMatchObject({ ok: true, peer: 'ahead' })
     expect(checkCloudAnswerProtocol('3.1')).toEqual({
-      ok: false, reason: 'too_far_apart', own: { major: 1, minor: 1 }, peer: { major: 3, minor: 1 }, upgrade: 'own',
+      ok: false, reason: 'too_far_apart', own: { major: 1, minor: 0 }, peer: { major: 3, minor: 1 }, upgrade: 'own',
     })
     expect(checkCloudAnswerProtocol('v1')).toMatchObject({ ok: false, reason: 'malformed', presented: 'v1' })
   })

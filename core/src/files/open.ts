@@ -23,8 +23,8 @@ export type FileOpenAnswer =
   /** The site's relay isn't answering: "Files on {siteName} can't be opened right now: {relayName} isn't answering." */
   | { state: 'relay-unavailable'; siteName: string; relayName: string }
   /**
-   * `upgrade`: the site answers, but is too old to read a past version of a file (a workspace's file at a commit,
-   * site protocol 1.18), so it must be upgraded first. Absent: the site isn't answering.
+   * `upgrade`: the site answers, but is too old for what was asked, so it must be upgraded first. Absent: the site
+   * isn't answering.
    */
   | { state: 'site-unavailable'; upgrade?: { siteName: string } }
   /** Not there, not a file, or not the person's to open: the answer does not say which. */

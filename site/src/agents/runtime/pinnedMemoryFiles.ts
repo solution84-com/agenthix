@@ -1,9 +1,8 @@
 /**
  * A run's memory as a file (memory and knowledge spec, Workers and helpers; ADR-0188). hq sends what memory found for
- * the run at its start (`memory`, since site protocol 1.19), or an older hq the pinned items the run may read
- * (`pinnedMemory`, deprecated); the site writes them at every run start into the `pinned-memory/` folder of the runner's run staging
- * (runStaging.ts, adr-0173), which the container mounts read-only outside the harness home, so the run, and the
- * helpers that share its runner, can read them and cannot change them. Memory itself stays in hq: a change goes
+ * the run at its start (`memory`); the site writes it at every run start into the `pinned-memory/` folder of the
+ * runner's run staging (runStaging.ts, adr-0173), which the container mounts read-only outside the harness home, so
+ * the run, and the helpers that share its runner, can read it and cannot change it. Memory itself stays in hq: a change goes
  * through `remember`.
  *
  * One file for the session, `pinned-memory/<session id>/pinned.md`, replaced whole each start, removed when the run
@@ -13,7 +12,7 @@
  * site writes none of `memory` there whatever it is sent.
  */
 import path from 'node:path'
-import type { CapabilityRunner, PinnedMemoryItem, RunMemory } from '@agenthix/core'
+import type { CapabilityRunner, RunMemory } from '@agenthix/core'
 import { Logger } from '../../server/utils/logger'
 import { RUN_STAGING_PINNED_MEMORY } from './runStagingFolders'
 import { closeDir, namesIn, openFolderIn, removeEntryIn, withRunStaging, writeFileAtomicInDir, type Dir } from './homeFolder'
@@ -23,23 +22,6 @@ const logger = new Logger('PinnedMemory')
 const SESSION_ID = /^[A-Za-z0-9_-]{1,128}$/
 const SESSION_FOLDER = /^([A-Za-z0-9_-]{1,128})$/
 export const PINNED_MEMORY_FILENAME = 'pinned.md'
-
-const SCOPE_LABEL: Record<PinnedMemoryItem['scope'], string> = {
-  person: 'about the person, for every agent',
-  agent_person: 'about the person, for you',
-  agent_place: 'about this place, for you',
-}
-
-export function pinnedMemoryText(items: PinnedMemoryItem[]): string {
-  const entries = items.map(item =>
-    `## ${item.title}\n\n_${SCOPE_LABEL[item.scope]} · key \`${item.key}\`_\n\n${item.body.trim()}`)
-  return (
-    '# Pinned memory\n\n' +
-    'Read-only. These items are kept in HQ and refreshed each time a run starts. `recall` finds the rest; ' +
-    '`remember` and `forget` change them.\n\n' +
-    entries.join('\n\n')
-  ) + '\n'
-}
 
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim()
 
@@ -100,22 +82,20 @@ function folderName(sessionId: string): string {
 }
 
 /**
- * Writes the run's memory — `memory` when hq sent it, else an older hq's pinned items — or removes what an earlier
- * start wrote when there is none, and counts the run
+ * Writes the run's memory, or removes what an earlier start wrote when there is none, and counts the run
  * into the run staging until `releasePinnedMemory`, which every call must be matched by. Returns the file's path as the
  * run sees it, or null when there is no file. Never throws: a run without its pinned memory still has `recall`.
  */
 export async function writePinnedMemory(
   runStaging: { serverDir: string; visibleDir: string; shared: boolean },
   sessionId: string,
-  pinned: PinnedMemoryItem[] | undefined,
-  memory?: RunMemory,
+  memory: RunMemory | undefined,
 ): Promise<string | null> {
   // Counted before anything is awaited, so a start for the same runner never takes this run's folder for one left behind.
   enter(runStaging.serverDir, sessionId)
   try {
     const name = folderName(sessionId)
-    const text = memoryFileText(runStaging.shared, pinned, memory)
+    const text = memoryFileText(runStaging.shared, memory)
     const none = text === null
     const written = await withRunStaging(runStaging.serverDir, RUN_STAGING_PINNED_MEMORY, async staging => {
       await clearLeftBehind(runStaging.serverDir, staging)
@@ -144,11 +124,10 @@ export async function writePinnedMemory(
   }
 }
 
-/** The file's text, or null for none. A shared home gets nothing of a person's: none of `memory`, and of the old items only a place's. */
-function memoryFileText(shared: boolean, pinned: PinnedMemoryItem[] | undefined, memory: RunMemory | undefined): string | null {
-  if (memory) return shared || memory.items.length + memory.hinted.length === 0 ? null : runMemoryText(memory)
-  const items = shared ? pinned?.filter(item => item.scope === 'agent_place') : pinned
-  return items && items.length > 0 ? pinnedMemoryText(items) : null
+/** The file's text, or null for none. A shared home gets nothing of a person's, so none of `memory`. */
+function memoryFileText(shared: boolean, memory: RunMemory | undefined): string | null {
+  if (!memory || shared || memory.items.length + memory.hinted.length === 0) return null
+  return runMemoryText(memory)
 }
 
 /** At the run's end: its folder goes once no run of its session is left for the runner. Never throws. */

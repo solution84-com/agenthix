@@ -3,10 +3,9 @@
  * (`file.about`) name a file in.
  *
  * - `place`: a file in a place's storage — an owner's `files/`, a workspace or a task (`LocationRef`) — by its path
- *   inside it. Since site protocol 1.18, a file of a workspace with Git may name a `commit` instead: the file as that
+ *   inside it. A file of a workspace with Git may name a `commit` instead: the file as that
  *   commit's tree holds it, by its path in the repository (`isRepoPath`), read from the workspace's own repository.
- * - `artefact`: one item an agent made, by its file name directly in an owner's `artefacts/` (as
- *   `location.readArtefact` names it).
+ * - `artefact`: one item an agent made, by its file name directly in an owner's `artefacts/`.
  * - `knowledge`: a knowledge page, by its path inside an owner's pages, or one of its kept versions (as
  *   `location.readKnowledge` names it). The organisation's own pages are an owner here.
  * - `upload`: a file hq keeps itself, by its upload path (`isUploadPath`).

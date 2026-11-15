@@ -1,6 +1,6 @@
 /**
  * Agenthix Cloud as a provider of models and voice (models from one place, part 6): the calls hq and Cloud build to,
- * added to the Cloud protocol at 1.1, and the checks each side runs on what the other sends. No key is ever handed to
+ * and the checks each side runs on what the other sends. No key is ever handed to
  * the organisation: every call carries a short-lived access token hq signed for with its own key (./connection.ts),
  * and the site relay asks hq for that token for a container's calls.
  *

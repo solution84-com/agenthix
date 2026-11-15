@@ -14,7 +14,6 @@ import {
   type LocationRef, type SharedFile, type ShareConversationFileArgs,
 } from '@agenthix/core'
 import { SiteUnreachableError } from '../../storage/workspaceStore'
-import { SiteTooOldToShare } from './onSite'
 
 const NOTHING = 'Nothing was changed.'
 const MAX_MB = SHARED_FILE_MAX_BYTES / (1024 * 1024)
@@ -46,9 +45,6 @@ function bytesOf(dataUrl: unknown): Buffer {
 function failed(err: unknown, shown: string): HttpError {
   if (err instanceof HttpError) return err
   if (err instanceof SiteUnreachableError) return new HttpError(503, `${err.message} ${shown} wasn't added. ${NOTHING}`)
-  if (err instanceof SiteTooOldToShare) {
-    return new HttpError(409, `The place's Execution Site is too old to keep a shared file: an organisation admin can update it. ${NOTHING}`)
-  }
   if (err instanceof LocationFileError) {
     const why = err.code === 'refused' || err.code === 'not_a_directory' || err.code === 'outside'
       ? "Something in the place's files stands where Shared in conversations should be, so HQ left it alone. Look at the place's files."

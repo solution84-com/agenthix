@@ -91,7 +91,7 @@ export type VoiceStartPayload = { conversationId: string }
 export type VoiceEndPayload = { conversationId: string; failed?: 'speech-to-text' }
 /**
  * `heardThrough`: the index of the last sentence whose audio the person heard to its end; -1 for none.
- * `heardWords`: how many words of the sentence after it were heard before the audio stopped (since 1.20).
+ * `heardWords`: how many words of the sentence after it were heard before the audio stopped.
  */
 export type VoiceInterruptPayload = { conversationId: string; turnId: string; heardThrough: number; heardWords?: number }
 export type VoiceActivityPayload = { conversationId: string }
@@ -121,7 +121,7 @@ export type VoiceSentenceEvent = {
 }
 export type VoiceAudioEvent = { conversationId: string; turnId: string; index: number; audio: ArrayBuffer }
 export type VoiceTurnSpokenEvent = { conversationId: string; turnId: string; sentences: number }
-/** The agent judged the person has not finished: nothing will be said for this turn, and no reply will come (since 1.19). */
+/** The agent judged the person has not finished: nothing will be said for this turn, and no reply will come. */
 export type VoiceTurnHeldEvent = { conversationId: string; turnId: string }
 /**
  * `use`: a filler phrase (the default), an active listening phrase, or an encouragement phrase. `tier`: for a filler

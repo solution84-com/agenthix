@@ -45,7 +45,7 @@ export const STREAM_CREDIT_STEP_BYTES = 256 * 1024
 export const MAX_STREAM_WINDOW_BYTES = 2 ** 31 - 1
 
 /**
- * Since site protocol 1.12, a stream may be opened `duplex`: the opener's own bytes are flow-controlled too, for a
+ * A stream may be opened `duplex`: the opener's own bytes are flow-controlled too, for a
  * stream whose opener sends as much as it reads (a live app's request bodies and WebSocket messages, a bundle's write).
  * Each end then starts able to send `STREAM_INITIAL_WINDOW_BYTES` toward the other, and each grants more with `credit`
  * as its reader takes what arrived. The server holds what the opener sends before it accepts, which the window bounds.

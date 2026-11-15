@@ -1,9 +1,8 @@
 /**
- * The skills a dispatch names beside its packages (core's `installedSkills`, `fileSkills`, `personSkills`, site
- * protocol 1.9 and 1.10), read from the run's context. The context schema passes them through unchecked, so each
+ * The skills a dispatch names beside its packages (core's `installedSkills`, `fileSkills`, `personSkills`), read
+ * from the run's context. The context schema passes them through unchecked, so each
  * entry is checked here for its shape and bounds; one that does not fit is left out. Whether its content may be
- * staged is decided at staging (skillSources.ts). An hq before 1.9 names none: the run then stages the platform's
- * skills only.
+ * staged is decided at staging (skillSources.ts). A dispatch that names none stages the platform's skills only.
  */
 import { z } from 'zod'
 import { PACKAGE_DIGEST_PATTERN, PACKAGE_KEY_PATTERN, PACKAGE_KINDS, type RunContextPayload } from '@agenthix/core'

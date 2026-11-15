@@ -4,7 +4,7 @@
  * see dispatchHandler.ts's own header for the validation-boundary rationale).
  */
 import { z } from 'zod'
-import { APPROVALS, CREDENTIAL_PROVIDERS, SESSION_TYPES, WORKSPACE_OWNER_TYPES, PACKAGE_KINDS, PACKAGE_KEY_PATTERN, PACKAGE_DIGEST_PATTERN, RUN_TIME_LIMIT_MINUTES_BOUNDS, RUN_TURN_LIMIT_BOUNDS, TASK_COMMENTS_FOR_RUN_MAX, TASK_COMMENT_TEXT_MAX } from '@agenthix/core'
+import { APPROVALS, SESSION_TYPES, WORKSPACE_OWNER_TYPES, PACKAGE_KINDS, PACKAGE_KEY_PATTERN, PACKAGE_DIGEST_PATTERN, RUN_TIME_LIMIT_MINUTES_BOUNDS, RUN_TURN_LIMIT_BOUNDS, TASK_COMMENTS_FOR_RUN_MAX, TASK_COMMENT_TEXT_MAX } from '@agenthix/core'
 import { BRANCH_LIST_MAX, isCopyId, isGitBranchName } from '@agenthix/core'
 import type { AiProviderVendor, RunCancelReason } from '@agenthix/core'
 import { gitPerson, workspaceRef } from '../branches/branchSchemas'
@@ -18,20 +18,6 @@ export const packageRefParams = z
 
 export const runPackagesParams = z
   .object({ agent: packageRefParams, org: packageRefParams.nullable(), platform: packageRefParams })
-
-const apiKeyCredentialParams = z.object({
-  kind: z.literal('apiKey'),
-  provider: z.enum(CREDENTIAL_PROVIDERS),
-  apiKey: z.string(),
-  baseUrl: z.string().min(1).optional(),
-})
-
-// `provider` is required. A keyless OpenAI-compatible endpoint
-// carries an empty key and must name its base URL; every other provider has a
-// key and no base URL.
-const fitsProvider = (c: { kind: string; provider: string; apiKey?: string; baseUrl?: string }) =>
-  c.kind !== 'apiKey' || (c.provider === 'openai_compatible' ? !!c.baseUrl : !!c.apiKey && !c.baseUrl)
-const FITS_PROVIDER = { message: 'credential does not fit its provider' }
 
 const providerId = z.string().min(1).max(100)
 const API_KEY_VENDORS = ['anthropic', 'openai', 'google', 'openrouter', 'openai_compatible', 'assemblyai', 'inworld'] as const satisfies readonly Exclude<AiProviderVendor, 'cloud'>[]
@@ -67,8 +53,7 @@ const providerDescriptorParams = z.discriminatedUnion('kind', [
   { message: 'provider descriptor does not fit its vendor' },
 )
 
-// What the run is given to reach its models (core's RunModelAccess). Read in
-// place of `credential` and `fallbackCredentials` when present (runAccess.ts).
+// What the run is given to reach its models (core's RunModelAccess, runAccess.ts).
 const modelAccessParams = z.object({
   model: z.object({ providerId, model: z.string().max(300) }),
   provider: providerDescriptorParams,
@@ -124,34 +109,7 @@ export const runContextParams = z
       ownerSlugs: z.record(z.string(), z.string()),
     }),
     riskRules: z.unknown(),
-    // Spec §6.3: the one model credential the run may use, decided by hq from
-    // the boundary the run acts for. A DISCRIMINATED UNION, not a bare string:
-    // the site branches on `kind` to decide whether the credential becomes an
-    // environment variable or an OAuth document, so a payload that carries an
-    // unknown kind, or an apiKey shape with an oauthJson inside it, is refused
-    // at the boundary rather than silently taking one branch. Nullable — hq
-    // sends null when nothing is configured, and the run fails naming the
-    // boundary (runLaunch.ts) rather than being refused here.
-    credential: z
-      .discriminatedUnion('kind', [
-        apiKeyCredentialParams,
-        z.object({
-          kind: z.literal('subscription'),
-          provider: z.literal('anthropic'),
-          oauthJson: z.string().min(1),
-          // The grant a refresh is reported against, and the login the
-          // document came from (core's SubscriptionRunCredential).
-          grantId: z.string().min(1).max(100),
-          loginId: z.string().min(1).max(100),
-        }),
-      ])
-      .refine(fitsProvider, FITS_PROVIDER)
-      .nullable(),
-    // API keys for the turn's other providers, one per provider of a fallback
-    // model (spec §6); absent when there are none. The model relay picks a
-    // request's key from these and `credential` by provider.
-    fallbackCredentials: z.array(apiKeyCredentialParams.refine(fitsProvider, FITS_PROVIDER)).optional(),
-    // The run's providers, from site protocol 1.1 (core's RunModelAccess).
+    // The run's providers (core's RunModelAccess); absent when hq found none, and `credentialProblem` says why.
     modelAccess: modelAccessParams.optional(),
     // Why hq found nothing the run may use; the run fails with this text.
     credentialProblem: z.string().min(1).max(2000).optional(),
@@ -161,7 +119,7 @@ export const runContextParams = z
     packages: runPackagesParams,
     // The person the run is on behalf of; absent when there is none or they set no timezone.
     person: z.object({ timezone: z.string().min(1).max(64) }).optional(),
-    // Since 1.19, what memory found for this run at its start; the site writes it as a file in the run's staging.
+    // What memory found for this run at its start; the site writes it as a file in the run's staging.
     memory: z
       .object({
         items: z.array(z.object({
@@ -173,17 +131,7 @@ export const runContextParams = z
         hinted: z.array(z.object({ key: z.string().min(1).max(200), title: z.string().min(1).max(300) })).max(50),
       })
       .optional(),
-    // Deprecated since 1.19 (`memory` replaces it): an older hq's pinned memory, written as the run's file.
-    pinnedMemory: z
-      .array(z.object({
-        key: z.string().min(1).max(200),
-        scope: z.enum(['person', 'agent_person', 'agent_place']),
-        title: z.string().min(1).max(300),
-        body: z.string().max(2000),
-      }))
-      .max(200)
-      .optional(),
-    // Since 1.12, a run on a code workspace: its branch's copy is its working folder (core's RunCodeWork). Checked
+    // A run on a code workspace: its branch's copy is its working folder (core's RunCodeWork). Checked
     // again against the site's own record of the copy when the run starts (`codeWorkRun.ts`).
     codeWork: z
       .object({

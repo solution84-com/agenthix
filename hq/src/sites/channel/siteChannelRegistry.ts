@@ -28,13 +28,6 @@ export interface SiteConnection {
 
 const OWN_PROTOCOL = parseProtocolVersion(SITE_PROTOCOL_VERSION)!
 
-/** `features` on a request came in site protocol 1.12; a site speaking less is never sent it. */
-const FIRST_WITH_FEATURES = { major: 1, minor: 12 }
-
-export function speaksFeatures(v: ProtocolVersion): boolean {
-  return v.major > FIRST_WITH_FEATURES.major || (v.major === FIRST_WITH_FEATURES.major && v.minor >= FIRST_WITH_FEATURES.minor)
-}
-
 /**
  * Where the organisation's switches come from: the ones read in the last few seconds, at once, else a read. A site
  * applies them with the same rule (adr-0172), so every request carries them.
@@ -160,8 +153,8 @@ export class SiteChannelRegistry {
       throw new ChannelRequestFailed(`Execution Site ${siteId} is not connected`, 'offline')
     }
     // Sent at once when the switches are fresh; otherwise read first, and the connection looked up again after.
-    let features = speaksFeatures(conn.protocol) ? this.switches.fresh() : null
-    if (speaksFeatures(conn.protocol) && !features) {
+    let features = this.switches.fresh()
+    if (!features) {
       features = await this.switches.read()
       conn = this.connections.get(siteId)
       if (!conn) throw new ChannelRequestFailed(`Execution Site ${siteId} is not connected`, 'offline')
@@ -173,7 +166,7 @@ export class SiteChannelRegistry {
       siteId,
       requestId,
       // The method and its params are correlated by `M`, which TypeScript does not carry into the union.
-      payload: { method, params, ...(features && speaksFeatures(conn.protocol) ? { features } : {}) } as ChannelRequestPayload,
+      payload: { method, params, features } as ChannelRequestPayload,
     }
     conn.ws.send(JSON.stringify(msg))
     return (await promise) as SiteMethodResult<M>

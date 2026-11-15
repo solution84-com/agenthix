@@ -46,9 +46,9 @@ export type MainVersionAtView = { number: number; commit: string; latest: boolea
 
 /**
  * One of main's versions' own changes: `base` is the version before it (the empty tree for the first), `head` the
- * version. Null when its site cannot say.
+ * version.
  */
-export type MainVersionChangesView = { base: string; head: string; files: BranchFileChange[]; overflow: boolean } | null
+export type MainVersionChangesView = { base: string; head: string; files: BranchFileChange[]; overflow: boolean }
 
 /** `baseVersion`: the version of main the changes are compared with, by number; null when it is none of main's. */
 export type BranchChangesView = { base: string; head: string; files: BranchFileChange[]; overflow: boolean; baseVersion: number | null }

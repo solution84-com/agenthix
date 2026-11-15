@@ -3,12 +3,6 @@
  * screens see it, the limits, the probe's tiers, and the memory screen's arguments. Client-safe; `type` aliases only.
  */
 
-/**
- * The three scopes before ADR-0188, as the memory screen's address and an old conversation's "Remembered" line may
- * still name them. A memory's scope is now its person, optional agent and optional place.
- * @deprecated Read only from old addresses and stored lines; nothing new is written with it.
- */
-export type MemoryScopeValue = 'PERSON' | 'AGENT_PERSON' | 'AGENT_PLACE'
 /** A Fact is something true about the person; a Rule, how they want things done. */
 export type MemoryItemKindValue = 'FACT' | 'RULE'
 export type MemoryOutcomeKindValue = 'INCLUDED' | 'HINTED' | 'RECALLED' | 'USED' | 'UNUSED' | 'MISSED'
@@ -48,7 +42,7 @@ export type MemoryItemView = {
   savedBy: { id: string; name: string } | null
   /** The place it was saved in; null once that place is gone. */
   savedIn: MemoryPlaceView | null
-  /** The conversation it was saved in; null for a run's, or once that conversation is deleted. Since client protocol 1.23. */
+  /** The conversation it was saved in; null for a run's, or once that conversation is deleted. */
   savedInConversationId: string | null
   title: string
   body: string
@@ -60,20 +54,6 @@ export type MemoryItemView = {
   lastRecalledAt: string | null
   createdAt: string
   updatedAt: string
-  /** @deprecated since client protocol 1.23: read `agent`. */
-  agentId: string | null
-  /** @deprecated since client protocol 1.23: read `place`. */
-  placeType: 'user' | 'project' | null
-  /** @deprecated since client protocol 1.23: read `place`. */
-  placeId: string | null
-  /** @deprecated since client protocol 1.23: `AGENT_PERSON` when `agent` is set, else `PERSON`; read `agent` and `place`. */
-  scope: MemoryScopeValue
-  /** @deprecated since client protocol 1.23: the two badges' words, "Kernel, Shop"; read `agent` and `place`. */
-  scopeLabel: string
-  /** @deprecated since client protocol 1.23: always false, nothing is pinned (ADR-0188). */
-  pinned: boolean
-  /** @deprecated since client protocol 1.23: read `savedBy`. */
-  writtenBy: string | null
 }
 
 /**
@@ -91,8 +71,6 @@ export type GetMemoryArgs = {
   /** Words that must each be in the title, the body or a tag, in any case. */
   words?: string
   includeArchived?: boolean
-  /** @deprecated since client protocol 1.23: ignored; the list holds every scope, narrowed by `agentId` and `place`. */
-  scope?: MemoryScopeValue
 }
 
 /** What the memory screen's menus offer: every agent, place and tag the person's memories name, with current names. */
@@ -101,17 +79,7 @@ export type MemoryChoices = {
   places: MemoryPlaceView[]
   tags: string[]
 }
-/** @deprecated A person no longer adds or edits a memory (ADR-0188); the action refuses. */
-export type SaveMemoryItemArgs = {
-  id?: string
-  title: string
-  body: string
-  kind: MemoryItemKindValue
-  tags?: string[]
-}
 export type MemoryItemIdArgs = { id: string }
-/** @deprecated Nothing is pinned any more (ADR-0188); the action refuses. */
-export type SetMemoryPinnedArgs = { id: string; pinned: boolean }
 /** A memory's scope, from its two switches: its saving agent or every agent, its saved-in place or everywhere. */
 export type MemoryScopeChoice = { agent: 'saved' | 'every'; place: 'saved' | 'everywhere' }
 

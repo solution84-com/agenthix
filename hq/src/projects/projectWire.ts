@@ -8,7 +8,7 @@ import type {
   ProjectListItem, ProjectRole, ProjectSiteShown, ProjectTask,
 } from '@agenthix/core'
 import { parseBoardFilter } from '@agenthix/core'
-import { agentRef, statusOfState, taskFields, type TaskWithKind } from './taskWire'
+import { agentRef, taskFields, type TaskWithKind } from './taskWire'
 
 export function projectFields(p: Project): ProjectFields {
   return {
@@ -20,11 +20,11 @@ export function projectFields(p: Project): ProjectFields {
   }
 }
 
-/** A saved board: what it is a view of, and the deprecated fields' empty values (deprecatedBoardReads.ts). */
+/** A saved board: what it is a view of (boardReads.ts). */
 export function boardFields(b: Board): BoardFields {
   return {
-    id: b.id, name: b.name, projectId: b.projectId, kind: 'WORKFLOW', templateId: null,
-    columns: [], archivedAt: null, createdAt: b.createdAt, updatedAt: b.updatedAt,
+    id: b.id, name: b.name, projectId: b.projectId, kind: 'WORKFLOW',
+    archivedAt: null, createdAt: b.createdAt, updatedAt: b.updatedAt,
     view: { kind: b.view, typeId: b.typeId, fieldId: b.fieldId, filter: parseBoardFilter(b.filter) },
   }
 }
@@ -43,7 +43,7 @@ export function projectListItem(p: ListedProject, isMember: boolean, myRole: Pro
     ...projectFields(p),
     boards: p.boards.map(b => ({ id: b.id })),
     tasks: p.tasks.map(t => ({
-      id: t.id, status: statusOfState(t.state), runState: t.runState, state: t.state, executionState: t.executionState,
+      id: t.id, runState: t.runState, state: t.state, executionState: t.executionState,
     })),
     product: groupRef(p.product),
     program: groupRef(p.program),

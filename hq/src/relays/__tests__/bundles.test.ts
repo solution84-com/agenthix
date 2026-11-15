@@ -24,7 +24,7 @@ describe('carrying a bundle @SC-1715', () => {
   })
 
   it('reads a report it can, and nothing else', () => {
-    const base = { type: 'relay.bundleReport', version: '1.1', transferId: 't1' }
+    const base = { type: 'relay.bundleReport', version: '1.0', transferId: 't1' }
     expect(readBundleReport({ ...base, outcome: { done: true } })).toEqual({ ...base, outcome: { done: true } })
     expect(readBundleReport({ ...base, outcome: { done: false, failure: 'source-refused', site: 'site-a', refusal: 'not-found' } }))
       .toMatchObject({ outcome: { done: false, failure: 'source-refused', site: 'site-a', refusal: 'not-found' } })

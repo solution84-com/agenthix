@@ -32,7 +32,6 @@ const context: RunContextPayload = {
   chat: { sessionContext: null },
   mounts: { ownerSlugs: { p1: 'atlas' } },
   riskRules: null,
-  credential: { kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-live' },
   packages: {
     agent: { kind: 'agent', key: 'agent-1', digest: 'a'.repeat(64) },
     org: null,
@@ -129,77 +128,6 @@ describe('dispatch params agree with the context hq actually sends', () => {
     expect(runDispatchParams.safeParse(dispatch(broken)).success).toBe(false)
   })
 
-  /**
-   * The credential replaced `llmApiKey` at protocol 10.0 — a REQUIRED field
-   * leaving the wire, which is the exact drift this file exists to catch: a
-   * validator still demanding the old field refuses every dispatch while both
-   * apps type-check clean.
-   *
-   * The fixture is typed as core's own `RunContextPayload`, so the accept case
-   * below cannot be written with `llmApiKey` at all; the refusals are what pin
-   * the validator to the union's SHAPE rather than to "some object is there".
-   */
-  it('carries an API key credential through with its kind intact', () => {
-    const result = runDispatchParams.safeParse(dispatch(context))
-    expect(result.success && result.data.context.credential).toEqual({ kind: 'apiKey', provider: 'anthropic', apiKey: 'sk-live' })
-  })
-
-  it('carries a subscription credential through as the OAuth document', () => {
-    const subscription = { ...context, credential: { kind: 'subscription' as const, provider: 'anthropic' as const, oauthJson: '{"claudeAiOauth":{}}', grantId: 'grant-1', loginId: 'login-1' } }
-    const result = runDispatchParams.safeParse(dispatch(subscription))
-    expect(result.success && result.data.context.credential).toEqual({
-      kind: 'subscription',
-      provider: 'anthropic',
-      oauthJson: '{"claudeAiOauth":{}}',
-      grantId: 'grant-1', loginId: 'login-1',
-    })
-  })
-
-  it('carries an OpenAI-compatible endpoint with its base URL, keyless or not', () => {
-    for (const apiKey of ['', 'sk-local']) {
-      const compatible: RunContextPayload = {
-        ...context,
-        credential: { kind: 'apiKey', provider: 'openai_compatible', apiKey, baseUrl: 'http://localhost:11434/v1' },
-      }
-      const result = runDispatchParams.safeParse(dispatch(compatible))
-      expect(result.success && result.data.context.credential).toEqual(compatible.credential)
-    }
-  })
-
-  it('refuses a credential that does not fit its provider', () => {
-    for (const bad of [
-      { kind: 'apiKey', apiKey: 'sk-live' },
-      { kind: 'apiKey', provider: 'mystery', apiKey: 'sk-live' },
-      { kind: 'apiKey', provider: 'openai', apiKey: '' },
-      { kind: 'apiKey', provider: 'openai', apiKey: 'sk', baseUrl: 'http://x/v1' },
-      { kind: 'apiKey', provider: 'openai_compatible', apiKey: 'sk' },
-      { kind: 'subscription', provider: 'openai', oauthJson: '{}', grantId: 'grant-1', loginId: 'login-1' },
-      { kind: 'subscription', oauthJson: '{}', grantId: 'grant-1', loginId: 'login-1' },
-    ]) {
-      const broken = { ...context, credential: bad } as unknown as RunContextPayload
-      expect(runDispatchParams.safeParse(dispatch(broken)).success, JSON.stringify(bad)).toBe(false)
-    }
-  })
-
-  it("carries the turn's other providers' keys when hq sends them, and does not require them", () => {
-    const fallbackCredentials = [
-      { kind: 'apiKey' as const, provider: 'openai' as const, apiKey: 'sk-oai' },
-      { kind: 'apiKey' as const, provider: 'openai_compatible' as const, apiKey: '', baseUrl: 'http://llm:11434/v1' },
-    ]
-    const withKeys = runDispatchParams.safeParse(dispatch({ ...context, fallbackCredentials }))
-    expect(withKeys.success && withKeys.data.context.fallbackCredentials).toEqual(fallbackCredentials)
-    const without = runDispatchParams.safeParse(dispatch(context))
-    expect(without.success && 'fallbackCredentials' in without.data.context).toBe(false)
-    for (const bad of [
-      { kind: 'subscription', provider: 'anthropic', oauthJson: '{}', grantId: 'grant-1', loginId: 'login-1' },
-      { kind: 'apiKey', provider: 'openai', apiKey: '' },
-      { kind: 'apiKey', provider: 'openai_compatible', apiKey: 'sk' },
-    ]) {
-      const broken = { ...context, fallbackCredentials: [bad] } as unknown as RunContextPayload
-      expect(runDispatchParams.safeParse(dispatch(broken)).success, JSON.stringify(bad)).toBe(false)
-    }
-  })
-
   it('carries the org\'s web-search key when hq sends one, and does not require it', () => {
     const withKey = runDispatchParams.safeParse(dispatch({ ...context, webSearchKey: 'exa-key' }))
     expect(withKey.success && withKey.data.context.webSearchKey).toBe('exa-key')
@@ -207,26 +135,9 @@ describe('dispatch params agree with the context hq actually sends', () => {
     expect(without.success && 'webSearchKey' in without.data.context).toBe(false)
   })
 
-  it('accepts a null credential — the run fails later, naming its boundary, rather than being refused here', () => {
-    const none = { ...context, credential: null }
-    expect(runDispatchParams.safeParse(dispatch(none)).success).toBe(true)
-  })
-
-  it('refuses a credential that is missing, of an unknown kind, or carrying the wrong half of the union', () => {
-    const { credential: _omitted, ...withoutCredential } = context
-    expect(runDispatchParams.safeParse(dispatch(withoutCredential as RunContextPayload)).success).toBe(false)
-
-    for (const bad of [
-      'sk-live',
-      { kind: 'oauth', oauthJson: '{}' },
-      { kind: 'apiKey', provider: 'anthropic' },
-      { kind: 'subscription', provider: 'anthropic' },
-      { kind: 'apiKey', provider: 'anthropic', apiKey: '' },
-      {},
-    ]) {
-      const broken = { ...context, credential: bad } as unknown as RunContextPayload
-      expect(runDispatchParams.safeParse(dispatch(broken)).success, JSON.stringify(bad)).toBe(false)
-    }
+  it('accepts a dispatch without model access — the run fails later, naming why, rather than being refused here', () => {
+    const result = runDispatchParams.safeParse(dispatch({ ...context, credentialProblem: 'No provider is set up.' }))
+    expect(result.success && 'modelAccess' in result.data.context).toBe(false)
   })
 
   it('ignores a field it does not know, never passing it on, and still refuses a malformed value @SC-1153', () => {
@@ -250,15 +161,6 @@ describe('dispatch params agree with the context hq actually sends', () => {
     expect(result.success && result.data.context.person).toEqual({ timezone: 'Australia/Sydney' })
     expect(runDispatchParams.safeParse(dispatch(context)).success).toBe(true)
     const bad = { ...context, person: { timezone: 5 } } as unknown as RunContextPayload
-    expect(runDispatchParams.safeParse(dispatch(bad)).success).toBe(false)
-  })
-
-  it('carries the pinned memory through, and refuses an item of a scope that does not exist', () => {
-    const item = { key: 'tea', scope: 'agent_person', title: 'Tea', body: 'Prefers tea.' }
-    const withPinned = { ...context, pinnedMemory: [item] } as RunContextPayload
-    const result = runDispatchParams.safeParse(dispatch(withPinned))
-    expect(result.success && result.data.context.pinnedMemory).toEqual([item])
-    const bad = { ...context, pinnedMemory: [{ ...item, scope: 'everyone' }] } as unknown as RunContextPayload
     expect(runDispatchParams.safeParse(dispatch(bad)).success).toBe(false)
   })
 })

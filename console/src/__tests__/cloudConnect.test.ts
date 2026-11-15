@@ -61,12 +61,9 @@ withFeature('cloud', () => {
 
     it('no longer offers connecting or disconnecting: hq does, for an organisation admin, and hq is never asked here @SC-1076', async () => {
       const auth = await h.signIn()
-      h.link.handle('cloud.connect', () => ({ connecting: CONNECTING }))
-      h.link.handle('cloud.disconnect', () => ({ disconnected: true }))
       expect((await h.request('/api/cloud/organisation', { method: 'POST', body: {}, ...auth })).status).toBe(404)
       expect((await h.request('/api/cloud/organisation', { method: 'DELETE', ...auth })).status).toBe(404)
-      expect(h.link.callsOf('cloud.connect')).toEqual([])
-      expect(h.link.callsOf('cloud.disconnect')).toEqual([])
+      expect(h.link.wire()).not.toMatch(/cloud\.(connect|disconnect)/)
     })
   })
 })

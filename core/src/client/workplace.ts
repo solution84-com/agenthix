@@ -33,7 +33,7 @@ export type OrgIdentity = {
   mission: string
   avatarUrl: string | null
   coverUrl: string | null
-  /** The recipes the avatar and the cover were drawn from (since 1.22); null for an upload. */
+  /** The recipes the avatar and the cover were drawn from; null for an upload. */
   avatarRecipe?: PictureRecipeView | null
   coverRecipe?: PictureRecipeView | null
   /** When the organisation began on Agenthix: "on Agenthix since March 2026". */
@@ -101,9 +101,9 @@ export type ProjectCardLine = {
   needsYouCount: number
   runningCount: number
   lastRunAt: string | null
-  /** Its tasks not done and not archived (since 1.13). */
+  /** Its tasks not done and not archived. */
   openCount?: number
-  /** When anything in it last changed: a task, the project itself, or a run (since 1.13). */
+  /** When anything in it last changed: a task, the project itself, or a run. */
   lastActivityAt?: string | null
 }
 

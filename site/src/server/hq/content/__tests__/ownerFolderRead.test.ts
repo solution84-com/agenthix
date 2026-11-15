@@ -1,11 +1,11 @@
 /**
- * `location.readArtefact` and `location.readKnowledge` on the content
- * transport: one file out of an owner's `artefacts/` or `knowledge/`.
+ * `location.readKnowledge` on the content transport: one page out of an
+ * owner's knowledge.
  *
- * They share `location.readFile`'s stream, so what is pinned here is what is
- * theirs: the address (an artefact by name, knowledge by path), containment
- * that refuses every link — not only one leading out — the size bound checked
- * before a byte is sent, and refusals that name no path on the site's disk.
+ * It shares `location.readFile`'s stream, so what is pinned here is what is
+ * its own: the address (a page by path), containment that refuses every link
+ * — not only one leading out — and refusals that name no path on the site's
+ * disk.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import fs from 'node:fs/promises'
@@ -13,24 +13,20 @@ import os from 'node:os'
 import path from 'node:path'
 import { LOCATION_FILE_METHODS, LocationFileError } from '@agenthix/core'
 import { contentMethods } from '../contentMethods'
-import { handleArtefactRead, handleKnowledgeRead } from '../locationReadHandler'
-import { getArtefactsDir, getFilesDir, knowledgePagesDir, knowledgeVersionsDir } from '../../../storage/paths'
+import { handleKnowledgeRead } from '../locationReadHandler'
+import { getFilesDir, knowledgePagesDir, knowledgeVersionsDir } from '../../../storage/paths'
 import { openRead } from './contentReadHarness'
 import { replaceWithLink } from '../../../storage/__tests__/swapAfterCheck'
 
 const owner = { ownerType: 'project' as const, ownerId: 'proj-0001' }
-const PRICING = '# Pricing options\n'
 const AUTH = '# How sign-in works\n'
 const MAX = 1_000_000
 
 let root: string
 let outside: string
-let artefacts: string
 let knowledge: string
 const savedSiteRoot = process.env.SITE_ROOT
 
-const readArtefact = (params: unknown) =>
-  openRead(params, undefined, undefined, handleArtefactRead, LOCATION_FILE_METHODS.readArtefact)
 const readKnowledge = (params: unknown) =>
   openRead(params, undefined, undefined, handleKnowledgeRead, LOCATION_FILE_METHODS.readKnowledge)
 
@@ -38,14 +34,11 @@ beforeEach(async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), 'site-root-'))
   outside = await fs.mkdtemp(path.join(os.tmpdir(), 'site-outside-'))
   process.env.SITE_ROOT = root
-  artefacts = getArtefactsDir(owner.ownerType, owner.ownerId)
   knowledge = knowledgePagesDir(owner)
-  await fs.mkdir(artefacts, { recursive: true })
   await fs.mkdir(path.join(knowledge, 'decisions'), { recursive: true })
   await fs.mkdir(getFilesDir(owner.ownerType, owner.ownerId), { recursive: true })
-  await fs.writeFile(path.join(artefacts, 'pricing-options.md'), PRICING)
   await fs.writeFile(path.join(knowledge, 'decisions', 'auth.md'), AUTH)
-  await fs.writeFile(path.join(getFilesDir(owner.ownerType, owner.ownerId), 'AGENTS.md'), 'not an artefact\n')
+  await fs.writeFile(path.join(getFilesDir(owner.ownerType, owner.ownerId), 'AGENTS.md'), 'not a page\n')
   await fs.writeFile(path.join(outside, 'secret.md'), 'OUTSIDE SECRET\n')
 })
 
@@ -66,50 +59,6 @@ async function refusedWith(read: ReturnType<typeof openRead>): Promise<string | 
   expect(read.body().length).toBe(0)
   return (err as LocationFileError).code
 }
-
-describe('location.readArtefact @SC-780', () => {
-  it("streams an artefact's bytes by its name and ends its half of the stream", async () => {
-    const read = readArtefact({ ...owner, name: 'pricing-options.md', maxBytes: MAX })
-    await read.outcome
-    expect(read.body().toString('utf8')).toBe(PRICING)
-    expect(read.writableEnded()).toBe(true)
-    await vi.waitFor(() => expect(read.handlerSettled()).toBe('resolved'))
-  })
-
-  it('refuses a name that is a path, as a malformed request', async () => {
-    expect(await refusedWith(readArtefact({ ...owner, name: '../files/AGENTS.md', maxBytes: MAX }))).toBe('invalid')
-  })
-
-  it('refuses a link even when it points back inside', async () => {
-    await fs.symlink(path.join(artefacts, 'pricing-options.md'), path.join(artefacts, 'alias.md'))
-    expect(await refusedWith(readArtefact({ ...owner, name: 'alias.md', maxBytes: MAX }))).toBe('outside')
-  })
-
-  it('refuses a link pointing outside', async () => {
-    await fs.symlink(path.join(outside, 'secret.md'), path.join(artefacts, 'escape.md'))
-    expect(await refusedWith(readArtefact({ ...owner, name: 'escape.md', maxBytes: MAX }))).toBe('outside')
-  })
-
-  it('refuses when the artefacts folder itself has been replaced by a link', async () => {
-    await fs.rm(artefacts, { recursive: true })
-    await fs.writeFile(path.join(outside, 'pricing-options.md'), 'OUTSIDE SECRET\n')
-    await fs.symlink(outside, artefacts)
-    expect(await refusedWith(readArtefact({ ...owner, name: 'pricing-options.md', maxBytes: MAX }))).toBe('outside')
-  })
-
-  it('refuses a file over the size the caller will take, before sending any of it', async () => {
-    expect(await refusedWith(readArtefact({ ...owner, name: 'pricing-options.md', maxBytes: 3 }))).toBe('too_large')
-  })
-
-  it('fails a missing artefact as not found', async () => {
-    expect(await refusedWith(readArtefact({ ...owner, name: 'nope.md', maxBytes: MAX }))).toBe('not_found')
-  })
-
-  it('refuses a directory', async () => {
-    await fs.mkdir(path.join(artefacts, 'a-set'))
-    expect(await refusedWith(readArtefact({ ...owner, name: 'a-set', maxBytes: MAX }))).toBe('not_a_file')
-  })
-})
 
 describe('location.readKnowledge @SC-1392', () => {
   it('streams a page by its path in the knowledge pages, outside the folder runs mount', async () => {
@@ -191,8 +140,7 @@ describe('location.readKnowledge @SC-1392', () => {
 })
 
 describe('the content registry', () => {
-  it('serves both reads under the names core publishes @SC-780 @SC-1392', () => {
-    expect(contentMethods[LOCATION_FILE_METHODS.readArtefact]).toBe(handleArtefactRead)
+  it('serves the read under the name core publishes @SC-1392', () => {
     expect(contentMethods[LOCATION_FILE_METHODS.readKnowledge]).toBe(handleKnowledgeRead)
   })
 })

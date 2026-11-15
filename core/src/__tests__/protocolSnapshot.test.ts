@@ -2,22 +2,33 @@
  * Each connection's declared shape against its committed snapshot (core/snapshot/). A difference fails, saying
  * what changed and what the version must become; once the version is right, `npm run snapshot:update` records the
  * new shape, and refuses to while a rule is broken.
+ *
+ * `PROTOCOL_SNAPSHOT_RESET=1 npm run snapshot:update` records every connection's shapes as a new baseline without
+ * comparing them with the committed one: the lead's step before a first release only, allowed while each version is
+ * `1.0` and nothing is deprecated (versioning.md, *The shape snapshot*).
  */
 import { describe, expect, it } from 'vitest'
 import { CONNECTIONS, CORE_SRC, coreProgram, readSnapshot, writeSnapshot } from './protocolSnapshot/connections.js'
 import { extractConnection } from './protocolSnapshot/extract.js'
-import { judge } from './protocolSnapshot/rules.js'
+import { judge, resetProblems } from './protocolSnapshot/rules.js'
 import { canonical } from './protocolSnapshot/shape.js'
 
 // Read through globalThis: only core/src/fileTools may use Node (nodeOnly.test.ts); vitest runs under Node.
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {}
 const UPDATE = env.PROTOCOL_SNAPSHOT_UPDATE === '1'
+// Only with an update: a reset writes the snapshot, so it is never a side effect of a plain test run.
+const RESET = UPDATE && env.PROTOCOL_SNAPSHOT_RESET === '1'
 const program = coreProgram()
 
 describe('every connection matches its committed shape snapshot @SC-1133 @SC-1383', () => {
   for (const connection of CONNECTIONS) {
     it(connection.name, () => {
       const now = extractConnection(program, CORE_SRC, connection)
+      if (RESET) {
+        const problems = resetProblems(now)
+        expect(problems, problems.join('\n')).toEqual([])
+        return writeSnapshot(now)
+      }
       const before = readSnapshot(connection.name)
       const previous = connection.previousMajor.length
         ? extractConnection(program, CORE_SRC, { ...connection, modules: connection.previousMajor, constants: [] })

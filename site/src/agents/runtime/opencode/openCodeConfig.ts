@@ -14,7 +14,7 @@
  */
 import type { OpenCodePluginConfig } from '@agenthix/core'
 import type { SiteRunCredential } from '../../../server/modelRelay/runAccess'
-import { CREDENTIAL_PROVIDERS, HARNESS_SERVER_KEY_ENV, OPENCODE_PLUGIN_CONFIG_ENV } from '@agenthix/core'
+import { HARNESS_SERVER_KEY_ENV, OPENCODE_PLUGIN_CONFIG_ENV } from '@agenthix/core'
 import { HARNESS_SECRET_ENV, OPENCODE_COMMAND_SHELL, OPENCODE_MODELS_FILE, OPENCODE_PLUGIN_URL } from '../agentImage'
 import { RELAY_PROVIDERS, openCodeProviderBaseUrl, type RelayProvider } from '../../../server/modelRelay/relayProviders'
 import { INSTALL_ENV } from '../../../server/livePreviews/installs/installCommand'
@@ -35,9 +35,6 @@ export const OPENCODE_KEY_PLACEHOLDER = 'agenthix-key-arrives-with-each-request'
 /** OpenCode's provider id for a person's own OpenAI-compatible endpoint. */
 export const OPENCODE_COMPATIBLE_PROVIDER = 'openai_compatible'
 
-/** The catalogue's providers, each configured with its address at the relay, so nothing in the home can redirect it (OPENCODE_MODELS_PATH covers the catalogue). */
-const BUILT_IN_PROVIDERS = CREDENTIAL_PROVIDERS.filter(p => p !== OPENCODE_COMPATIBLE_PROVIDER)
-
 /**
  * The providers whose models OpenCode knows only from its configuration, each OpenCode's OpenAI-compatible provider at
  * the relay: a person's own endpoint, and Inworld, which OpenCode's catalogue has no entry for. Each model is configured
@@ -55,6 +52,9 @@ const CONFIGURED_PROVIDERS = Object.keys(CONFIGURED_PROVIDER_NAMES) as Configure
 export function isConfiguredProvider(provider: RelayProvider): provider is ConfiguredProvider {
   return Object.prototype.hasOwnProperty.call(CONFIGURED_PROVIDER_NAMES, provider)
 }
+
+/** The catalogue's providers, each configured with its address at the relay, so nothing in the home can redirect it (OPENCODE_MODELS_PATH covers the catalogue). */
+const BUILT_IN_PROVIDERS = RELAY_PROVIDERS.filter(p => !isConfiguredProvider(p))
 
 /** The model names each configured provider offers on a server. The addresses are the relay's; a compatible endpoint's own is its credential's, and only the site holds it. */
 export type ConfiguredModels = { readonly [P in ConfiguredProvider]?: readonly string[] }

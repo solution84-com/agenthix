@@ -5,10 +5,8 @@
  * failing in the database. Pure: the checks a person's access needs stay in the operations.
  */
 import { HttpError } from 'wasp/server'
-import { isTaskState as isNewTaskState, type BoardTaskStatus, type CreateTaskArgs } from '@agenthix/core'
-import { stateOfColumnArg } from './deprecatedBoardPlace'
+import { isTaskState, type CreateTaskArgs } from '@agenthix/core'
 
-const TASK_STATES: readonly string[] = ['TODO', 'IN_PROGRESS', 'DONE'] satisfies BoardTaskStatus[]
 const PRIORITIES: readonly string[] = ['LOW', 'MEDIUM', 'HIGH']
 
 const isText = (v: unknown): v is string => typeof v === 'string'
@@ -20,22 +18,18 @@ function refuse(message: string): never {
 }
 
 type CheckedCreateTaskArgs = {
-  [K in Exclude<keyof CreateTaskArgs, 'boardId' | 'column'>]: Exclude<CreateTaskArgs[K], null>
+  [K in keyof CreateTaskArgs]: Exclude<CreateTaskArgs[K], null>
 }
 
-/**
- * Only the declared fields, each checked: anything else the request carried is left behind. A task is on no board
- * (adr-0176): the deprecated `boardId` names nothing, and the deprecated `column` is read as the state it stands for
- * (deprecatedBoardPlace.ts), Backlog when it names none, unless the task model's own place is given.
- */
+/** Only the declared fields, each checked: anything else the request carried is left behind. */
 export function createTaskArgs(args: CreateTaskArgs): CheckedCreateTaskArgs {
-  const { projectId, title, description, boardId, column, typeId, columnId, state, assignedAgentId, priority, labels } = args
+  const { projectId, title, description, typeId, columnId, state, assignedAgentId, priority, labels } = args
   if (!isText(projectId) || !projectId) refuse('A project id is required')
   if (!isText(title) || !title.trim()) refuse('A task needs a title')
-  if (!optionalText(description) || !optionalText(boardId) || !optionalText(column) || !optionalText(assignedAgentId) || !optionalText(typeId) || !optionalText(columnId)) {
-    refuse('description, boardId, column, typeId, columnId and assignedAgentId must be text')
+  if (!optionalText(description) || !optionalText(assignedAgentId) || !optionalText(typeId) || !optionalText(columnId)) {
+    refuse('description, typeId, columnId and assignedAgentId must be text')
   }
-  if (state !== undefined && state !== null && !isNewTaskState(state)) refuse('state must be BACKLOG, TODO, IN_PROGRESS or DONE')
+  if (state !== undefined && state !== null && !isTaskState(state)) refuse('state must be BACKLOG, TODO, IN_PROGRESS or DONE')
   if (priority !== undefined && (!isText(priority) || !PRIORITIES.includes(priority.toUpperCase()))) {
     refuse('priority must be LOW, MEDIUM or HIGH')
   }
@@ -43,15 +37,9 @@ export function createTaskArgs(args: CreateTaskArgs): CheckedCreateTaskArgs {
   return {
     projectId, title, description: given(description),
     typeId: given(typeId), columnId: given(columnId),
-    state: isNewTaskState(state) ? state : typeId || columnId || column == null ? undefined : (stateOfColumnArg(column) ?? 'BACKLOG'),
+    state: isTaskState(state) ? state : undefined,
     assignedAgentId: given(assignedAgentId), priority, labels,
   }
-}
-
-/** The deprecated column argument: a column's name or a state, or null for Backlog. */
-export function requireColumnArg(column: unknown): string | null {
-  if (column !== null && !isText(column)) refuse('column must be a state, or null for Backlog')
-  return column
 }
 
 /** What opens the comment hq writes when a run ends with tools waiting for approval; only hq writes one. */
@@ -70,7 +58,6 @@ export type UpdateTaskFields = {
   assignedAgentId?: string | null
   priority?: string
   labels?: string[]
-  status?: BoardTaskStatus
 }
 
 /**
@@ -79,7 +66,7 @@ export type UpdateTaskFields = {
  * database's failure.
  */
 export function updateTaskArgs(args: Record<string, unknown>): UpdateTaskFields {
-  const { taskId, title, description, assignedAgentId, priority, labels, status } = args
+  const { taskId, title, description, assignedAgentId, priority, labels } = args
   if (!isText(taskId) || !taskId) refuse('A task id is required')
   if (title !== undefined && title !== null && (!isText(title) || !title.trim())) refuse('A task needs a title')
   if (!optionalText(description) || !optionalText(assignedAgentId)) {
@@ -89,7 +76,6 @@ export function updateTaskArgs(args: Record<string, unknown>): UpdateTaskFields 
     refuse('priority must be LOW, MEDIUM or HIGH')
   }
   if (labels !== undefined && labels !== null && (!Array.isArray(labels) || !labels.every(isText))) refuse('labels must be a list of words')
-  if (status !== undefined && status !== null && !isTaskState(status)) refuse('status must be TODO, IN_PROGRESS or DONE')
   return {
     taskId,
     ...(isText(title) ? { title } : {}),
@@ -97,10 +83,5 @@ export function updateTaskArgs(args: Record<string, unknown>): UpdateTaskFields 
     ...(assignedAgentId !== undefined ? { assignedAgentId: given(assignedAgentId as string | null) ?? null } : {}),
     ...(isText(priority) ? { priority } : {}),
     ...(Array.isArray(labels) ? { labels: labels as string[] } : {}),
-    ...(isTaskState(status) ? { status } : {}),
   }
-}
-
-export function isTaskState(v: unknown): v is BoardTaskStatus {
-  return isText(v) && TASK_STATES.includes(v)
 }

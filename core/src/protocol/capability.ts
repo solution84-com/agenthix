@@ -19,7 +19,7 @@ export const HQ_JWKS_PATH = '/.well-known/jwks.json'
 export const HQ_DATA_PATH = '/api/v1/data'
 /**
  * Sent with a data call, as `1`, while the run it acts for has asked for something that waits for a person's
- * approval (since site protocol 1.16): hq then refuses a change of that run's own task's state, column or type.
+ * approval: hq then refuses a change of that run's own task's state, column or type.
  * Absent: the run has asked for nothing, or the site is older.
  */
 export const RUN_WAITING_APPROVAL_HEADER = 'X-Run-Waiting-Approval'
@@ -300,10 +300,10 @@ export interface CapabilityClaims {
   role: 'ADMIN' | 'MEMBER' | null
   siteId: string              // the site holding the workspace (logical ref, §2b)
   permissions: CapabilityEffectivePermissions
-  /** Since 1.12: set only for a run on a branch with a live preview, while it is open. */
+  /** Set only for a run on a branch with a live preview, while it is open. */
   livePreview?: CapabilityLivePreview
   /**
-   * Since 1.12: the npm scopes the organisation's admins trust (`@fernhill`), whose packages' install scripts run
+   * The npm scopes the organisation's admins trust (`@fernhill`), whose packages' install scripts run
    * without the install-script rule's lookups (adr-0170), wherever the run installs packages. Read from hq's setting
    * at every mint and renewal. Absent: none.
    */

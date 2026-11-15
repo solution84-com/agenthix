@@ -30,7 +30,7 @@ export type RunRow = {
   agentId: string
   sessionId: string
   taskId: string | null
-  /** The routine whose firing started it (adr-0177); null for a task's run or a reply. ABSENT from a site before 1.15. */
+  /** The routine whose firing started it (adr-0177); null for a task's run or a reply.. */
   routineId?: string | null
   status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
   inputText: string
@@ -61,6 +61,6 @@ export type RunRow = {
   agentPackageDigest: string | null
   orgPackageDigest: string | null
   platformPackageDigest: string | null
-  /** The skills the run had staged; null before it staged any. ABSENT from a site before 1.9. */
+  /** The skills the run had staged; null before it staged any.. */
   skillsUsed?: RunSkillUse[] | null
 }

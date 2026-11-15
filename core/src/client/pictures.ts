@@ -1,5 +1,5 @@
 /**
- * Generated pictures as a client reads and saves them (ADR-0187, since 1.22): the recipe a picture was drawn from, kept
+ * Generated pictures as a client reads and saves them (ADR-0187): the recipe a picture was drawn from, kept
  * beside its file so the picker can open it again, and one save that changes an avatar, a cover or both.
  */
 import type { JsonValue } from './json.js'

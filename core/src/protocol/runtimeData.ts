@@ -200,7 +200,7 @@ export type RunDispatchPayload = {
   /**
    * The skill the person picked for this message (`/` in the message box): a name staged for this turn. The site
    * keeps it only when it is one, and the skill may be invoked by a person; otherwise it drops it and keeps the text.
-   * ABSENT when none was picked, and from an hq before 1.9.
+   * ABSENT when none was picked.
    */
   skill?: { name: string }
   model: string
@@ -216,7 +216,7 @@ export type RunDispatchPayload = {
   onBehalfOfUserId?: string
   /**
    * The routine whose firing this run is (adr-0177): a `chat` run with no task, which the site records on the run.
-   * ABSENT for every other run, and from an hq before 1.15.
+   * ABSENT for every other run.
    */
   routineId?: string
 }
@@ -252,5 +252,5 @@ export type RunCancelReason = 'interrupted' | 'withdrawn' | 'paused'
  *  ("Stopped by Ana"); absent when nobody did. */
 export type RunCancelParams = { runId: string; reason?: RunCancelReason; by?: string }
 
-export type { AgentConfigPayload, RunContextPayload, PinnedMemoryItem, RunMemory, RunMemoryItem } from './runContext.js'
+export type { AgentConfigPayload, RunContextPayload, RunMemory, RunMemoryItem } from './runContext.js'
 export type { TokenUsage, RunRow } from './runRow.js'

@@ -34,7 +34,7 @@ describe('the Cloud protocol version @SC-1143', () => {
       '/connect/device', '/connect/token', '/connect/address', '/connect/pledge/status', '/connect/notices/downtime', '/connect/revoke',
     ]))
     for (const r of h.cloud.requests) {
-      expect(r.headers.get(VERSION), r.path).toBe('1.1')
+      expect(r.headers.get(VERSION), r.path).toBe('1.0')
       expect(r.headers.get('user-agent'), r.path).toBe(`hq/${BUILD_INFO.version}`)
     }
   })
@@ -48,20 +48,20 @@ describe('the Cloud protocol version @SC-1143', () => {
     for (const stated of statements) {
       const res = await call(stated)
       expect(res.status).toBe(426)
-      expect(res.headers.get(VERSION)).toBe('1.1')
+      expect(res.headers.get(VERSION)).toBe('1.0')
       expect(await res.json()).toEqual({ error: 'unsupported_protocol_version' })
     }
     // One major ahead is served (here refused only for its empty form), and the answer states Cloud's version.
     const served = await call({ [VERSION]: '2.4' })
     expect(served.status).toBe(400)
-    expect(served.headers.get(VERSION)).toBe('1.1')
+    expect(served.headers.get(VERSION)).toBe('1.0')
   })
 
   it('a Cloud two majors ahead refuses hq with 426: hq says HQ must upgrade, and asks it nothing more', async () => {
     const h = harness({ version: '3.0' })
     const refused = h.connection.connect('u-sam')
     await expect(refused).rejects.toBeInstanceOf(CloudProtocolError)
-    await expect(refused).rejects.toThrow('Agenthix Cloud speaks protocol 3.0 and this HQ speaks 1.1, too far apart to work together: upgrade this HQ.')
+    await expect(refused).rejects.toThrow('Agenthix Cloud speaks protocol 3.0 and this HQ speaks 1.0, too far apart to work together: upgrade this HQ.')
     expect(h.cloud.requests).toHaveLength(1)
     await h.advance(CLOUD_CHECK_IN_INTERVAL_S * 1000 * 2)
     await expect(h.connection.connect('u-sam')).rejects.toThrow('upgrade this HQ')
@@ -71,7 +71,7 @@ describe('the Cloud protocol version @SC-1143', () => {
   it('an answer stating a version two majors ahead is refused the same, though Cloud did not refuse it', async () => {
     const h = harness()
     h.cloud.answerNextWith({ status: 200, body: {}, headers: { [VERSION]: '3.2' } })
-    await expect(h.connection.connect('u-sam')).rejects.toThrow('speaks protocol 3.2 and this HQ speaks 1.1')
+    await expect(h.connection.connect('u-sam')).rejects.toThrow('speaks protocol 3.2 and this HQ speaks 1.0')
     await expect(h.connection.connect('u-sam')).rejects.toBeInstanceOf(CloudProtocolError)
     expect(h.cloud.requests).toHaveLength(1)
   })
@@ -95,7 +95,7 @@ describe('the Cloud protocol version @SC-1143', () => {
     h.cloud.version = '3.0'
     h.advance(CLOUD_CHECK_IN_INTERVAL_S * 1000 * 2)
     await h.connection.startCheckIns()
-    expect((await h.connection.state()).problem).toBe('Agenthix Cloud speaks protocol 3.0 and this HQ speaks 1.1, too far apart to work together: upgrade this HQ.')
+    expect((await h.connection.state()).problem).toBe('Agenthix Cloud speaks protocol 3.0 and this HQ speaks 1.0, too far apart to work together: upgrade this HQ.')
     expect((await h.connection.state()).connection).not.toBeNull()
   })
 
@@ -111,7 +111,7 @@ describe('the Cloud protocol version @SC-1143', () => {
   it('a 426 that does not say Cloud is ahead stops calls for an hour, then hq asks again', async () => {
     const h = harness()
     h.cloud.answerNextWith({ status: 426, body: { error: 'unsupported_protocol_version' }, headers: { [VERSION]: '1.0' } })
-    await expect(h.connection.connect('u-sam')).rejects.toThrow("Agenthix Cloud speaks protocol 1.0 and refused this HQ's 1.1.")
+    await expect(h.connection.connect('u-sam')).rejects.toThrow("Agenthix Cloud speaks protocol 1.0 and refused this HQ's 1.0.")
     await h.advance(CLOUD_CHECK_IN_INTERVAL_S * 1000 - 1)
     await expect(h.connection.connect('u-sam')).rejects.toBeInstanceOf(CloudProtocolError)
     expect(h.cloud.requests).toHaveLength(1)

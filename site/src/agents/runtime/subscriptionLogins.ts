@@ -23,8 +23,8 @@
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import type { RunCredential, SubscriptionRefreshedEvent } from '@agenthix/core'
-import type { SiteRunCredential } from '../../server/modelRelay/runAccess'
+import type { SubscriptionRefreshedEvent } from '@agenthix/core'
+import type { SiteRunCredential, SubscriptionCredential } from '../../server/modelRelay/runAccess'
 import { hqConnectionManager } from '../../server/hq/hqConnection'
 import { Logger } from '../../server/utils/logger'
 import { homeDocumentExpiresAt, parseCredentialExpiresAt, readCredentialExpiresAt, serialiseCredentialHome } from './agentCredentials'
@@ -111,7 +111,7 @@ export async function leaveSubscriptionLogin(membership: SubscriptionMembership)
  * The document a run should be given: the freshest copy of its login on this
  * site when that is newer than what hq dispatched — hq may not have it yet.
  */
-export function freshestDocumentFor(credential: Extract<RunCredential, { kind: 'subscription' }>): string {
+export function freshestDocumentFor(credential: SubscriptionCredential): string {
   const freshest = logins.get(credential.loginId)?.freshest
   return freshest && freshest.expiresAt > parseCredentialExpiresAt(credential.oauthJson)
     ? freshest.oauthJson

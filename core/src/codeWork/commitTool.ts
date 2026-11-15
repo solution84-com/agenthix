@@ -47,7 +47,7 @@ export const COMMIT_TOOL_DECLARATION: CommitToolDeclaration = {
 export type CommitToolArgs = { message: string }
 
 export type CommitToolResult =
-  /** `note`, added inside 1.12: set when the branch's live preview is open, saying to reload the person's view. */
+  /** `note`: set when the branch's live preview is open, saying to reload the person's view. */
   | { committed: true; commit: CommitId; branch: string; files: number; note?: string }
   | { committed: false; reason: 'nothing_to_commit' }
   /** A merge from main (`update_from_main`) is under way and these files still hold conflict markers; `note` says so. */

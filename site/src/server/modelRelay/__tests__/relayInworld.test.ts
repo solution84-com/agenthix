@@ -68,7 +68,7 @@ describe("a run's Inworld descriptor, as the site reads it", () => {
 
   it('resolves to a credential the relay uses', () => {
     expect(siteCredentialOf(descriptor)).toEqual(INWORLD)
-    const run = runAccessOf({ modelAccess: { model: { providerId: 'prov-iw', model: 'anthropic/claude-sonnet-5' }, provider: descriptor, others: [], billingProfileId: '' }, credential: null })
+    const run = runAccessOf({ modelAccess: { model: { providerId: 'prov-iw', model: 'anthropic/claude-sonnet-5' }, provider: descriptor, others: [], billingProfileId: '' } })
     expect(run.credential).toEqual(INWORLD)
   })
 

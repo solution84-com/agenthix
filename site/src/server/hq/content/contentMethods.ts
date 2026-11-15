@@ -1,11 +1,10 @@
 import {
-  APP_SERVE_METHOD, BUNDLE_METHODS, FILES_SERVE_METHOD, LOCATION_FILE_METHODS, PACKAGE_METHODS, PREVIEW_METHODS,
+  APP_SERVE_METHOD, BUNDLE_METHODS, FILES_SERVE_METHOD, LOCATION_FILE_METHODS, PACKAGE_METHODS,
   type SiteContentMethodName,
 } from '@agenthix/core'
 import type { ContentStream } from './contentStream'
 import { handlePackagesPut } from '../../../packages/packageMethods'
-import { handleArtefactRead, handleKnowledgeRead, handleLocationRead } from './locationReadHandler'
-import { previewConnectGone } from '../previewGone'
+import { handleKnowledgeRead, handleLocationRead } from './locationReadHandler'
 import { handleWriteSkill } from '../../storage/skillFolderWrite'
 import { handleShareFile } from '../../storage/sharedFileWrite'
 import { refuseFilesServeFromHq, refuseRelayStreamFromHq } from '../../relay/filesServeFromHq'
@@ -26,16 +25,13 @@ export const contentMethods: Readonly<Record<SiteContentMethodName, ContentHandl
   // A location's file bytes, whatever the file's size. The listings, stats and
   // seeds that go with it are control-channel methods (../channelMethods.ts).
   [LOCATION_FILE_METHODS.readFile]: handleLocationRead,
-  // An owner's artefacts and knowledge sit beside its files rather than in a
-  // location, so each gets its own name rather than a flag on the read above.
-  [LOCATION_FILE_METHODS.readArtefact]: handleArtefactRead,
+  // An owner's knowledge sits beside its files rather than in a location, so
+  // it gets its own name rather than a flag on the read above.
   [LOCATION_FILE_METHODS.readKnowledge]: handleKnowledgeRead,
-  // One of a place's skill folders replaced by the files streamed (1.11); removing one is a control method.
+  // One of a place's skill folders replaced by the files streamed; removing one is a control method.
   [LOCATION_FILE_METHODS.writeSkill]: handleWriteSkill,
-  // A photo or file a person added to a conversation, written into the place's shared folder (1.14).
+  // A photo or file a person added to a conversation, written into the place's shared folder.
   [LOCATION_FILE_METHODS.shareFile]: handleShareFile,
-  // The old preview path's stream, deprecated since 1.12: ended unread (`../previewGone.ts`).
-  [PREVIEW_METHODS.connect]: previewConnectGone,
   // A file for a browser, on a ticket (adr-0153). Served only on a relay's line, where the handler knows which relay
   // the ticket must name (`../../relay/relayLines.ts`); hq carries no file bytes, so here it is refused.
   [FILES_SERVE_METHOD]: refuseFilesServeFromHq,

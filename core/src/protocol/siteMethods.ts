@@ -35,7 +35,7 @@ import { LOCATION_FILE_METHODS } from './locationFiles.js'
 import type {
   LocationEnsureDirParams, LocationEnsureDirResult, LocationListArtefactsParams, LocationListArtefactsResult,
   LocationListFilesParams, LocationListFilesResult, LocationListKnowledgeParams, LocationListKnowledgeResult,
-  LocationReadArtefactParams, LocationReadFileParams, LocationReadKnowledgeParams, LocationRemoveParams,
+  LocationReadFileParams, LocationReadKnowledgeParams, LocationRemoveParams,
   LocationRemoveResult, LocationSearchKnowledgeParams, LocationSearchKnowledgeResult, LocationSeedFilesParams,
   LocationSeedFilesResult, LocationStatFileParams, LocationStatFileResult,
   KnowledgeChangeResult, LocationDeleteKnowledgeParams, LocationEditKnowledgeParams, LocationKnowledgeVersionsParams,
@@ -45,8 +45,6 @@ import type {
 } from './locationFiles.js'
 import { REPO_WORK_METHODS } from './repoWork.js'
 import type { RepoConnectParams, RepoConnectResult, RepoStateParams, RepoStateResult } from './repoWork.js'
-import { PREVIEW_METHODS } from './preview.js'
-import type { PreviewConnectParams, PreviewStartParams, PreviewStartResult, PreviewStopParams, PreviewStopResult } from './preview.js'
 import { SITE_DIAGNOSTICS_METHODS } from './siteDiagnostics.js'
 import type { SiteReadLogsParams, SiteReadLogsResult } from './siteDiagnostics.js'
 import { SITE_RESTORE_METHODS } from './siteRestore.js'
@@ -192,7 +190,7 @@ export type SiteMethods = {
   /** Read only: a folder's branch, changed files and last commit. */
   [GIT_STATUS_METHOD]: { params: GitStatusParams; result: GitStatusResult }
 
-  // Since 1.12: code work on branches (branchWork.ts, branchReads.ts, mainWork.ts).
+  // Code work on branches (branchWork.ts, branchReads.ts, mainWork.ts).
   [BRANCH_WORK_METHODS.create]: { params: BranchCreateParams; result: BranchCopyResult }
   [BRANCH_WORK_METHODS.copy]: { params: BranchCopyParams; result: BranchCopyResult }
   [BRANCH_WORK_METHODS.commit]: { params: BranchCommitParams; result: BranchCommitResult }
@@ -207,7 +205,7 @@ export type SiteMethods = {
   [BRANCH_READ_METHODS.readFile]: { params: GitReadFileParams; result: GitReadFileResult }
   [BRANCH_READ_METHODS.versions]: { params: GitVersionsParams; result: GitVersionsResult }
   [BRANCH_READ_METHODS.listTree]: { params: GitListTreeParams; result: GitListTreeResult }
-  // Since 1.13: one of main's versions' own changes.
+  // One of main's versions' own changes.
   [BRANCH_READ_METHODS.versionChanges]: { params: GitVersionChangesParams; result: BranchChangesResult }
   [MAIN_WORK_METHODS.init]: { params: GitInitParams; result: GitInitResult }
   [MAIN_WORK_METHODS.merge]: { params: GitMergeParams; result: GitMergeResult }
@@ -215,7 +213,7 @@ export type SiteMethods = {
   [MAIN_WORK_METHODS.pushMain]: { params: GitPushMainParams; result: GitPushMainResult }
   [MAIN_WORK_METHODS.pullMain]: { params: GitPullMainParams; result: GitPullMainResult }
 
-  // Since 1.12: live previews (livePreviews.ts, livePreviewApps.ts) and branches sent between sites (branchBundles.ts).
+  // Live previews (livePreviews.ts, livePreviewApps.ts) and branches sent between sites (branchBundles.ts).
   [LIVE_PREVIEW_METHODS.open]: { params: LivePreviewOpenParams; result: LivePreviewResult }
   [LIVE_PREVIEW_METHODS.resume]: { params: LivePreviewResumeParams; result: LivePreviewResult }
   [LIVE_PREVIEW_METHODS.stop]: { params: LivePreviewStopParams; result: LivePreviewStopResult }
@@ -231,11 +229,6 @@ export type SiteMethods = {
   [BUNDLE_METHODS.drop]: { params: BundleDropParams; result: BundleDropResult }
   [BRANCH_BRING_BACK_BUNDLE_METHOD]: { params: BranchBringBackBundleParams; result: BranchBringBackBundleResult }
   [BRANCH_PACKAGE_USE_METHOD]: { params: BranchPackageUseParams; result: BranchPackageUseResult }
-
-  /** @deprecated since 1.12; stops working in 3.0. Use `livePreview.appStart` instead. */
-  [PREVIEW_METHODS.start]: { params: PreviewStartParams; result: PreviewStartResult }
-  /** @deprecated since 1.12; stops working in 3.0. Use `livePreview.appStop` instead. */
-  [PREVIEW_METHODS.stop]: { params: PreviewStopParams; result: PreviewStopResult }
 
   [SITE_DIAGNOSTICS_METHODS.readLogs]: { params: SiteReadLogsParams; result: SiteReadLogsResult }
   [SITE_DIAGNOSTICS_METHODS.healthNow]: { params: NoParams; result: SiteHealth }
@@ -257,25 +250,21 @@ export type SiteMethodResult<M extends SiteMethodName> = SiteMethods[M]['result'
 
 /**
  * hq → site on the content transport: each stream's opening params. What crosses after the opening is bytes, in
- * whichever direction the method says (a package's content to the site; a file's to hq, or to a relay; a preview's, a live app's and a bundle's both ways).
+ * whichever direction the method says (a package's content to the site; a file's to hq, or to a relay; a live app's and a bundle's both ways).
  */
 export type SiteContentMethods = {
   [PACKAGE_METHODS.put]: { params: { ref: PackageRef } }
   [LOCATION_FILE_METHODS.readFile]: { params: LocationReadFileParams }
-  /** Since 1.11: the stream carries a `SkillFolderTransfer`. */
+  /** The stream carries a `SkillFolderTransfer`. */
   [LOCATION_FILE_METHODS.writeSkill]: { params: LocationWriteSkillParams }
-  /** Since 1.14: the stream carries the file's bytes, and the site answers a `LocationShareFileResult`. */
+  /** The stream carries the file's bytes, and the site answers a `LocationShareFileResult`. */
   [LOCATION_FILE_METHODS.shareFile]: { params: LocationShareFileParams }
-  /** @deprecated since 1.8; stops working in 3.0. Use `files.serve` instead. */
-  [LOCATION_FILE_METHODS.readArtefact]: { params: LocationReadArtefactParams }
   [LOCATION_FILE_METHODS.readKnowledge]: { params: LocationReadKnowledgeParams }
-  /** @deprecated since 1.12; stops working in 3.0. Use `app.serve` instead. */
-  [PREVIEW_METHODS.connect]: { params: PreviewConnectParams }
   /** Opened by a relay on a site's relay line, not by hq: the site verifies the ticket itself. */
   [FILES_SERVE_METHOD]: { params: FilesServeParams }
-  /** Since 1.12, opened duplex by a relay on a site's relay line: one request or WebSocket to a live app (appStream.ts). */
+  /** Opened duplex by a relay on a site's relay line: one request or WebSocket to a live app (appStream.ts). */
   [APP_SERVE_METHOD]: { params: AppServeParams }
-  /** Since 1.12, opened by a relay: a bundle's source and, duplex, its destination (branchBundles.ts). */
+  /** Opened by a relay: a bundle's source and, duplex, its destination (branchBundles.ts). */
   [BUNDLE_METHODS.read]: { params: BundleReadParams }
   [BUNDLE_METHODS.write]: { params: BundleWriteParams }
 }

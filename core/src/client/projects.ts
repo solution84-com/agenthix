@@ -27,11 +27,8 @@ export type ProjectFields = {
   archiveFinishedAfterDays: number | null
   /** Set only on a person's personal project: that person. */
   personalOwnerId: string | null
-  /**
-   * Whether this is the person's space (Your space), as against one of their other personal projects. hq always
-   * sets it; optional only so the client protocol gains it as an addition, and absent reads as false.
-   */
-  personalSpace?: boolean
+  /** Whether this is the person's space (Your space), as against one of their other personal projects. */
+  personalSpace: boolean
   leadUserId: string | null
   createdAt: Date
   updatedAt: Date
@@ -45,14 +42,9 @@ export type ProjectListItem = ProjectFields & {
   boards: Array<{ id: string }>
   tasks: Array<{
     id: string
-    /** @deprecated since 1.16; stops working in 3.0. Use `state` instead. */
-    status: TaskFields['status']
-    /** @deprecated since 1.16; stops working in 3.0. Use `executionState` instead. */
     runState: TaskFields['runState']
-    /** Since 1.16. */
-    state?: TaskFields['state']
-    /** Since 1.16. */
-    executionState?: TaskFields['executionState']
+    state: TaskFields['state']
+    executionState: TaskFields['executionState']
   }>
   product: ProjectGroupRef | null
   program: ProjectGroupRef | null
@@ -83,7 +75,7 @@ export type PersonSummaryView = {
   /** The login name, without the @; null once erased. */
   handle: string | null
   avatarUrl: string | null
-  /** Their cover (since 1.22); null for an erased person. */
+  /** Their cover; null for an erased person. */
   coverUrl?: string | null
   state: 'active' | 'left' | 'erased'
 }

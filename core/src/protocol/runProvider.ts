@@ -10,9 +10,6 @@
  *   run's own Claude home; not relayed, so its calls are the run's own report;
  * - `cloud`: Agenthix Cloud, whose gateway speaks the vendor's own API; it carries no secret, and the relay asks hq
  *   for hq's Cloud access token (`HQ_CLOUD_AI_TOKEN_PATH`) and keeps it until a minute before it lapses.
- *
- * It replaces `RunCredential` and `fallbackCredentials` (credential.ts), which stay, deprecated, until no hq sends
- * them.
  */
 import type { AiProviderVendor } from '../providers/providers.js'
 

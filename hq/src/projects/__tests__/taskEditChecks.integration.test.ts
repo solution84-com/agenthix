@@ -81,7 +81,6 @@ describe('updateTask checks what it is sent (F-hq-6-03)', () => {
     ['a title that is not text', { title: 3 }],
     ['an empty title', { title: '  ' }],
     ['labels that are not words', { labels: [1] }],
-    ['a state that is none of the three', { status: 'BLOCKED' }],
     ['a description that is not text', { description: 4 }],
   ])('refuses %s with a 400, changing nothing', async (_what, change) => {
     const { operator, task } = await cast({ title: 'Keep me' })
@@ -93,22 +92,6 @@ describe('updateTask checks what it is sent (F-hq-6-03)', () => {
     const { operator, task } = await cast()
     await updateTask({ taskId: task.id, title: 'New', priority: 'high', labels: ['a'], runState: 'RUN_ACTIVE', archived: true } as never, ctx(operator))
     expect(await fresh(task.id)).toMatchObject({ title: 'New', priority: 'HIGH', labels: ['a'], runState: 'RUN_NONE', archived: false })
-  })
-
-  it("reaches a deprecated status by a move, landing on its type's default column for the state", async () => {
-    const { operator, task } = await cast({ state: 'TODO' })
-
-    await updateTask({ taskId: task.id, status: 'DONE' }, ctx(operator))
-
-    const done = await prisma.task.findUniqueOrThrow({ where: { id: task.id }, select: { state: true, doneAt: true, typeColumn: { select: { state: true, defaultForState: true } } } })
-    expect(done).toMatchObject({ state: 'DONE', typeColumn: { state: 'DONE', defaultForState: true } })
-    expect(done.doneAt).not.toBeNull()
-  })
-
-  it('leaves a task in Backlog where it is for the deprecated To do, which Backlog was', async () => {
-    const { operator, task } = await cast({ state: 'BACKLOG' })
-    await updateTask({ taskId: task.id, status: 'TODO' }, ctx(operator))
-    expect(await fresh(task.id)).toMatchObject({ state: 'BACKLOG' })
   })
 })
 

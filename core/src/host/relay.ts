@@ -18,12 +18,12 @@ import type {
 import type { TransferChunk, TransferClosedReason } from './transfer.js'
 import type { HqAbout, HqRelay, SiteLoad } from './hqFacts.js'
 import type { FleetActivityPage, FleetNotice, HqAccount } from './fleetRecord.js'
-import type { CloudConnecting, HqCloudState } from './cloud.js'
+import type { HqCloudState } from './cloud.js'
 import type { SiteLivePreviewsView } from './livePreviews.js'
 import type { LivePreviewLimit } from '../livePreview/livePreview.js'
 
 /** The host protocol: both links' version, and that of Cloud's host link. */
-export const HOST_PROTOCOL_VERSION = '1.3'
+export const HOST_PROTOCOL_VERSION = '1.0'
 
 export const HQ_HOST_LINK_PATH = '/host-link'
 export const HQ_CONSOLE_LINK_PATH = '/console-link'
@@ -119,7 +119,7 @@ export type HostLinkFrame =
   | RelayFrame<'console.handover', { certificates: ConsoleHandoverCertificate[] }>
   /** hq → host, before hq stops to move: the address it moves to (`HqAddressFrame`). */
   | RelayFrame<'hq.address', HqAddressFrame>
-  /** hq → host, as each connection of the link opens (since 1.3): the address hq sees it from (`HqSeenFromFrame`). */
+  /** hq → host, as each connection of the link opens: the address hq sees it from (`HqSeenFromFrame`). */
   | RelayFrame<'hq.seenFrom', HqSeenFromFrame>
   /**
    * Host → hq → host, only between the two machines of a transfer the Fleet Console opened (transfer.ts): a signed
@@ -229,7 +229,7 @@ export type ConsoleLinkMethods = {
   'site.move': { params: { executionSiteId: string; toHostId: string }; result: { moved: boolean } }
   /**
    * For the Fleet Console's screens (hqFacts.ts): the organisation's name and the address people open HQ at — hq's
-   * configured address, not the one the Fleet Console dials. An hq older than 1.3 answers `unknown_method`.
+   * configured address, not the one the Fleet Console dials.
    */
   'hq.about': { params: Record<string, never>; result: HqAbout }
   /** Each connected site's runs, from the health it last reported; a site that has reported none is left out. */
@@ -241,8 +241,8 @@ export type ConsoleLinkMethods = {
   'relay.facts': { params: Record<string, never>; result: { relay: HqRelay | null } }
   /**
    * For the Fleet Console's screens (fleetRecord.ts), each answered only when `byUserId`, the fleet admin asking, holds
-   * the role (`not_allowed` otherwise); an hq older than 1.4 answers `unknown_method`. The record of what fleet admins
-   * did, newest first, a page at a time: `after` is the `next` of the page before.
+   * the role (`not_allowed` otherwise). The record of what fleet admins did, newest first, a page at a time: `after`
+   * is the `next` of the page before.
    */
   'activity.list': { params: { byUserId: string; after?: string }; result: FleetActivityPage }
   /** The notices hq keeps for that fleet admin about the fleet, and nothing else of theirs. */
@@ -255,11 +255,11 @@ export type ConsoleLinkMethods = {
    * What hq needs to decide its *not heard from* notice for a machine (stopping.ts): whether its fleet admins asked to
    * be told when it stops answering, and when its host service said it stops on purpose (null once it answers again).
    * A notification preference only: it gives no authority over the machine. Sent when either changes and each time
-   * the link comes up; an hq older than 1.5 answers `unknown_method`. `kept` is false for a machine hq does not list.
+   * the link comes up. `kept` is false for a machine hq does not list.
    */
   'host.silenceFacts': { params: HostSilenceFacts; result: { kept: boolean } }
 
-  // ── Live previews on the organisation's sites (livePreviews.ts), since 1.3 ──
+  // ── Live previews on the organisation's sites (livePreviews.ts) ──
   // Each is answered only when `byUserId` holds the fleet admin role (`not_allowed` otherwise).
   /** The site's *Live previews on this site*, its limit and idle stop, its open live previews, and what they use. */
   'sites.livePreviews': { params: { byUserId: string; executionSiteId: string }; result: SiteLivePreviewsView }
@@ -279,27 +279,15 @@ export type ConsoleLinkMethods = {
   }
 
   // ── hq's connection to Agenthix Cloud (the connection protocol, core/src/cloud) ──
-  // hq holds the connection and its key, and is the only party that talks to Cloud about it; the Fleet Console starts
-  // and ends it for a fleet admin. Each is answered only when `byUserId` holds the fleet admin role (`not_allowed`
-  // otherwise); an hq older than 1.6 answers `unknown_method`.
+  // hq holds the connection and its key, and is the only party that talks to Cloud about it; an organisation admin
+  // connects and disconnects it in hq's admin area, and the Fleet Console shows it to a fleet admin. Answered only when
+  // `byUserId` holds the fleet admin role (`not_allowed` otherwise).
   /** The connection, a request still waiting on approval, and how the last request ended. */
   'cloud.state': { params: { byUserId: string }; result: HqCloudState }
-  /**
-   * Asks Cloud for a connection, or answers the one already waiting: the user code the admin checks and the page they
-   * approve it on. Only for a fleet admin who is also an organisation admin (`not_allowed`); `failed` when Cloud did
-   * not answer as the protocol says, or hq is connected already.
-   */
-  'cloud.connect': { params: { byUserId: string }; result: { connecting: CloudConnecting } }
-  /**
-   * Revokes the connection at Cloud and forgets it and its key, or drops a request still waiting. hq forgets them
-   * even when Cloud cannot be reached, so the key can never be used again. As `cloud.connect`, organisation admins
-   * only. `disconnected` is false when there was nothing to end.
-   */
-  'cloud.disconnect': { params: { byUserId: string }; result: { disconnected: boolean } }
 
   // ── What the platform shows of Cloud to fleet admins (the Fleet Console's Cloud section and offers) ──
-  // Each is answered only when `byUserId` holds the fleet admin role (`not_allowed` otherwise); an hq older than 1.7
-  // answers `unknown_method`. None of them calls Cloud.
+  // Each is answered only when `byUserId` holds the fleet admin role (`not_allowed` otherwise). None of them calls
+  // Cloud.
   /** How many people asked, in Settings › Sign-in, to sign in with Agenthix Cloud. */
   'cloud.askCount': { params: { byUserId: string }; result: { count: number } }
   /** The offers this person has dismissed; an offer dismissed stays gone for them, wherever it appears. */
@@ -308,7 +296,7 @@ export type ConsoleLinkMethods = {
   /**
    * The flagged features on for the organisation (adr-0172), by core's rule with its switches: the Fleet Console shows a
    * flagged feature's section only while it is listed. Flags travel as names, so adding or removing one changes no
-   * protocol; the Fleet Console keeps only names it knows. An hq older than 1.3 answers `unknown_method`, read as none.
+   * protocol; the Fleet Console keeps only names it knows.
    */
   'features.on': { params: Record<string, never>; result: { on: string[] } }
 }
@@ -327,7 +315,7 @@ export const CONSOLE_LINK_METHODS = [
   'handover.open', 'handover.accept', 'handover.close', 'transfer.open', 'transfer.close', 'site.move',
   'hq.about', 'site.loads', 'relay.facts', 'activity.list', 'notices.list', 'notices.dismiss', 'account.find',
   'host.silenceFacts', 'sites.livePreviews', 'sites.livePreviews.set', 'sites.livePreviews.stop',
-  'cloud.state', 'cloud.connect', 'cloud.disconnect',
+  'cloud.state',
   'cloud.askCount', 'cloud.offers', 'cloud.dismissOffer', 'features.on',
 ] as const satisfies readonly ConsoleLinkMethod[]
 

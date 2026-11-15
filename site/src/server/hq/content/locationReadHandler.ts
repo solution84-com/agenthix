@@ -66,7 +66,7 @@ import type { ContentHandler } from './contentMethods'
 // owns it. Importing the second through the first would have made this file
 // look like it depended on the control methods, which it does not.
 import { readFileParams } from '../../storage/locationFileMethods'
-import { readArtefactParams, readKnowledgeParams } from '../../storage/ownerFolderMethods'
+import { readKnowledgeParams } from '../../storage/ownerFolderMethods'
 import {
   describeOwnerFolder,
   locationFileCodeFor,
@@ -126,19 +126,7 @@ function ownerFolderRead(
   }
 }
 
-const ARTEFACT_METHOD = LOCATION_FILE_METHODS.readArtefact
 const KNOWLEDGE_METHOD = LOCATION_FILE_METHODS.readKnowledge
-
-/** `location.readArtefact` — one artefact, by its name directly in `artefacts/`. */
-export const handleArtefactRead = ownerFolderRead(params => {
-  const { ownerType, ownerId, name, maxBytes } = parseParams(readArtefactParams, params, ARTEFACT_METHOD)
-  const owner = { ownerType, ownerId }
-  return {
-    open: async () => (await openInOwnerFolder(owner, 'artefacts', ARTEFACT_METHOD, name, fsConstants.O_RDONLY)).handle,
-    detail: `${ARTEFACT_METHOD} "${name}" in ${describeOwnerFolder(owner, 'artefacts')}`,
-    maxBytes,
-  }
-})
 
 /** `location.readKnowledge` — one page by its path in the owner's pages, or with `versionId` one kept version of it. */
 export const handleKnowledgeRead = ownerFolderRead(params => {

@@ -5,9 +5,8 @@ import { createHash } from 'node:crypto'
 vi.mock('wasp/server', () => ({ prisma: {} }))
 
 const request = vi.hoisted(() => vi.fn())
-const get = vi.hoisted(() => vi.fn())
 const openContentStream = vi.hoisted(() => vi.fn())
-vi.mock('../../../sites/channel', () => ({ siteChannelRegistry: { request, get } }))
+vi.mock('../../../sites/channel', () => ({ siteChannelRegistry: { request } }))
 vi.mock('../../../sites/content', async () => {
   const { ContentStreamFailed } = await import('../../../sites/content/contentStream')
   return { openContentStream, ContentStreamFailed }
@@ -47,7 +46,6 @@ function fakeStream(fail?: Error) {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  get.mockReturnValue({ protocol: { major: 1, minor: 11 } })
 })
 
 describe("writing a place's skill folder on its site @SC-1644", () => {
@@ -71,13 +69,6 @@ describe("writing a place's skill folder on its site @SC-1644", () => {
     }
     expect(openContentStream).not.toHaveBeenCalled()
     expect(request).not.toHaveBeenCalled()
-  })
-
-  it('asks a site too old for it nothing, and says to update it', async () => {
-    get.mockReturnValue({ protocol: { major: 1, minor: 10 } })
-    await expect(writeSkillFolder(loc, '.agents/skills/x', files)).rejects.toMatchObject({ status: 409, message: expect.stringMatching(/too old.*Nothing was changed\.$/) })
-    await expect(removeSkillFolder(loc, '.agents/skills/x')).rejects.toMatchObject({ status: 409 })
-    expect(openContentStream).not.toHaveBeenCalled()
   })
 
   it("turns the site's refusal into one a person can act on, without the site's own words", async () => {

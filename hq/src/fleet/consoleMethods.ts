@@ -172,8 +172,6 @@ const READ: { [M in ConsoleLinkMethod]: (p: Record<string, unknown>) => Params<M
     livePreviewId: text(p, 'livePreviewId', 64, ID),
   }),
   'cloud.state': p => ({ byUserId: text(p, 'byUserId', 64, ID) }),
-  'cloud.connect': p => ({ byUserId: text(p, 'byUserId', 64, ID) }),
-  'cloud.disconnect': p => ({ byUserId: text(p, 'byUserId', 64, ID) }),
   'cloud.askCount': p => ({ byUserId: text(p, 'byUserId', 64, ID) }),
   'cloud.offers': p => ({ byUserId: text(p, 'byUserId', 64, ID) }),
   'cloud.dismissOffer': p => ({ byUserId: text(p, 'byUserId', 64, ID), offer: offerName(p) }),

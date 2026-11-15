@@ -1,6 +1,6 @@
 import { action, page, query, route, type Spec } from "@wasp.sh/spec";
 import { getMemory, getMemoryMeasurements, getMemoryChoices } from "./screen/queries" with { type: "ref" };
-import { saveMemoryItem, setMemoryPinned, setMemoryScope, forgetMemoryItem } from "./screen/actions" with { type: "ref" };
+import { setMemoryScope, forgetMemoryItem } from "./screen/actions" with { type: "ref" };
 import { MemoryPage } from "./screen/pages/MemoryPage" with { type: "ref" };
 import { MemorySettingsPage } from "./screen/pages/MemorySettingsPage" with { type: "ref" };
 
@@ -10,8 +10,6 @@ export const memorySpec: Spec = [
     query(getMemory, { entities: ["MemoryItem", "Agent", "Project", "User"] }),
     query(getMemoryMeasurements, { entities: ["MemoryOutcome", "MemoryItem", "Org"] }),
     query(getMemoryChoices, { entities: ["MemoryItem", "Agent", "Project"] }),
-    action(saveMemoryItem, { entities: ["MemoryItem"] }),
-    action(setMemoryPinned, { entities: ["MemoryItem"] }),
     action(setMemoryScope, { entities: ["MemoryItem"] }),
     action(forgetMemoryItem, { entities: ["MemoryItem"] }),
 ];
