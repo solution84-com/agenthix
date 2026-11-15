@@ -293,7 +293,7 @@ Written on 2026-11-15 from the finished code at the close of the dependency-upda
 **Acceptance criteria:**
 - AC-496a: a change that breaks a dependency rule — an exact version off the allowed list, a switched-off peer check, two versions of TypeScript, esbuild or Prisma, Node's types off Node's major, TypeScript's range wider than patches, an outside image without a digest — fails Checks, naming the module, the file and the rule.
 - AC-496b: the month's minor and patch updates are made together, within each package's ranges, moving only lockfiles, digests and action commits, and reach main only once Checks pass on them.
-- AC-496c: *Retired 2026-11-15*: Release no longer takes the updates itself; the monthly dependency updates are made on the dev machine (AC-496f).
+- AC-496c: *Retired 2026-11-15*: Release no longer starts the updates on GitHub; the monthly dependency updates are made on the dev machine (AC-496f).
 - AC-496d: every install, in CI, the images and a new checkout, installs exactly the committed lockfile, and CI fails when one changes it.
 - AC-496e: a dev start stops when the branch is behind GitHub and installs a module whose lockfile changed, without pulling.
 - AC-496f: the repository itself says when the monthly dependency updates are due: from the 1st at every dev start and at the top of the full and affected regressions, and Release stops while the month isn't done (Checks does not enforce it); a dry run and a patch release never wait for them.
