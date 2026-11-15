@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 // What an update run moved, put together from the three parts' JSON (scripts/deps/npm.mjs, images.mjs, actions.mjs):
 // printed as a summary in Markdown, by module, version to version. With --record, the run is also recorded in
-// scripts/deps/taken.json (the file Release's first stage reads: scripts/release/updates-taken.mjs) and the rebuild
-// epoch in scripts/images/parts.json is raised by one, so every image is built again and takes its system packages'
-// fixes. Run by scripts/deps/update.sh.
+// scripts/deps/taken.json, with the month it ran in Australia/Sydney (the month scripts/deps/due.mjs reads), and the
+// rebuild epoch in scripts/images/parts.json is raised by one, so every image is built again and takes its system
+// packages' fixes. Run by scripts/deps/update.sh.
 //   node scripts/deps/record.mjs --npm <file> --images <file> --actions <file> [--record]
-//   node scripts/deps/record.mjs --taken <file>      (the summary of a run already recorded)
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { sydneyMonth } from './due.mjs'
 
-export function taken(date, npm, images, actions) {
+export function taken(date, month, npm, images, actions) {
   const moved = {}
   for (const { module, ...move } of [...npm.moves, ...images, ...actions]) (moved[module] ??= []).push(move)
   const sorted = o => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)))
-  return { date, moved: sorted(moved), others: sorted(npm.others) }
+  return { date, month, moved: sorted(moved), others: sorted(npm.others) }
 }
 
 export function summary(record) {
@@ -44,10 +44,10 @@ export function raiseEpoch(text) {
 function main() {
   const arg = name => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : undefined }
   const read = f => JSON.parse(fs.readFileSync(f, 'utf8'))
-  if (arg('--taken')) { process.stdout.write(summary(read(arg('--taken')))); return }
   if (!arg('--npm') || !arg('--images') || !arg('--actions')) throw new Error('Usage: node scripts/deps/record.mjs --npm <file> --images <file> --actions <file> [--record]')
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-  const record = taken(new Date().toISOString().slice(0, 10), read(arg('--npm')), read(arg('--images')), read(arg('--actions')))
+  const now = new Date()
+  const record = taken(now.toISOString().slice(0, 10), sydneyMonth(now).month, read(arg('--npm')), read(arg('--images')), read(arg('--actions')))
   if (process.argv.includes('--record')) {
     fs.writeFileSync(path.join(root, 'scripts/deps/taken.json'), `${JSON.stringify(record, null, 2)}\n`)
     const parts = path.join(root, 'scripts/images/parts.json')

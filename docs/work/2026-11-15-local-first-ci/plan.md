@@ -36,8 +36,8 @@ close, then one push.
 
 - [ ] 1.1 `scripts/deps/due.mjs` (done / due / overdue by calendar month, Australia/Sydney) and its tests; the month
       recorded in `taken.json` by `update.sh`
-- [ ] 1.2 The reminder: a line at dev start (`fresh.sh`) and in the regression runner from the 1st; a Checks job that
-      warns from the 1st and fails from the 8th
+- [ ] 1.2 The reminder: a line at dev start (`fresh.sh`) and at the top of the full and affected regressions from
+      the 1st (no Checks job; Release's stage 0 enforces)
 - [ ] 1.3 Release's stage 0 stops when the month isn't done and starts nothing; `take-updates.yml` removed, with what
       only it referenced
 - [ ] 1.4 "Take the updates" renamed "the monthly dependency updates" in code and documents
@@ -84,7 +84,8 @@ minutes for most unit closes, about 40 for the monthly dependency updates.
 - [ ] 3.1 `scripts/deps/deferred.json` and `scripts/deps/security.mjs` (open alerts, deferred ones left out until
       their month, deadlines: 7 days for shipped critical/high, the month otherwise) and its tests; confirm the
       workflow token may read the alerts
-- [ ] 3.2 The reminders: a line at dev start, a Checks job (warning from day 1, failure after day 7), Release's stage 0,
+- [ ] 3.2 The reminders: a line at dev start and at the top of the full and affected regressions (from the alert's
+      opening), Release's stage 0 (stops after day 7),
       and the triage step in the monthly dependency updates
 - [ ] 3.3 The full triage of today's 66 alerts (`execution/security-triage.md`): firebase removed from hq; vitest 4 in
       site, host, console, core, relay and the cross-app suite; the OpenCode plugin's deferred; the rest each fixed,
@@ -110,7 +111,7 @@ minutes for most unit closes, about 40 for the monthly dependency updates.
 | The updates made locally, not on GitHub | A workflow can only be tested by running it on GitHub; a local change is tested in minutes, then confirmed once |
 | `take-updates.yml` removed, not kept as a fallback | It chained four steps nobody watched and moved main by itself; a fallback nobody runs rots |
 | The reminder is the repository's own record | Nobody looks at an outside reminder; the month in `taken.json` is committed with the updates |
-| Checks fails from the 8th | A warning alone can be ignored; a week's grace, then nothing merges until the month is done |
+| Release's stage 0 is the only enforcement | Reminders sit where people look; a failing Checks on main only stops Release, which stage 0 already does |
 | Every alert gets a decision; shipped critical/high within 7 days | An alert without a decision is noise next month; a known hole in shipped code can't wait a month |
 | Decisions recorded in the repository (`deferred.json`) and in GitHub (dismissals) | Nobody re-works the same list; a deferred alert comes back in its month |
 | No new pre-push step | The full regression at a unit's close is the local check; CI catches the rest |
@@ -120,3 +121,4 @@ minutes for most unit closes, about 40 for the monthly dependency updates.
 
 | Phase | What changed | Why |
 |---|---|---|
+| Phase 1/3 | The Checks job removed; Release's stage 0 is the only enforcement | Owner: Checks failing on main only stops Release, which stage 0 already does, and would block contributors' pull requests for something not theirs |

@@ -64,4 +64,13 @@ check "a second run, nothing changed, installs nothing @SC-2165" $?
 echo 'v99.0.0' >"$W/.nvmrc"
 msg="$(run)"; [[ "$msg" == *".nvmrc names Node 99.0.0"* ]]
 check "a different Node in .nvmrc is said in one line @SC-2165" $?
+mkdir -p "$W/scripts/deps"
+printf 'console.log("Dependency updates for December are overdue: run the monthly dependency updates.")\n' >"$W/scripts/deps/due.mjs"
+printf 'console.log("1 security alert needs a decision (high: undici in hq, 3 days left).")\n' >"$W/scripts/deps/security.mjs"
+msg="$(run)"; rc=$?
+[ $rc -eq 0 ] && [[ "$msg" == *"Dependency updates for December are overdue"* ]] && [[ "$msg" == *"1 security alert needs a decision"* ]]
+check "the monthly dependency updates and security alerts are said at every start" $?
+
+printf 'process.exit(3)\n' >"$W/scripts/deps/security.mjs"
+run >/dev/null; check "a reminder that fails does not stop the start" $?
 exit $FAILS

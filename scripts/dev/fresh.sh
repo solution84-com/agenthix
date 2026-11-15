@@ -10,6 +10,9 @@
 #     of the install (node_modules/.package-lock.json). A module with no
 #     node_modules is left alone.
 #   - Says so in one line when .nvmrc names a different Node from the one running.
+#   - Says, in one line each, when the monthly dependency updates are due
+#     (scripts/deps/due.mjs) and when security alerts need a decision
+#     (scripts/deps/security.mjs, with your GitHub login). Neither stops the start.
 #
 # Called first by hq/scripts/dev/start.sh and by the "[dev:site] Start" task, so
 # "[dev] Start All" runs it for both; the two runs take turns (a lock), so the
@@ -72,3 +75,7 @@ if [ -f "$ROOT/.nvmrc" ]; then
     *) echo "fresh: .nvmrc names Node $want but this is Node ${have:-none}; switch (nvm use) before relying on this install." ;;
   esac
 fi
+
+for reminder in due security; do
+  if [ -f "$ROOT/scripts/deps/$reminder.mjs" ]; then node "$ROOT/scripts/deps/$reminder.mjs" --line 2>/dev/null || true; fi
+done

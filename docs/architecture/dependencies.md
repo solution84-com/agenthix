@@ -1,9 +1,9 @@
 # Dependencies
 
 Agenthix is built from outside software: npm packages, base images and workflow actions. Each is pinned to an exact
-version, so a release is exactly what was tested, and each moves only when we move it: once a month at most, as the
-first part of a release, by a step of our own, *Take the updates*, under rules that keep every package within what
-the others require of it. The decision is [ADR-0191](../adr/adr-0191-dependencies-are-updated-by-our-own-step-as-part-of-releasing.md);
+version, so a release is exactly what was tested, and each moves only when we move it: once a month, in **the monthly
+dependency updates**, made and tested on the dev machine, under rules that keep every package within what the others
+require of it. The rules are [ADR-0191](../adr/adr-0191-dependencies-are-updated-by-our-own-step-as-part-of-releasing.md)'s;
 this document is how it works today.
 
 ## What we depend on, and how each is pinned
@@ -26,12 +26,12 @@ Each rule exists because breaking it once cost something. **The check in Checks 
 | Rule | Why |
 |---|---|
 | **`package.json` states the range we accept; the lockfile is the pin.** Versions are ranges (`^1.2.3`), and an update moves only the lockfile, within them. ✓ | An exact version never moves, so a patch or a security fix could only be taken by editing the file by hand. |
-| **A version is exact only where an outside tool needs it** (the allowed list, `ALLOWED_EXACT` in `scripts/deps/check.mjs`): hq's Wasp command line (`@wasp.sh/wasp-cli`), `prisma` and `typescript`; site's `prisma` and `@prisma/client`; `site/opencode-plugin`'s `@opencode-ai/plugin`. ✓ | Wasp builds against one Prisma and one TypeScript, and compares the text of hq's `package.json` with its own list, so the step never rewrites a range. Site's Prisma client and command line move as one. The OpenCode plugin is built against the OpenCode the agent image installs, so it equals the image's `OPENCODE_VERSION`. |
+| **A version is exact only where an outside tool needs it** (the allowed list, `ALLOWED_EXACT` in `scripts/deps/check.mjs`): hq's Wasp command line (`@wasp.sh/wasp-cli`), `prisma` and `typescript`; site's `prisma` and `@prisma/client`; `site/opencode-plugin`'s `@opencode-ai/plugin`. ✓ | Wasp builds against one Prisma and one TypeScript, and compares the text of hq's `package.json` with its own list, so the update script never rewrites a range. Site's Prisma client and command line move as one. The OpenCode plugin is built against the OpenCode the agent image installs, so it equals the image's `OPENCODE_VERSION`. |
 | **Below 1.0, a caret already means patch only** (`^0.28.2` allows `0.28.x`). | npm reads it that way, so the 0.x packages need no list of their own. |
 | **TypeScript takes patches only** (`~6.0.3`; hq's is exact). ✓ | TypeScript does not follow semantic versioning: a minor version may break the typecheck. |
 | **One version across modules** for `typescript`, `esbuild` and `prisma`, counted in each module that names the package itself. ✓ | Two compilers or two Prismas give two answers to the same code. A copy another package brings in is that package's choice, and is not counted. |
 | **The Node types follow Node's major**: `@types/node` is `^24.0.0` (the text Wasp requires), on the major `.nvmrc` names. ✓ | Types from another Node describe functions the running Node may not have. |
-| **Peer dependencies are checked everywhere**: no `legacy-peer-deps` in any `.npmrc`, Dockerfile, workflow or script. ✓ | Switched off, it hid a real conflict: site's Claude Agent SDK needed zod 4 while site had zod 3. A conflict now fails `npm install`, where the step sees it. |
+| **Peer dependencies are checked everywhere**: no `legacy-peer-deps` in any `.npmrc`, Dockerfile, workflow or script. ✓ | Switched off, it hid a real conflict: site's Claude Agent SDK needed zod 4 while site had zod 3. A conflict now fails `npm install`, where the update script sees it. |
 | **Every image from outside names a digest.** ✓ | A tag can be moved by its publisher; a digest is the image we tested. |
 | **Updates are minor and patch only.** A major is taken by hand ([below](#taking-a-major)). | A major is a change of behaviour, decided on purpose; bundled with routine fixes it is neither reviewed nor proved on its own. |
 | **Every install installs exactly the lockfile** ([below](#exact-installs)). | Otherwise CI, the images and a new checkout each run versions nobody committed. |
@@ -64,36 +64,13 @@ together (a lockfile is regenerated with `npm install` in that module; hq's with
 [below](#exact-installs)); pin an image by its digest (`docker buildx imagetools inspect <name>:<tag>` prints it). An
 exact version that an outside tool really requires goes on the allowed list, with the reason, in the same change.
 
-## How updates are taken
+## The monthly dependency updates
 
-You press **Release**. When the updates are due, Release takes them first, and starts itself again when they are on
-`main`.
+Once a month, on the dev machine, and tested there before anything is pushed:
 
-```mermaid
-flowchart TD
-    R["Release, on main, with the version"] --> S0{"0. The month's updates:<br>taken within a month?"}
-    S0 -->|"yes, or a dry run, or a patch"| GO["The release goes on: stages 1 to 5"]
-    S0 -->|"no"| TU["Release starts Take the updates<br>with its version, and ends"]
-    TU --> U["1. The updates, on updates/date;<br>the epoch raised, the run recorded"]
-    U --> P["2. The branch pushed"]
-    P --> C{"3. Checks on the branch"}
-    C -->|"fail"| F["Nothing moves; the branch stays.<br>Fix it there, run again with the branch"]
-    C -->|"pass"| M["4. main fast-forwarded to it,<br>the branch deleted"]
-    M --> R2["5. Release started again on main,<br>same version"]
-    R2 --> S0
-```
-
-**Stage 0 of Release** (`.github/workflows/release.yml`, the job *0. The month's updates*) reads the date in
-`scripts/deps/taken.json` (`scripts/release/updates-taken.mjs`). The release goes on until one calendar month after
-that date (taken on 15 November, it goes on through 15 December; taken on 31 January, through the last day of
-February). After that it starts *Take the updates* with the release's version, says so on its page, and builds nothing.
-A dry run, and a release on a `release/*` branch (a patch), skip the stage.
-
-**Take the updates** (`.github/workflows/take-updates.yml`) runs on `main` only, in the same concurrency group as a
-real Release, so the two never run at once (dry runs have a group of their own):
-
-1. **The updates** are made by `scripts/deps/update.sh --record`, from a clean checkout, in a job that holds no secret
-   (the installs run packages' own scripts):
+1. **A branch** `chore/deps-<yyyy-mm>` from `main`.
+2. **The updates**: `scripts/deps/update.sh --record`, from a clean checkout. It needs the network (the npm registry,
+   the image registries, github.com):
    - **npm**: `npm update --package-lock-only` in every module with a lockfile, within its ranges. Only lockfiles
      move; a `package.json` that changes, or an update npm refuses (a peer conflict), fails the run and names the
      module. hq is compiled first when it has not been, since its lockfile also pins the packages of the code Wasp
@@ -106,41 +83,34 @@ real Release, so the two never run at once (dry runs have a group of their own):
    - **The rebuild epoch** (`rebuildEpoch` in `scripts/images/parts.json`) is raised by one, every run. It is an input
      of every image's content key ([versioning.md](versioning.md#an-images-content-key)), so the next release build
      rebuilds every image and takes the fixes to the system packages the images install, which are not pinned.
-   - **The run is recorded** in `scripts/deps/taken.json`: the date, and what moved, by module, version to version.
-     With nothing to update, the run is still recorded and the epoch still raised, so Release sees the step ran.
-2. **The branch** `updates/<yyyy-mm-dd>` is pushed as one commit, with the release-pin deploy key (a workflow's own
-   token may not change workflow files). It is outside `release/**`, so its push starts nothing by itself. A branch
-   of that name already there stops the run.
-3. **Checks** is started on the branch with every job selected, and waited for.
-4. **Checks passed**: `main` is fast-forwarded to the proved commit, and the branch deleted.
-5. **Started by Release**: Release is started again on `main` with the same version; stage 0 now finds the updates
-   taken, and the release goes on. **That release's build is the updates' one image build**: images, the install
-   test and the screenshots.
+   - **The run is recorded** in `scripts/deps/taken.json`: the date, **the month** (`"month": "2026-11"`, in
+     Australia/Sydney time), and what moved, by module, version to version. With nothing to update, the run is still
+     recorded and the epoch still raised.
+   - It prints what moved, then every open security alert to decide ([below](#security-alerts)).
+3. **The full regression, with the upgrade test** (`scripts/regression/run.mjs --full --upgrade-test`, the
+   `testing-a-change` skill: the updates move the images an installation runs), which this change
+   touches every module of. Fix what fails on the branch (usually a link between files that move together: a version
+   named in two places, a type a new release tightened). An update that still fails after two attempts is held back
+   for the month (its range pinned in that module, said in the commit) rather than worked around.
+4. **Every open security alert decided** ([below](#security-alerts)).
+5. **One push**; Checks confirms; merged to `main` with the owner's say-so. Release ships what `main` holds.
 
-The run's summary lists what moved and ends with what to do locally ([below](#local-copies)).
+Without `--record`, `update.sh` makes the same changes and prints what moved, without recording the run or raising the
+epoch.
 
-**When Checks fails**, nothing moves: the branch stays, and the summary names the failed run and its jobs. Fix it on
-that branch (usually a link between files that move together: a version named in two places, a type a new release
-tightened), push, and run the step again with the branch as input. It skips the updates and proves the branch as it
-stands:
+### Knowing a month has passed
 
-```sh
-gh workflow run take-updates.yml --ref main -f branch=updates/2026-12-01 \
-  -f version=0.1.0-alpha.6 -f then_release=true
-```
+The record is the repository itself: **a month is done when the month in `taken.json` is the current month**, in
+Australia/Sydney, wherever the check runs, so the dev machine and GitHub's runners (UTC) agree on when the 1st is.
+`scripts/deps/due.mjs` decides, and every place below calls it:
 
-Without `version` and `then_release`, it lands the branch and stops: run Release afterwards.
+| From | Where | What it says or does |
+|---|---|---|
+| The 1st of a month not done | every dev start (`scripts/dev/fresh.sh`) and the top of the full and affected regressions' output | "Dependency updates for December aren't done: run the monthly dependency updates." |
+| The 8th | the same places, saying *overdue* in place of *aren't done*; nothing else changes, because Checks does not enforce the month | "Dependency updates for December are overdue: run the monthly dependency updates." |
+| Any day of a month not done | Release's stage 0 stops, starting nothing | "Dependency updates for December aren't done: run the monthly dependency updates first." |
 
-**When `main` moved** while the updates were proved, the fast-forward is refused and nothing moves. Delete the
-`updates/<date>` branch and run the step again, or run Release again, which starts it.
-
-**When the release build fails** after the updates landed, nothing is tagged or published. It is fixed as any failed
-release is (the `releasing` skill): on a branch, proved by a Release dry run there, landed on `main` as one commit,
-and Release run again. Stage 0 does not take the updates a second time: they are within the month.
-
-**By hand**, without a release: `gh workflow run take-updates.yml --ref main`. On the dev machine,
-`scripts/deps/update.sh` makes the same changes in a clean checkout and prints what moved, without recording the run
-or raising the epoch; committing them is yours, and they land only through Checks like any change.
+Release's stage 0 is the only enforcement. A patch on a release branch is not stopped, and neither is a Release dry run.
 
 ## Exact installs
 
@@ -157,28 +127,64 @@ What runs is what was committed. Everywhere a module is installed for CI, an ima
 
 ## Local copies
 
-The step moves `main` on GitHub and changes lockfiles. On a local copy:
+The monthly dependency updates change lockfiles. On a local copy:
 
 - **The dev start checks** (`scripts/dev/fresh.sh`, run first by `hq/scripts/dev/start.sh` and by the
   `[dev:site] Start` task, so by `[dev] Start All`). It fetches `origin` and stops when the branch is behind its
   upstream ("This branch is behind GitHub: pull first"); it never pulls, so local work is never moved behind your
   back. Then, in each module already installed, it runs `npm install` when the lockfile is newer than the last install
   (hq's install script when Wasp's code is not generated). It says so when `.nvmrc` names another Node than the one
-  running.
-- **After a Node move**, install that Node on the dev machine (`nvm install`); the step's summary says when it moved.
+  running, and says, one line each, when the monthly dependency updates are due and when security alerts need a
+  decision. Neither of those stops the start.
+- **After a Node move**, install that Node on the dev machine (`nvm install`); the updates' summary says when it moved.
 - **Git refuses a push** of a branch behind GitHub, so the updates are never pushed over.
 
 ## Security alerts
 
-Dependabot's **security alerts** are on in the repository's settings; its version updates are not used. An alert
-tells the maintainers, between releases, of a known hole in something we use, and changes nothing. One marked
-critical is fixed at once, as its own change: the fixed version taken in the module's lockfile (within its range,
-or as a major, [below](#taking-a-major)), proved by Checks and, when it reaches an image, a Release dry run. The rest
-wait for the next month's updates.
+GitHub's **security alerts** (Dependabot alerts) are on in the repository's settings; Dependabot's version updates are
+not used. They list every known hole in what our lockfiles install, and change nothing. **Every alert gets a
+decision**; the count is never the goal, the exposure is:
+
+| Decision | When | Where it is recorded |
+|---|---|---|
+| **Fixed** | A version within range, a removal, or a major taken on purpose ([below](#taking-a-major)) | The fix itself; GitHub closes the alert |
+| **Dismissed, with a reason** | Not used, not reachable from outside, or a tolerable risk | Dismissed in GitHub with the reason |
+| **Deferred, to a named month** | Its fix needs a major or another change first | `scripts/deps/deferred.json`, committed; it comes back in that month |
+
+A fix is never a workaround, and no check is switched off to clear an alert.
+
+**How soon:** a **critical or high alert in shipped code** (a runtime dependency of a module an image installs, so not
+the root's tools or the cross-app suite) is decided within **7 days** of GitHub opening it: warned about from the day GitHub
+opens it, at every dev start and at the top of the full and affected regressions, and after day 7 Release stops. Any other alert (medium or low, or development-only) is decided in the
+next monthly dependency updates.
+
+`scripts/deps/security.mjs` reads the open alerts with `gh api` (your own GitHub login on the dev machine; in Release,
+the workflow's token with `vulnerability-alerts: read`), leaves out those deferred until their month, and
+says which need a decision and by when:
+
+- `--line`, at every dev start: "2 security alerts need a decision (high: undici in hq, 3 days left)." Silent when
+  the alerts can't be read (no login, no network).
+- `--release`, in Release's stage 0: stops past the 7 days, and when the alerts can't be read.
+- `--triage`, at the end of `update.sh`: every open alert by package and module, with its severity, whether it ships,
+  the version that fixes it and when it must be decided, then the deferred ones.
+
+A deferral in `deferred.json`, one entry per package and module:
+
+```json
+[
+  {
+    "package": "toml",
+    "module": "site/opencode-plugin",
+    "alerts": [188, 189, 190, 193],
+    "reason": "Fixed only in the next OpenCode release, which is a major taken on its own",
+    "lookAgain": "2027-01"
+  }
+]
+```
 
 ## Taking a major
 
-A major version is never taken by the step. It is taken on purpose, usually only when something forces it (a package
+A major version is never taken by the monthly dependency updates. It is taken on purpose, usually only when something forces it (a package
 we depend on requires it, or the version we are on stops receiving fixes):
 
 1. **Everywhere at once**: every module that uses the package moves in the same change, so the one-version rule holds.

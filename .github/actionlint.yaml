@@ -1,0 +1,7 @@
+# actionlint's own settings (it reads this file from the repository's root).
+paths:
+  .github/workflows/**/*.{yml,yaml}:
+    ignore:
+      # GitHub's permission for reading Dependabot alerts with a workflow's token, which actionlint 1.7.12 does not
+      # know yet (the workflow syntax reference lists it). Remove once a release of actionlint does.
+      - 'unknown permission scope "vulnerability-alerts"'

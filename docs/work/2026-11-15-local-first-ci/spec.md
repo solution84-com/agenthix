@@ -89,12 +89,12 @@ No outside reminder (no GitHub issue, no calendar): nobody looks at them. The re
   updates. **A month is done when that equals the current month**; otherwise it is due.
 - **One clock**: the current month in **Australia/Sydney**, wherever the check runs, so the dev machine and GitHub's
   runners (UTC) agree on when "the 1st" is.
-- **From the 1st of a month that isn't done:** one line at every dev start (`scripts/dev/fresh.sh`), in the regression
-  runner's output, and a warning on Checks' page — "Dependency updates for December aren't done: run the monthly
+- **From the 1st of a month that isn't done:** one line at every dev start (`scripts/dev/fresh.sh`), at the top of the full
+  and affected regressions' output — "Dependency updates for December aren't done: run the monthly
   dependency updates."
-- **From the 8th:** Checks fails ("Dependency updates for December are overdue"), so nothing merges to `main` until
-  they are done; the dependency-updates branch passes, because it carries the new month. A patch on a release branch
-  is not blocked.
+- **From the 8th:** the same lines say "Dependency updates for December are overdue". Checks does not enforce the
+  month: a failing Checks on `main` only stops Release, which stage 0 already does, and would block contributors'
+  pull requests for something not theirs.
 - **Release** stops (stage 0) whenever the current month isn't done: "Dependency updates for <month> aren't done: run
   the monthly dependency updates first." A dry run and a patch on a release branch skip it. It starts nothing.
 
@@ -130,7 +130,7 @@ clear an alert.
 
 | Alert | Decide by | Until then |
 |---|---|---|
-| **Critical or high, in shipped code** (a runtime dependency of something an image installs) | **7 days** after GitHub opened it | Warnings from day 1; Checks fails after day 7 |
+| **Critical or high, in shipped code** (a runtime dependency of something an image installs) | **7 days** after GitHub opened it | Warnings from day 1; Release stops after day 7 |
 | **Medium or low in shipped code; anything development-only** | **The next monthly dependency updates** | Listed in that month's triage |
 
 ### 6.3 Where we are reminded — inside the repository
@@ -140,12 +140,11 @@ One small script, `scripts/deps/security.mjs`, reads the open alerts (GitHub's A
 
 1. **Every dev start** (`scripts/dev/fresh.sh`), with the person's own GitHub login: "2 security alerts need a
    decision (high: undici in hq, 3 days left)."
-2. **Checks**, every push and pull request: a warning from day 1; a failure after the 7 days, for critical or high in
-   shipped code with no decision.
+2. **The top of the full and affected regressions**: the same line, from the alert's opening.
 3. **The monthly dependency updates**: after `update.sh`, a full triage of every open alert, each decided (§3).
 4. **Release** stops (stage 0) while a critical or high alert in shipped code has passed its 7 days with no decision.
 
-Before Checks relies on it: confirm the workflow's own token may read Dependabot alerts; if not, a token with only
+Before Release relies on it: confirm the workflow's own token may read Dependabot alerts; if not, a token with only
 that permission, kept as a repository secret.
 
 ### 6.4 The full triage, in this unit
@@ -179,6 +178,6 @@ it unchanged. ADR-0191 is marked *Superseded by ADR-0192*.
 - Release's stage 0: a unit test of the rule; a dry run passes through.
 - Each row of §2 marked *Add* runs in the full regression, and fails it when it should (one deliberate break each).
 - `security.mjs`: unit tests for the deadlines (7 days for shipped critical/high, the month otherwise), deferred
-  alerts left out until their month, and the dev-start, Checks and Release outcomes.
+  alerts left out until their month, and the dev-start and Release outcomes.
 - The full triage: every open alert fixed, dismissed with a reason in GitHub, or deferred in `deferred.json`; none
   left without a decision.
