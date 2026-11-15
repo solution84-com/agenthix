@@ -9,7 +9,6 @@ Use this skill to systematically identify skill candidates from completed work.
 
 ## When to Use
 
-- In your standing job, during the pattern scan step
 - When asked by the user to review recent work for patterns
 - Before starting an `audit-skills` pass — fresh observation gives context for what is missing
 

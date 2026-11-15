@@ -5,7 +5,7 @@ description: Execute the Vitest test suite, interpret the results, and report on
 
 # Run Tests
 
-Use this skill to execute the test suite and interpret the results. Use it in your standing job and before any QA verdict.
+Use this skill to execute the test suite and interpret the results. Use it before any QA verdict.
 
 ## Setup
 

@@ -5,7 +5,7 @@ description: Read the project roadmap, the brief for the unit of work in hand, a
 
 # Read Context
 
-Use this skill at the start of every planning session and at the top of every run of your standing job. Establish what is current before doing anything.
+Use this skill at the start of every planning session. Establish what is current before doing anything.
 
 ## Step 1: Read Strategic Artifacts
 
