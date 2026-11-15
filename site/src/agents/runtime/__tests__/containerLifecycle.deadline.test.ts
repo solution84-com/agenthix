@@ -17,7 +17,7 @@ vi.mock('node:fs/promises', () => ({
   },
 }))
 vi.mock('../../../server/utils/logger', () => ({
-  Logger: vi.fn().mockImplementation(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
+  Logger: vi.fn().mockImplementation(function () { return ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }),
 }))
 vi.mock('../../../server/hq/hqConnection', () => ({
   hqConnectionManager: { sendEvent: vi.fn() },

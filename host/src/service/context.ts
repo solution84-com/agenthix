@@ -69,6 +69,19 @@ export type Context = {
   log?: (line: string) => void
 }
 
+/** How long HQ is waited for to answer after an install, an upgrade or a move. */
+export const HQ_WAIT_MS = 10 * 60_000
+
+/**
+ * The waits. A development build may wait less for HQ (`HOST_DEV_HQ_WAIT_SECONDS`), so the upgrade test's forced
+ * failure ends in a minute or two rather than ten; a published version ignores it.
+ */
+export function waitsFor(development: boolean, env: NodeJS.ProcessEnv): Context['waits'] {
+  const asked = Number(env.HOST_DEV_HQ_WAIT_SECONDS)
+  const hqMs = development && Number.isInteger(asked) && asked > 0 ? asked * 1000 : HQ_WAIT_MS
+  return { hqMs, siteMs: 3 * 60_000, pollMs: 3_000 }
+}
+
 export type StoredHq = HqSettings & { installedAt: string }
 export type StoredSite = SiteSettings & { installedAt: string }
 

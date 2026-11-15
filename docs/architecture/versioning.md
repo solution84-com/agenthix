@@ -104,9 +104,9 @@ is built once per content and reused until its code changes, so a patch to one p
 - **A test holds the inputs to the Dockerfiles:** `scripts/__tests__/image-parts.test.mjs` parses every `COPY` (not
   `COPY --from`) and fails when a source path is not under one of its part's inputs. A key that missed an input
   would reuse a stale image.
-- **Every `FROM` names a digest**, so a base image moves only on purpose: by *Take the updates*, the step a release
-  starts when the month's updates are due, which moves each to the newest digest of its tag and is proved by Checks
-  before it reaches `main` ([dependencies.md](dependencies.md#how-updates-are-taken)). The keys of the parts built on
+- **Every `FROM` names a digest**, so a base image moves only on purpose: by the monthly dependency updates, which
+  move each to the newest digest of its tag and are proved by the full regression before they reach `main`
+  ([dependencies.md](dependencies.md#the-monthly-dependency-updates)). The keys of the parts built on
   a moved base change.
 - **The rebuild epoch** is raised by one at every run of that step, even when nothing else moved, so the next release
   build rebuilds every image and takes the security fixes of system packages, such as the agent image's, into images

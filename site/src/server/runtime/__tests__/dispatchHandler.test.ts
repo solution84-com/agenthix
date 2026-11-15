@@ -42,10 +42,10 @@ vi.mock('../../../agents/runtime/SiteStreamEmitter', () => ({
 const mockBuildChatSections = vi.hoisted(() => vi.fn())
 const mockBuildTaskSections = vi.hoisted(() => vi.fn())
 vi.mock('../../../agents/AgentPromptBuilder', () => ({
-  AgentPromptBuilder: vi.fn().mockImplementation(() => ({
+  AgentPromptBuilder: vi.fn().mockImplementation(function () { return ({
     buildChatSections: mockBuildChatSections,
     buildTaskSections: mockBuildTaskSections,
-  })),
+  }) }),
 }))
 
 // Spread the real module so exports added later (Task 12's runPackageColumns) stay real.

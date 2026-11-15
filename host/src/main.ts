@@ -16,7 +16,7 @@ import { collectFigures } from './figures/figures'
 import { figuresHandler } from './figures/socket'
 import { HqControl } from './hq/control'
 import { ownerHandler } from './owner/dispatch'
-import { installed, machinePathsFrom, type Context } from './service/context'
+import { installed, machinePathsFrom, waitsFor, type Context } from './service/context'
 import { PRIVATE, SHARED, listen } from './sockets/lineServer'
 import { StateFolder } from './state/folder'
 import { namesFor } from './state/namespace'
@@ -106,7 +106,7 @@ async function main(): Promise<void> {
     figuresWarning: figuresVolumeWarning(readMountInfo(), FIGURES_MOUNT, names.hostFiguresVolume),
     sleep: ms => new Promise(resolve => setTimeout(resolve, ms)),
     now: () => new Date(),
-    waits: { hqMs: 10 * 60_000, siteMs: 3 * 60_000, pollMs: 3_000 },
+    waits: waitsFor(version === DEVELOPMENT, process.env),
     backupIO: dockerBackupIO(new DockerStreams(dockerCli, dockerStream, names.hostContainer), state),
     log: line => console.warn(line),
   }

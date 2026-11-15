@@ -19,7 +19,7 @@ description: Use when deciding which tests to run and when — while working, be
 | **While working** | The tests of the files you touched and the typecheck of their modules; the e2e specs for screens you changed; a module's integration suite when you changed a server operation or the data it reads; the cross-app suite when you changed what hq and a site say to each other |
 | **Before a pull request** | The suites of every module it touched |
 | **Before a unit of work merges to `main`** | The regression for what it reaches (below) |
-| **The full regression** | For a unit that changes core's protocol shapes, a database migration, a Dockerfile, the host service or the install, and in every release rehearsal |
+| **The full regression** | For a unit that changes core's protocol shapes, a database migration, a Dockerfile, the host service or the install; in every release rehearsal; and for the monthly dependency updates, with the upgrade test (`--full --upgrade-test`) |
 
 **The regression for what a change reaches.** `node scripts/affected.mjs main` names the modules and suites the change
 reaches — a module's dependents too; any path it has not seen selects everything. Run:
@@ -33,13 +33,32 @@ reaches — a module's dependents too; any path it has not seen selects everythi
   (`node scripts/images/keys.mjs`), and, when any did, the install test (`scripts/install-test/run.sh`: it installs from
   those images at the machine's network address and walks through it in a browser, beside any installation already
   there);
+- the builds CI makes of each module reached (host's with its bundles started, `check:bundles`; the Fleet Console's;
+  console-web's), core's package check and `npm pack --dry-run` when core is reached, and the release's and the install
+  test's script tests whenever core is built;
+- the dependency rules (`scripts/deps/check.mjs` and its tests) and the workflows' lint (`actionlint`, with
+  shellcheck; both must be installed: `brew install actionlint shellcheck`) when the `dependencies` job is reached;
+- always, that every lockfile is as committed after the run's installs (`scripts/deps/held.sh`);
+- with the guide's capture, its comparison with the released screenshots (`npm run guide:compare` in hq; the
+  repository's releases are read with `GH_TOKEN`, else the GitHub CLI's login);
 - the migration check (`scripts/migration-check/run.sh`, under a minute) when `hq/migrations/` or `site/migrations/`
-  changed, and the upgrade test (`scripts/upgrade-test/run.sh`, about 14 minutes: the previous release installed,
-  rows seeded, upgraded to these images and put back from a forced failure, every row checked) when a migration or the
-  host service's upgrade changed, and in the full regression.
+  changed;
+- the upgrade test (`scripts/upgrade-test/run.sh`, about 5 minutes once the images are built: the newest release
+  installed, rows seeded, upgraded to these images and put back from a forced failure, every row checked) **only when
+  what it proves changed** since the base: a migration, the host service's upgrade (`host/src/upgrades/`), or an image
+  an installation runs (hq's and the site's content keys, or the Postgres image `host/src/images/published.ts` names).
+  The monthly dependency updates always run it (`--upgrade-test`). Pulling the release's images needs a Docker login
+  to the registry while the repository is private.
+
+Both checks start from the newest release tag (`git describe --tags --match 'v*' --abbrev=0`) unless
+`MIGRATION_CHECK_FROM` or `UPGRADE_TEST_FROM` says otherwise.
 
 **The full regression** is every module, every suite and every image, plus **one run of the end-to-end and cross-app
-suites with every flag on** (`TEST_ALL_FEATURES=1`; [feature flags](../../../docs/architecture/feature-flags.md)).
+suites with every flag on** (`TEST_ALL_FEATURES=1`; [feature flags](../../../docs/architecture/feature-flags.md)), and
+everything above: every build, the dependency rules, the workflows' lint, the guide's comparison and the migration
+check always; the upgrade test still only when what it proves changed. With these it proves every check CI makes that
+a dev machine can make; what only GitHub can do (signing, publishing, the contributor agreement) has its scripts' tests
+run instead.
 
 ## Running a regression: `scripts/regression/run.mjs`
 
@@ -90,6 +109,12 @@ node scripts/regression/run.mjs --full             # the full regression
   its flag setting. So the runs overlap, never touch the development servers or databases, and a run with every flag on
   leaves nothing switched on. hq runs from one build (`scripts/regression/hq-built.mjs --build`, made once before the
   groups start), since two `wasp start` in one checkout restart each other.
+- **It starts with the repository's reminders**: a line when the monthly dependency updates or a security alert are
+  due (`scripts/deps/due.mjs` and `security.mjs`, `--line`); a reminder never fails or holds up the run. Then it says
+  whether the upgrade test runs, and why.
+- **The settings CI gives are the scripts' own**: Wasp's telemetry off for every step, hq's larger Node heap for its
+  type check and compile (`hq/scripts/install.sh` sets it too), and the robots bundle's token for the image builds
+  (`scripts/images/start-test-all.sh`: `GH_TOKEN`, else `gh auth token`).
 - **Environment per step**: no step inherits `SECRETS_MASTER_KEY`, `TEST_ALL_FEATURES` or a run's own settings from
   your shell; hq's integration step is given a key of its own, and the end-to-end runs `E2E_REQUIRE_SEEDED=1`, so a
   spec missing its seed fails instead of skipping.

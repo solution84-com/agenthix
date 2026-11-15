@@ -8,12 +8,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const registrations = vi.hoisted(() => new Map<string, { schema: Record<string, unknown>; handler: (args: unknown) => Promise<unknown> }>())
 
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
-  McpServer: vi.fn().mockImplementation(() => ({
+  McpServer: vi.fn().mockImplementation(function () { return ({
     tool: (...args: unknown[]) => {
       const name = args[0] as string
       registrations.set(name, { schema: args[args.length - 2] as Record<string, unknown>, handler: args[args.length - 1] as (a: unknown) => Promise<unknown> })
     },
-  })),
+  }) }),
 }))
 
 const { mockCallHqData, FakeHqDataError } = vi.hoisted(() => {

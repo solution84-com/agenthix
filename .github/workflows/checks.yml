@@ -160,7 +160,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - name: The tests of the check and of the update step
+      - name: The tests of the check and of the update scripts
         run: node --test scripts/__tests__/deps-check.test.mjs "scripts/deps/__tests__/*.test.mjs"
       - name: The rules hold
         run: node scripts/deps/check.mjs

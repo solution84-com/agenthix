@@ -15,6 +15,12 @@ cd "$(dirname "$0")/../.." || exit 2
 TOOLS_KEY="$(node scripts/images/keys.mjs --worktree --tools-key)" || { echo "Could not compute the tools stage key." >&2; exit 2; }
 KEYS="$(node scripts/images/keys.mjs --worktree --json)" || { echo "Could not compute the content keys." >&2; exit 2; }
 PARTS="$(node scripts/images/parts.mjs)" || { echo "Could not read scripts/images/parts.json." >&2; exit 2; }
+# hq fetches the robots bundle while building, which needs a GitHub token while the repository is private: GH_TOKEN,
+# else the GitHub CLI's login.
+if [ -z "${GH_TOKEN:-}" ] && command -v gh >/dev/null; then
+  GH_TOKEN="$(gh auth token 2>/dev/null || true)"
+  [ -z "$GH_TOKEN" ] || export GH_TOKEN
+fi
 
 wanted=" $* "
 results=()
@@ -37,7 +43,6 @@ while read -r part file target <&3; do
       # The agent and executor images share one tools stage; its key is what hq compares across an image upgrade.
       case "$part" in agent | executor) args+=(--label "tools-stage-key=$TOOLS_KEY") ;; esac
       [ "$target" = - ] || args+=(--target "$target")
-      # hq fetches the robots bundle while building; a private repository needs a token for it.
       [ -n "${GH_TOKEN:-}" ] && args+=(--secret id=github_token,env=GH_TOKEN)
       if ! docker build "${args[@]}" .; then
         results+=("FAILS  $part: it does not build")

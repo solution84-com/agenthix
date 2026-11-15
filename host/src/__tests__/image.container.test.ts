@@ -85,7 +85,11 @@ describe('the host service image', () => {
   })
 
   it('carries cosign, to check each image’s signature before it fetches it @SC-820', () => {
-    expect(exec('cosign', 'version')).toMatch(/v3\.1\.3/)
+    // The version the Dockerfile pins, which the monthly dependency updates move.
+    const dockerfile = fs.readFileSync(path.join(__dirname, '../../docker/Dockerfile'), 'utf8')
+    const pinned = /cosign\/cosign:(v[\d.]+)@/.exec(dockerfile)?.[1]
+    expect(pinned).toBeDefined()
+    expect(exec('cosign', 'version')).toContain(`GitVersion:    ${pinned}\n`)
   })
 
   it('answers agenthix status on a machine with nothing installed', () => {

@@ -8,7 +8,7 @@ vi.mock('../../../server/hq/hqConnection', () => ({
   hqConnectionManager: { sendEvent: vi.fn(), connectionState: vi.fn(() => 'connected') },
 }))
 vi.mock('../../../server/utils/logger', () => ({
-  Logger: vi.fn().mockImplementation(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
+  Logger: vi.fn().mockImplementation(function () { return ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }),
 }))
 
 import { hqConnectionManager } from '../../../server/hq/hqConnection'

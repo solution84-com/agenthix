@@ -35,9 +35,9 @@ vi.mock('../currentSessionTitle', () => ({ readCurrentSessionTitle: vi.fn() }))
 vi.mock('../../../server/runtime/runTokens', () => ({ revokeRunToken: vi.fn(), issueRunToken: vi.fn() }))
 vi.mock('../../../server/hq/capabilityRenewClient', () => ({ renewCapabilityViaHq: vi.fn() }))
 vi.mock('../../../server/utils/logger', () => ({
-  Logger: vi.fn().mockImplementation(() => ({
+  Logger: vi.fn().mockImplementation(function () { return ({
     info: vi.fn(), warn: vi.fn(), error: vi.fn(), success: vi.fn(),
-  })),
+  }) }),
 }))
 
 import { AgentEngine, maxConcurrentRuns } from '../AgentEngine'

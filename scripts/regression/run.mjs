@@ -6,6 +6,11 @@
 //   node scripts/regression/run.mjs --affected <base>      what the change from <base> reaches
 //   node scripts/regression/run.mjs --full                 everything, the e2e and cross-app suites with every flag on too
 //
+// Either one runs the migration check when a migration changed (the full one always), and the upgrade test only when
+// what it proves changed since the base (main unless --affected names another): a migration, the host service's
+// upgrade, or hq's, the site's or the Postgres image (changes.mjs). It starts with the repository's reminders: the
+// monthly dependency updates or a security alert due (reminders.mjs).
+//
 // Options:
 //   --mode close-out   (default) nothing else is running: one claim on the heavy lock for the whole run, its steps
 //                      at the same time inside it, longest first, as many as the machine has room for (schedule.mjs)
@@ -39,6 +44,7 @@
 // After the builds, the run starts a throwaway database server of its own (testdb.mjs) and every step's test
 // databases go to it (TEST_DB_SERVER_URL); it is removed when the run ends. A step that ends with no test report runs
 // once more whole, alone, at the end.
+//   --upgrade-test     run the upgrade test whatever changed (the monthly dependency updates pass it)
 //   --dry-run          list the steps and stop
 //   --help             this text
 //
@@ -58,6 +64,8 @@ import { LIGHT_MAX, estimates, lightAllowance, longestFirst, readCores, readDura
 import { CpuMeter } from './cpu.mjs'
 import { startTestDatabase } from './testdb.mjs'
 import { ROOT } from './stack.mjs'
+import { readChanges } from './changes.mjs'
+import { reminderLines } from './reminders.mjs'
 
 const MAX_RERUNS = 25
 const CORES = availableParallelism()
@@ -68,7 +76,7 @@ const KEPT_CORES = join(ROOT, 'node_modules/.cache/regression/cores.json')
 
 function parseArgs(argv) {
   const o = { mode: 'close-out', base: 'main', full: false, only: null, logs: null, minFree: 25, dryRun: false, prepare: true,
-    maxGroups: Infinity, maxStacks: Infinity, durations: null, slots: null, lightMax: LIGHT_MAX }
+    maxGroups: Infinity, maxStacks: Infinity, durations: null, slots: null, lightMax: LIGHT_MAX, upgradeTest: false }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     const next = () => argv[++i]
@@ -85,6 +93,7 @@ function parseArgs(argv) {
     else if (a === '--durations') o.durations = resolve(next())
     else if (a === '--dry-run') o.dryRun = true
     else if (a === '--no-prepare') o.prepare = false
+    else if (a === '--upgrade-test') o.upgradeTest = true
     else if (a === '--help') {
       // The options are this file's opening comment.
       const text = readFileSync(fileURLToPath(import.meta.url), 'utf8')
@@ -111,9 +120,10 @@ function staleImageParts() {
 }
 
 function selection(o) {
-  if (o.full) return fullSelection()
+  const changes = readChanges({ root: ROOT, base: o.base, asked: o.upgradeTest })
+  if (o.full) return fullSelection({ changes })
   const result = JSON.parse(execFileSync('node', ['scripts/affected.mjs', o.base, '--json'], { cwd: ROOT, encoding: 'utf8' }))
-  return selectionFromAffected(result, { staleImageParts: staleImageParts() })
+  return selectionFromAffected(result, { staleImageParts: staleImageParts(), changes })
 }
 
 // The steps running now. Stopped with the runner, so that a stopped run leaves no suite, stack or server behind: each
@@ -300,10 +310,13 @@ export async function main(argv, deps = {}) {
   const o = parseArgs(argv)
   const logs = o.logs ?? defaultLogs()
   mkdirSync(logs, { recursive: true })
-  let steps = deps.steps ?? planSteps(selection(o), { logs })
+  for (const line of (deps.reminders ?? (() => reminderLines({ root: ROOT })))()) console.log(line)
+  const sel = deps.steps ? null : selection(o)
+  let steps = deps.steps ?? planSteps(sel, { logs })
   if (o.only) steps = steps.filter((s) => o.only.has(s.group) || o.only.has(s.id) || (o.prepare && s.group === 'prepare'))
   if (!o.prepare) steps = steps.filter((s) => s.group !== 'prepare')
   console.log(`regression: ${o.full ? 'full' : `what the change from ${o.base} reaches`}, ${o.mode} mode; logs in ${logs}`)
+  if (sel) console.log(sel.upgradeTest ? `  the upgrade test runs: ${sel.upgradeTest}` : `  no upgrade test: nothing it proves changed since ${o.base} (--upgrade-test runs it anyway)`)
   const durationsPath = deps.durationsPath ?? KEPT_DURATIONS
   const est = estimates(steps, readDurations(o.durations ?? durationsPath))
   const coresPath = deps.coresPath ?? (deps.durationsPath ? join(dirname(deps.durationsPath), 'cores.json') : KEPT_CORES)

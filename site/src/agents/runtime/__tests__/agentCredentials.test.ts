@@ -13,11 +13,11 @@ vi.mock('node:fs/promises', () => ({
 }))
 
 vi.mock('../../../server/utils/logger', () => ({
-  Logger: vi.fn().mockImplementation(() => ({
+  Logger: vi.fn().mockImplementation(function () { return ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  })),
+  }) }),
 }))
 
 // Mocked at the module boundary (matching AgentContainerManager.test.ts's own

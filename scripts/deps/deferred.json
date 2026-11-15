@@ -1,0 +1,16 @@
+[
+  {
+    "package": "morgan",
+    "module": "hq",
+    "alerts": [84, 122, 125],
+    "reason": "Wasp's generated server pins morgan ~1.10.0; the fix (1.12.1) needs Wasp's next version. Risk: log forging in hq's own request log, no data exposure.",
+    "lookAgain": "2026-12"
+  },
+  {
+    "package": "@opencode-ai/plugin (toml, zod, effect)",
+    "module": "site/opencode-plugin",
+    "alerts": [188, 189, 190, 191, 192, 193],
+    "reason": "Development build of the site's OpenCode plugin; the versions come from OpenCode's plugin package, pinned to the OpenCode the agent image installs. Fixed by the next OpenCode version, its own change.",
+    "lookAgain": "2026-12"
+  }
+]

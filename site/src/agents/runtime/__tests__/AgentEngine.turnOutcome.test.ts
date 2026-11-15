@@ -50,10 +50,10 @@ vi.mock('node:fs/promises', () => ({
 }))
 
 vi.mock('../../AgentPromptBuilder', () => ({
-  AgentPromptBuilder: vi.fn().mockImplementation(() => ({
+  AgentPromptBuilder: vi.fn().mockImplementation(function () { return ({
     buildChatPrompt: vi.fn().mockResolvedValue({ systemPrompt: 'system prompt' }),
     buildTaskPrompt: vi.fn().mockResolvedValue({ systemPrompt: 'system prompt' }),
-  })),
+  }) }),
 }))
 
 // Spread the real module so exports added later (Task 12's runPackageColumns) stay real.
@@ -83,10 +83,10 @@ vi.mock('../SiteStreamEmitter', () => ({
 }))
 
 vi.mock('../selectRuntime', () => ({
-  selectRuntime: vi.fn().mockImplementation(() => ({
+  selectRuntime: vi.fn().mockImplementation(function () { return ({
     async sessionExists() { return true },
     run: (context: any) => h.script!(context),
-  })),
+  }) }),
 }))
 
 import { agentEngine } from '../AgentEngine'

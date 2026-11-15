@@ -13,7 +13,15 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    // ui's source is compiled here too, and ui installs its own React types for its tests: without this, the two
+    // copies clash. One copy, console-web's, as CI links it.
+    "paths": {
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "react-dom": ["./node_modules/@types/react-dom"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"]
+    }
   },
   "include": ["src"],
   "exclude": ["src/__tests__"]

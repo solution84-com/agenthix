@@ -5,7 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 vi.mock('../../utils/logger', () => ({
-  Logger: vi.fn().mockImplementation(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
+  Logger: vi.fn().mockImplementation(function () { return ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }),
 }))
 
 import { HostFigures, PROTECTIONS_MISSING, parseReading, readFiguresSocket } from '../hostFigures'

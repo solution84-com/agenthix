@@ -247,7 +247,7 @@ sequenceDiagram
 | [ports.md](ports.md) | Every port and address block: our own convention inside containers and in dev, what an installation publishes and why, the check before publishing, the agent slice. The numbers come from `core/src/ports/ports.ts` |
 | [feature-flags.md](feature-flags.md) | The four stages of a feature flag and what each does in development, a test run and production; moving a flag and the release check; the *Features* screen; the one rule every program asks and the site taking hq's word for two things only; testing with `withFeature` |
 | [versioning.md](versioning.md) | The product version and each connection's protocol version: when two parts on different versions still talk, deprecating and removing something, the shape snapshot, stored formats. Read it before changing anything another part receives |
-| [dependencies.md](dependencies.md) | What we depend on and how each is pinned; the rules that keep every package within what the others require, and the check that holds them; how the month's updates are taken as part of a release; exact installs; local copies; security alerts; taking a major |
+| [dependencies.md](dependencies.md) | What we depend on and how each is pinned; the rules that keep every package within what the others require, and the check that holds them; the monthly dependency updates and how the repository says they are due; exact installs; local copies; security alerts and their decisions; what the full regression proves locally; taking a major |
 
 **Elsewhere:**
 

@@ -25,7 +25,7 @@ vi.mock('../../../server/hq/hqConnection', () => ({
   hqConnectionManager: { sendEvent: h.sendEvent, connectionState: () => h.hqState },
 }))
 vi.mock('../../../server/utils/logger', () => ({
-  Logger: vi.fn().mockImplementation(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), success: vi.fn() })),
+  Logger: vi.fn().mockImplementation(function () { return ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), success: vi.fn() }) }),
 }))
 vi.mock('../boundaryClaudeHome', async () => {
   const actual = await vi.importActual<typeof import('../boundaryClaudeHome')>('../boundaryClaudeHome')

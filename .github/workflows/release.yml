@@ -6,11 +6,10 @@ name: Release
 #   gh workflow run release.yml --ref <branch> -f version=0.1.0-alpha.4 -f dry_run=true
 # Each stage is a job, and a stage that fails stops the run; the last job names it on the run's page.
 #
-# 0. The month's updates. A real run on main whose updates are more than a month old (scripts/deps/taken.json, read by
-#    scripts/release/updates-taken.mjs) takes them first: it starts Take the updates (take-updates.yml) with this
-#    version and ends there; that step proves the updates, moves main, and starts Release again on main with the same
-#    version. So updates are taken at most once a month, always just before a release. A dry run, and a patch on a
-#    release branch, skip this.
+# 0. The monthly dependency updates and the security alerts. A real run on main stops, starting nothing, when this
+#    month's dependency updates aren't done (scripts/deps/taken.json, read by scripts/deps/due.mjs) or a critical or
+#    high security alert in shipped code is past its 7 days with no decision (scripts/deps/security.mjs). Both are
+#    done on the dev machine (docs/architecture/dependencies.md). A dry run, and a patch on a release branch, skip this.
 # 1. The commit is the tip of the branch the run is on, and a real run is on main or a release branch (a patch). The
 #    version is a release version and not yet tagged; no released flag outlives its minor release
 #    (scripts/release/flags-overdue.mjs); the Sigstore trust root hq carries is fresh enough to ship
@@ -46,8 +45,7 @@ on:
         default: false
 
 concurrency:
-  # A real run shares its group with Take the updates (take-updates.yml), so main is never moved under a release; dry
-  # runs have a group of their own, so the dry run that step starts and waits for is not queued behind it.
+  # One real run at a time; dry runs have a group of their own, so one is never queued behind a release.
   group: ${{ inputs.dry_run && 'release-dry-run' || 'release' }}
   cancel-in-progress: false
 
@@ -55,44 +53,38 @@ permissions: {}
 
 jobs:
   updates:
-    name: "0. The month's updates"
+    name: "0. The monthly dependency updates and the security alerts"
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
-      # Starts Take the updates when they are due.
-      actions: write
-    outputs:
-      due: ${{ steps.due.outputs.due }}
+      # Reads the repository's Dependabot alerts.
+      vulnerability-alerts: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Taken within the last month, or taken now
-        id: due
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: This month's dependency updates are done
         env:
           DRY_RUN: ${{ inputs.dry_run }}
-          VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$DRY_RUN" = true ]; then set -- --dry-run; fi
+          node scripts/deps/due.mjs --release "$@"
+      - name: No security alert in shipped code is past its 7 days
+        if: ${{ !cancelled() }}
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ "$DRY_RUN" = true ]; then set -- --dry-run; fi
-          if node scripts/release/updates-taken.mjs "$@"; then
-            echo "due=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          scripts/release/dispatch.sh take-updates.yml main -f "version=$VERSION" -f then_release=true > "$RUNNER_TEMP/run"
-          echo "due=true" >> "$GITHUB_OUTPUT"
-          {
-            echo "### The updates are taken first"
-            echo
-            echo "They were more than a month old, so Take the updates is started: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$(cat "$RUNNER_TEMP/run")."
-            echo "It proves them with Checks, moves main, and starts Release $VERSION again on main."
-          } >> "$GITHUB_STEP_SUMMARY"
+          node scripts/deps/security.mjs --release "$@"
 
   preflight:
     name: "1. The commit, the version and the checks"
     needs: updates
-    if: needs.updates.outputs.due == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 75
     permissions:
@@ -337,19 +329,14 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           VERSION: ${{ inputs.version }}
           RESULTS: >-
-            0. The month's updates=${{ needs.updates.result }};
+            0. The monthly dependency updates and the security alerts=${{ needs.updates.result }};
             1. The commit, the version and the checks=${{ needs.preflight.result }};
             2. Capture the guide's screenshots=${{ needs.capture.result }};
             3. Pin the screenshots to the tag=${{ needs.pin.result }};
             4. Release build=${{ needs.build.result }};
             5. Tag the commit=${{ needs.tag.result }};
             6. Publish=${{ needs.publish.result }}
-          DUE: ${{ needs.updates.outputs.due }}
         run: |
-          if [ "$DUE" = true ]; then
-            echo "Release $VERSION waits for the month's updates: Take the updates starts it again once they are on main." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
           stopped=""
           {
             if [ "$DRY_RUN" = true ]; then echo "### Release $VERSION: dry run"; else echo "### Release $VERSION"; fi

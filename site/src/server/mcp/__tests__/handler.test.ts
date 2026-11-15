@@ -26,9 +26,9 @@ vi.mock('../mcpServer', () => ({ createMcpServer: h.createMcpServer }))
 vi.mock('../mcpCallGate', () => ({ refusePlatformCall: h.refusePlatformCall }))
 
 vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
-  StreamableHTTPServerTransport: vi.fn().mockImplementation(() => ({
+  StreamableHTTPServerTransport: vi.fn().mockImplementation(function () { return ({
     handleRequest: vi.fn().mockResolvedValue(undefined),
-  })),
+  }) }),
 }))
 
 import { mcpHandler } from '../handler'

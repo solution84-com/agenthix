@@ -81,7 +81,9 @@ health check and put-back, without the signature and the fetch. The health check
 while their containers run the new images. A published host service refuses both. Unlike the host service's own switch,
 a published image's content tagged here under a local name is taken, since a release candidate is tested that way;
 a published image's own name never is. The upgrade test
-(`scripts/upgrade-test/run.sh`) drives it.
+(`scripts/upgrade-test/run.sh`) drives it. A development build also reads `HOST_DEV_HQ_WAIT_SECONDS`, how long it waits
+for hq to answer after a start or upgrade (10 minutes otherwise), so the upgrade test's forced failure ends sooner; a
+published version ignores it.
 
 The launcher's other mode is `agenthix uninstall`'s last step (`src/launcher/uninstall.ts`), run as
 `<namespace>-host-uninstall`: once the host service has removed everything else, it removes the host service's own

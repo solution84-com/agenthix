@@ -11,7 +11,7 @@ const folder = () => mkdtempSync(join(tmpdir(), 'regression-run-'))
 const step = (id, script) => ({ id, group: 'units', cwd: '.', cmd: ['node', '-e', script], kind: 'plain' })
 const writes = (file, after = '') => `require('fs').writeFileSync(${JSON.stringify(file)}, String(process.pid)); ${after}`
 const alive = (pid) => { try { process.kill(pid, 0); return true } catch { return false } }
-const quiet = { processes: () => [], cpuRead: () => [], testDatabase: null, swap: () => null, load: () => 0, light: () => 0, everyMs: 20 }
+const quiet = { processes: () => [], cpuRead: () => [], testDatabase: null, swap: () => null, load: () => 0, light: () => 0, everyMs: 20, reminders: () => [] }
 
 test('close-out mode refuses to start beside another vitest run, and starts nothing', async () => {
   const dir = folder()
@@ -151,6 +151,22 @@ test('a step that ends with no test report runs again whole, alone, at the end, 
     const record = JSON.parse(readFileSync(join(logs, 'summary.json'), 'utf8')).steps.find((s) => s.id === 'crashy')
     assert.equal(record.wholeRerun.verdict, 'passes alone')
   } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test("the repository's reminders are the first lines of the run's output", async () => {
+  const dir = folder()
+  const said = []
+  const log = console.log
+  console.log = (line) => said.push(String(line))
+  try {
+    const ok = await main(['--logs', join(dir, 'logs'), '--dry-run'], { ...quiet, reminders: () => ['The monthly dependency updates are due.'], steps: [step('one', '')] })
+    assert.equal(ok, true)
+    assert.equal(said[0], 'The monthly dependency updates are due.')
+    assert.match(said[1], /^regression: /)
+  } finally {
+    console.log = log
     rmSync(dir, { recursive: true, force: true })
   }
 })

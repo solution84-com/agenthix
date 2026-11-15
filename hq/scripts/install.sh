@@ -13,6 +13,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export WASP_TELEMETRY_DISABLE=1
+# Wasp's compile type-checks the code it generates, which needs more than Node's default heap (as CI gives it).
+case " ${NODE_OPTIONS:-} " in
+  *" --max-old-space-size="*) ;;
+  *) export NODE_OPTIONS="--max-old-space-size=4096${NODE_OPTIONS:+ $NODE_OPTIONS}" ;;
+esac
 
 held="$(mktemp)"
 trap 'rm -f "$held"' EXIT
