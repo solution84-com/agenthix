@@ -89,7 +89,7 @@ The rules every module follows, so an update can only move what the others accep
 - **Actions** move to the newest commit of their current major version.
 
 **A check in Checks** (`scripts/deps/check.mjs`, a small job of its own beside *Browser code needs no secure page*,
-run on every change) fails when a
+run on every change to a file it reads) fails when a
 rule above is broken: an exact version not on the list, `legacy-peer-deps` anywhere, two TypeScript, esbuild or
 Prisma versions, or `@types/node` on a different major from `.nvmrc`. It names the module and the rule.
 

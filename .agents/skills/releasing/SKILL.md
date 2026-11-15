@@ -11,6 +11,13 @@ description: Use when cutting, proving, tagging or patching a release of Agenthi
 commit sets a version: every `package.json` stays at `0.0.0`. A push to `main` runs *Checks* only: no release, no
 screenshots, no tag.
 
+**Before it: the dependency updates.** Dependabot proposes, once a month, the minor and patch updates of the pinned
+base images and workflow actions (`.github/dependabot.yml`); a major version is never proposed, and moving to one is
+its own change. Those pull requests are merged **only before a release**, so the release proves them: merge the open
+ones onto a branch, run *Release* there as a dry run (it runs every workflow and image they touch), and land them on
+`main` as one commit only when it passes. Then the release starts from that commit. A Dependabot security alert
+marked critical is handled at once, not at the next release.
+
 1. **Start it** with the version, on `main`, from the repository's **Actions** tab, from the VS Code task
    *[release] Release*, or:
 
@@ -27,7 +34,7 @@ screenshots, no tag.
    2. **The guide's screenshots are captured** for that commit (*Guide screenshots*).
    3. **They are pinned to the tag** (`npm run guide:pin`, [the guide's README](../../../docs/guide/README.md#releasing-the-screenshots)).
       When that changes the pages, the workflow commits the edit (`docs(guide): pin the screenshots to v<version>`)
-      and pushes it to `main`, and starts *Checks* for it; that commit is the one proved and tagged. No change: the
+      and pushes it to `main` (with the pin's deploy key, item 7), which starts *Checks* for it; that commit is the one proved and tagged. No change: the
       same commit goes on.
    4. **The release build** (`release-build.yml`): every image part with a new key, for amd64 and arm64, built,
       started and attested; the install test; the screenshots again, the set the tag takes; core packed.

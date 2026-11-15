@@ -98,7 +98,7 @@ As a contributor, I want an image built once for the code it is made from and re
 - AC-371a: one list names the images a release ships and what each is built from, and a test fails when an image's build reads something the list does not name.
 - AC-371b: each image has a content key that changes when, and only when, something it is built from changes.
 - AC-371c: the local image start test builds only the images whose content changed.
-- AC-371d: security updates reach an image whose code has not changed, on a schedule, without a person remembering.
+- AC-371d: security updates reach an image whose code has not changed at least once a month, as part of releasing, without a person remembering.
 
 ### US-372 — Run only the checks a change reaches
 
