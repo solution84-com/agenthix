@@ -104,10 +104,13 @@ is built once per content and reused until its code changes, so a patch to one p
 - **A test holds the inputs to the Dockerfiles:** `scripts/__tests__/image-parts.test.mjs` parses every `COPY` (not
   `COPY --from`) and fails when a source path is not under one of its part's inputs. A key that missed an input
   would reuse a stale image.
-- **Every `FROM` names a digest**, so a base image moves only on purpose. Dependabot's `docker` ecosystem
-  (`.github/dependabot.yml`) opens the pull request that moves one, and the keys of the parts built on it change.
-- **The rebuild epoch** is raised to take security updates into images whose code has not changed, such as the agent
-  image's system packages: by hand, or by the monthly *Rebuild epoch* workflow, which opens a pull request.
+- **Every `FROM` names a digest**, so a base image moves only on purpose: by *Take the updates*, the step a release
+  starts when the month's updates are due, which moves each to the newest digest of its tag and is proved by Checks
+  before it reaches `main` ([dependencies.md](dependencies.md#how-updates-are-taken)). The keys of the parts built on
+  a moved base change.
+- **The rebuild epoch** is raised by one at every run of that step, even when nothing else moved, so the next release
+  build rebuilds every image and takes the security fixes of system packages, such as the agent image's, into images
+  whose code has not changed.
 - **Built images are kept by key.** The release build pushes each image by digest, tags it `build-<key>-<arch>` and
   attests it; before building a part it reuses an image that tag names when the image is attested by the release
   build ([deployment.md](deployment.md#releases-and-the-images-they-publish)). A `build-…` tag is never offered as a

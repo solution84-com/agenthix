@@ -11,12 +11,25 @@ description: Use when cutting, proving, tagging or patching a release of Agenthi
 commit sets a version: every `package.json` stays at `0.0.0`. A push to `main` runs *Checks* only: no release, no
 screenshots, no tag.
 
-**Before it: the dependency updates.** Dependabot proposes, once a month, the minor and patch updates of the pinned
-base images and workflow actions (`.github/dependabot.yml`); a major version is never proposed, and moving to one is
-its own change. Those pull requests are merged **only before a release**, so the release proves them: merge the open
-ones onto a branch, run *Release* there as a dry run (it runs every workflow and image they touch), and land them on
-`main` as one commit only when it passes. Then the release starts from that commit. A Dependabot security alert
-marked critical is handled at once, not at the next release.
+**The release takes the month's dependency updates first**
+([ADR-0191](../../../docs/adr/adr-0191-dependencies-are-updated-by-our-own-step-as-part-of-releasing.md); the rules,
+the step and what each failure means: [dependencies.md](../../../docs/architecture/dependencies.md)). Its stage
+**0. The month's updates** reads `scripts/deps/taken.json`. Within a month of that date, the release goes on. Older,
+it starts *Take the updates* (`take-updates.yml`) with the release's version and ends, building nothing; the step
+makes the minor and patch updates of every npm package, outside image and action on an `updates/<date>` branch,
+raises the rebuild epoch, records the run, proves the branch with *Checks*, fast-forwards `main` to it, and starts
+*Release* again on `main` with the same version, which now goes on. That release's build is the updates' one image
+build. A dry run, and a patch on a release branch, skip stage 0. You press *Release* once; nothing else lands updates.
+- **The step's Checks fail**: nothing moves and no release starts; the branch stays and the step's summary names the
+  failed jobs. Fix it on that branch, then
+  `gh workflow run take-updates.yml --ref main -f branch=updates/<date> -f version=<version> -f then_release=true`:
+  it skips the updates, proves the branch as it stands, lands it and starts *Release*.
+- **`main` moved while they were proved**: the fast-forward is refused. Delete the `updates/<date>` branch and run
+  *Release* again.
+- **The release build fails** with the updates on `main`: nothing is tagged or published; fix it as item 4 says. The
+  updates are not taken again: they are within the month.
+- **A major version** is never taken by the step: it is its own change, everywhere at once, proved by a dry run. A
+  security alert marked critical is fixed at once, as its own change, not at the next release.
 
 1. **Start it** with the version, on `main`, from the repository's **Actions** tab, from the VS Code task
    *[release] Release*, or:

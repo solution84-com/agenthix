@@ -73,6 +73,8 @@ into code or a document as a new literal.
 - **A change to anything another part receives** — a channel message, an HTTP route or its answer, a socket event,
   a stored format — follows [`docs/architecture/versioning.md`](docs/architecture/versioning.md): its version moves,
   and nothing is removed without a deprecation mark first.
+- **A dependency is added or changed by the rules** in [`docs/architecture/dependencies.md`](docs/architecture/dependencies.md),
+  never by switching a check off: no `--force`, no `legacy-peer-deps`.
 - **Verify by running things**: a typecheck, the tests, or reading the file; never a script that prints a conclusion
   written in advance. Which tests, when, and which model a model check runs on: the `testing-a-change` skill.
 
