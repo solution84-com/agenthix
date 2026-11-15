@@ -53,6 +53,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPTS_ROOT="$(dirname "$SCRIPT_DIR")"
 PROJECT_DIR="$(dirname "$SCRIPTS_ROOT")"
 
+# Stop if this branch is behind GitHub; install what a changed lockfile needs.
+bash "$PROJECT_DIR/../scripts/dev/fresh.sh"
+
 source "$SCRIPTS_ROOT/shared/constants.sh"
 
 # Set one key in .env.server in place, preserving all other keys.

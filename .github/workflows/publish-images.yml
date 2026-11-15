@@ -100,6 +100,8 @@ jobs:
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
           node scripts/release/flags-overdue.mjs "$VERSION"
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: The commit's Checks passed
         env:
           GH_TOKEN: ${{ github.token }}
@@ -278,6 +280,8 @@ jobs:
           npm run check:package
           # Registry scopes are lower case, and this registry's scope is the repository owner.
           npm pkg set "name=@${GITHUB_REPOSITORY_OWNER,,}/core"
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Publish
         working-directory: core
         env:

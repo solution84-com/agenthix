@@ -50,8 +50,10 @@ jobs:
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
           # Only Playwright is needed from hq here; its images are built from the repository by Docker.
-          (cd hq && npm install --no-audit --no-fund)
+          (cd hq && npm ci --no-audit --no-fund)
           (cd hq && npx playwright install --with-deps chromium)
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
 
       - name: The stand-in model's own tests
         run: node --test "scripts/install-test/__tests__/*.test.mjs"

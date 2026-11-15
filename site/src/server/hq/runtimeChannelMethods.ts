@@ -66,7 +66,7 @@ const sessionSeedParams = z
     // sending (plan 5d-2 task 6); this is the boundary's own backstop.
     title: z.string().max(500).nullable(),
     model: z.string().nullable(),
-    metadata: z.record(z.unknown()),
+    metadata: z.record(z.string(), z.unknown()),
     primaryOwnerType: z.enum(WORKSPACE_OWNER_TYPES).nullable(),
     primaryOwnerId: z.string().min(1).nullable(),
     primaryWorkspaceId: z.string().min(1).nullable(),

@@ -24,10 +24,11 @@ executes nothing itself; the agent runtime lives in `site/`. How the two fit tog
 `src/Main.css` imports them after `@import "tailwindcss"` and has `@source "../../ui/src"` so Tailwind scans the
 ui package for class names.
 
-**Running Wasp:** after `npm install`, run `npx wasp <command>` from `hq/` (`npx wasp install` once on a fresh
-clone, then `npx wasp start`, `npx wasp build`, `npx wasp db migrate-dev`). It runs the version pinned in
-`package.json`; a global `wasp` of another version is not used. Set `WASP_TELEMETRY_DISABLE=1` to stop the CLI
-sending usage telemetry; hq's images set it.
+**Running Wasp:** run `npx wasp <command>` from `hq/` (on a fresh clone, `scripts/install.sh` once first: it
+installs what the lockfile pins, runs `npx wasp install` and compiles, keeping the lockfile as committed; then
+`npx wasp start`, `npx wasp build`, `npx wasp db migrate-dev`). It runs the version pinned in `package.json`; a
+global `wasp` of another version is not used. Set `WASP_TELEMETRY_DISABLE=1` to stop the CLI sending usage telemetry;
+hq's images set it.
 
 **Typecheck:** `npm run typecheck`. `tsconfig.json` only references `tsconfig.src.json` (the app, tests
 included) and `tsconfig.wasp.json` (the `*.wasp.ts` declaration files), so a bare `npx tsc --noEmit` checks nothing and passes.

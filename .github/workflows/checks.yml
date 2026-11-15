@@ -138,10 +138,32 @@ jobs:
           node-version-file: .nvmrc
       - name: Install
         run: npm ci --no-audit --no-fund
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: The check's own tests
         run: node --test scripts/__tests__/check-secure-page.test.mjs
       - name: No direct use of a secure-page-only feature
         run: node scripts/check-secure-page.mjs
+
+  dependencies:
+    # Every package stays within what the others require of it: versions are ranges, TypeScript, esbuild and Prisma
+    # resolve to one version everywhere, @types/node follows Node, and no install ignores a peer dependency.
+    name: "Dependencies follow the rules"
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.jobs), 'dependencies')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: The tests of the check and of the update step
+        run: node --test scripts/__tests__/deps-check.test.mjs "scripts/deps/__tests__/*.test.mjs"
+      - name: The rules hold
+        run: node scripts/deps/check.mjs
 
   core:
     name: "Core: typecheck, unit tests and build"
@@ -161,6 +183,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ripgrep   # the file tools' grep runs it
           cd core && npm ci --no-audit --no-fund
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Typecheck and unit tests
         run: |
           cd core && npm test   # runs the typecheck first (pretest)
@@ -190,8 +214,8 @@ jobs:
       - name: Install
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
-          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
-          (cd hq && npm install --no-audit --no-fund)
+          (cd ui && npm ci --no-audit --no-fund)
+          (cd hq && npm ci --no-audit --no-fund)
       - name: Link hq's React into ui
         run: |
           # ui's peers (React and its types) are not installed in ui: hq's own copies are linked in after hq's
@@ -200,6 +224,8 @@ jobs:
           for p in react react-dom lucide-react; do rm -rf "ui/node_modules/$p"; ln -sfn "../../hq/node_modules/$p" "ui/node_modules/$p"; done
           for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../hq/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
           test -e ui/node_modules/@types/react/index.d.ts
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Typecheck
         run: |
           cd ui && npx tsc --noEmit
@@ -240,8 +266,8 @@ jobs:
       - name: Install
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
-          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
-          (cd hq && npm install --no-audit --no-fund)
+          (cd ui && npm ci --no-audit --no-fund)
+          (cd hq && npm ci --no-audit --no-fund)
       - name: Link hq's React into ui
         run: |
           # ui's peers (React and its types) are not installed in ui: hq's own copies are linked in after hq's
@@ -256,11 +282,10 @@ jobs:
         # push, and the halves of one run start together, so neither could use what the other saves.
         env:
           NODE_OPTIONS: --max-old-space-size=4096
-        run: |
-          cd hq
-          # The Wasp CLI is the version hq pins as a dev dependency, never a global one.
-          npx wasp install
-          npx wasp compile
+        # hq's lockfile also pins the packages of the code Wasp generates; the script keeps them as committed.
+        run: hq/scripts/install.sh
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Typecheck
         if: matrix.shard == 1
         # hq's own type check grew past Node's default heap on the runner too.
@@ -302,6 +327,8 @@ jobs:
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
           (cd host && npm ci --no-audit --no-fund)
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Typecheck
         run: |
           cd host && npm run typecheck
@@ -333,6 +360,8 @@ jobs:
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
           (cd console && npm ci --no-audit --no-fund)
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Typecheck
         run: |
           cd console && npm run typecheck
@@ -360,6 +389,8 @@ jobs:
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
           (cd relay && npm ci --no-audit --no-fund)
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Typecheck
         run: |
           cd relay && npm run typecheck
@@ -386,7 +417,7 @@ jobs:
       - name: Install
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
-          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd ui && npm ci --no-audit --no-fund)
           (cd console-web && npm ci --no-audit --no-fund)
           # ui's peers (React and its types) are not installed in ui: console-web's own copies are linked in, as
           # the hq job links hq's, so ui's components and console-web type-check against one React.
@@ -394,6 +425,8 @@ jobs:
           for p in react react-dom lucide-react; do rm -rf "ui/node_modules/$p"; ln -sfn "../../console-web/node_modules/$p" "ui/node_modules/$p"; done
           for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../console-web/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
           test -e ui/node_modules/@types/react/index.d.ts
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Typecheck
         run: |
           cd console-web && npm run typecheck
@@ -423,6 +456,8 @@ jobs:
           (cd site && npm ci --no-audit --no-fund)
           # The OpenCode plugin is its own package inside site, and site's unit tests import it.
           (cd site/opencode-plugin && npm ci --no-audit --no-fund)
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Typecheck
         run: |
           (cd site && npm run typecheck)
@@ -443,7 +478,7 @@ jobs:
       contents: read
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
         env:
           POSTGRES_USER: agenthix
           POSTGRES_PASSWORD: agenthix
@@ -467,6 +502,8 @@ jobs:
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
           (cd site && npm ci --no-audit --no-fund)
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Integration tests
         run: |
           cd site && npm run test:integration
@@ -487,7 +524,7 @@ jobs:
       contents: read
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
         env:
           POSTGRES_USER: agenthix
           POSTGRES_PASSWORD: agenthix
@@ -518,8 +555,8 @@ jobs:
       - name: Install
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
-          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
-          (cd hq && npm install --no-audit --no-fund)
+          (cd ui && npm ci --no-audit --no-fund)
+          (cd hq && npm ci --no-audit --no-fund)
       - name: Link hq's React into ui
         run: |
           # ui's peers (React and its types) are not installed in ui: hq's own copies are linked in after hq's
@@ -534,11 +571,10 @@ jobs:
         # push, and the shards of one run start together, so none could use what another saves.
         env:
           NODE_OPTIONS: --max-old-space-size=4096
-        run: |
-          cd hq
-          # The Wasp CLI is the version hq pins as a dev dependency, never a global one.
-          npx wasp install
-          npx wasp compile
+        # hq's lockfile also pins the packages of the code Wasp generates; the script keeps them as committed.
+        run: hq/scripts/install.sh
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
       - name: Integration tests
         run: |
           # A key only for this run, which the tests use to encrypt stored secrets.
@@ -553,7 +589,7 @@ jobs:
     # one entry here, its result the legs' together: success only if every leg succeeded.
     name: "All checks passed"
     if: always()
-    needs: [changes, secure-page, core, ui, hq, host, console, console-web, relay, site, site-integration, hq-integration]
+    needs: [changes, secure-page, dependencies, core, ui, hq, host, console, console-web, relay, site, site-integration, hq-integration]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

@@ -17,7 +17,7 @@ const PACE = (HOST_TRANSFER_MAX_BYTES_PER_SECOND * 0.75) / 1000
 
 /** The bytes in pieces of exactly one chunk, the last one shorter; each with whether it is the last. */
 async function* pieces(bytes: AsyncIterable<Buffer>): AsyncGenerator<{ piece: Buffer; last: boolean }> {
-  let pending = Buffer.alloc(0)
+  let pending: Buffer = Buffer.alloc(0)
   let held: Buffer | null = null
   for await (const b of bytes) {
     pending = pending.length ? Buffer.concat([pending, b]) : b

@@ -28,7 +28,7 @@ export const searchKnowledgeParams = z
     query: z.string(),
     maxChars: z.number().int().nonnegative(),
     // Grep's form (site protocol 1.7). Taken as it comes: the file tools' own check judges every field.
-    grep: z.object({ pattern: z.string() }).passthrough().optional() as z.ZodType<LocationSearchKnowledgeParams['grep']>,
+    grep: (z.object({ pattern: z.string() }).passthrough() as z.ZodType<KnowledgeGrepParams>).optional(),
   })
   .refine(orgIdIsFixed)
 

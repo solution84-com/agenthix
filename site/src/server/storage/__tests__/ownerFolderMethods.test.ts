@@ -120,8 +120,8 @@ describe('the wire', () => {
     const pairs: [{ shape: object }, object][] = [
       [listArtefactsParams, listA],
       [readArtefactParams, readA],
-      [listKnowledgeParams.innerType(), listK],
-      [readKnowledgeParams.innerType(), readK],
+      [listKnowledgeParams, listK],
+      [readKnowledgeParams, readK],
     ]
     for (const [schema, expected] of pairs) {
       expect(Object.keys(schema.shape).sort()).toEqual(Object.keys(expected).sort())

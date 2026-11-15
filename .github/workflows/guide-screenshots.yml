@@ -34,7 +34,7 @@ jobs:
       contents: read
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
         env:
           POSTGRES_USER: agenthix
           POSTGRES_PASSWORD: agenthix
@@ -71,20 +71,20 @@ jobs:
           (cd core && npm ci --no-audit --no-fund && npm run build)
           # ui's peers (React and its types) are not installed in ui: hq's own copies are linked in after hq's
           # install, as hq's Dockerfile does, because two copies of @types/react type-check as unrelated types.
-          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd ui && npm ci --no-audit --no-fund)
           (cd site && npm ci --no-audit --no-fund)
-          (cd hq && npm install --no-audit --no-fund)
+          (cd hq && npm ci --no-audit --no-fund)
           mkdir -p ui/node_modules/@types
           for p in react react-dom lucide-react; do rm -rf "ui/node_modules/$p"; ln -sfn "../../hq/node_modules/$p" "ui/node_modules/$p"; done
           for p in react react-dom; do rm -rf "ui/node_modules/@types/$p"; ln -sfn "../../../hq/node_modules/@types/$p" "ui/node_modules/@types/$p"; done
           test -e ui/node_modules/@types/react/index.d.ts
           # The Fleet Console's screens are captured from their build (hq/e2e/guide/consoleCapture.ts); Vite dedupes React.
           (cd console-web && npm ci --no-audit --no-fund)
-          cd hq
-          # The Wasp CLI is the version hq pins as a dev dependency, never a global one.
-          npx wasp install
-          npx wasp compile
-          npx playwright install --with-deps chromium
+          # hq's lockfile also pins the packages of the code Wasp generates; the script keeps them as committed.
+          hq/scripts/install.sh
+          (cd hq && npx playwright install --with-deps chromium)
+      - name: The lockfiles are as committed
+        run: scripts/deps/held.sh
 
       # The one capture the release rehearsal and the regression run too (scripts/guide/capture.mjs): it builds hq,
       # starts hq and the site on ports the runner gives, against the guide databases, captures, and stops them.

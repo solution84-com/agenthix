@@ -116,8 +116,8 @@ function dispatch(kind: RunDispatchPayload['kind'], context: RunContextPayload):
   }
 }
 
-function issues(result: { success: false; error: { issues: Array<{ path: Array<string | number>; message: string }> } }): string {
-  return result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')
+function issues(result: { success: false; error: { issues: Array<{ path: PropertyKey[]; message: string }> } }): string {
+  return result.error.issues.map(i => `${i.path.map(String).join('.')}: ${i.message}`).join('; ')
 }
 
 describe('every dispatch kind agrees with the payload core declares', () => {

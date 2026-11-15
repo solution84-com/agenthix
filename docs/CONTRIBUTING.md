@@ -34,12 +34,16 @@ docker compose up -d                       # the development databases
 cp hq/.env.server.example hq/.env.server
 cp hq/.env.client.example hq/.env.client
 cp site/.env.server.example site/.env.server
-(cd core && npm install && npm run build)  # hq and site use core's build
-(cd ui && npm install --legacy-peer-deps)
-(cd hq && npm install && npx wasp install)
-(cd site && npm install)
-(cd site/opencode-plugin && npm install)   # site's tests import it
+(cd core && npm ci && npm run build)       # hq and site use core's build
+(cd ui && npm ci)
+hq/scripts/install.sh                      # hq, Wasp's own packages and the code Wasp generates
+(cd site && npm ci)
+(cd site/opencode-plugin && npm ci)        # site's tests import it
 ```
+
+`npm ci` installs exactly what each module's `package-lock.json` pins. hq's lockfile also pins the packages of the code
+Wasp generates, which a fresh clone does not have yet, so hq is installed with its script rather than by hand: a plain
+`npm install` in hq before that code exists drops them from the lockfile.
 
 Then start the site and HQ, each in its own terminal:
 

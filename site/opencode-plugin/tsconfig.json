@@ -8,7 +8,6 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "types": ["node"],
-    "baseUrl": ".",
     "paths": {
       "@agenthix/core": ["../../core/src/index.ts"],
       "@agenthix/core/file-tools": ["../../core/src/fileTools/index.ts"]

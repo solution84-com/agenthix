@@ -27,32 +27,29 @@ FROM --platform=$BUILDPLATFORM node:24.14.1-bookworm-slim@sha256:b506e7321f176aa
 # No install or usage telemetry from the Wasp CLI, here or in web-build.
 ENV WASP_TELEMETRY_DISABLE=1
 WORKDIR /repo
-COPY core/package.json core/package-lock.json* core/
-RUN cd core && npm install --no-audit --no-fund
+COPY core/package.json core/package-lock.json core/
+RUN cd core && npm ci --no-audit --no-fund
 COPY core core
 RUN cd core && npm run build
-COPY ui/package.json ui/package-lock.json* ui/
-RUN cd ui && npm install --legacy-peer-deps --no-audit --no-fund
+COPY ui/package.json ui/package-lock.json ui/
+RUN cd ui && npm ci --no-audit --no-fund
 COPY ui ui
 COPY hq hq
-# `wasp install` sets up Wasp's own packages (.wasp/spec, which main.wasp.ts
-# imports) and installs again with them; `wasp build` refuses to run without it.
-RUN cd hq && npm install --no-audit --no-fund && npx wasp install
+# Exactly what hq's lockfile pins; Wasp's own packages and the generated code's
+# are installed by hq/scripts/install.sh below, once ui is linked to hq's React.
+RUN cd hq && npm ci --no-audit --no-fund
 # hq imports ui/src components (sessions, tasks, voice, primitives) whose
 # peer deps — react, react-dom, lucide-react and their types — are declared
-# on @agenthix/ui but deliberately not installed there (--legacy-peer-deps
-# above); site never imports far enough into ui/src to need them, so its
-# build never surfaced this. A *second* install of the same packages into
-# ui/node_modules is not a fix: TypeScript treats two separate copies of
-# @types/react as unrelated types (its ref-callback branding uses a unique
-# symbol per install), which breaks every component that forwards a ref.
-# Point ui at hq's own copies instead, so the whole program type-checks
-# against one physical install. socket.io-client — ui's other peer dep — is
-# deliberately left unlinked: it is also ui's own devDependency, genuinely
-# installed by the `npm install` above (not skipped by --legacy-peer-deps,
-# which only affects peers), hq never imports it directly, and it carries
-# none of @types/react's nominal-typing trap — so ui's own copy is correct
-# as-is, not a second install of the same problem.
+# on @agenthix/ui, and ui's install above puts its own copies of them in
+# ui/node_modules; site never imports far enough into ui/src to need them, so
+# its build never surfaced this. Two copies are not a fix: TypeScript treats
+# two separate copies of @types/react as unrelated types (its ref-callback
+# branding uses a unique symbol per install), which breaks every component
+# that forwards a ref. Replace ui's copies with hq's own, so the whole program
+# type-checks against one physical install. socket.io-client — ui's other
+# peer dep — is deliberately left as ui installed it: hq never imports it
+# directly, and it carries none of @types/react's nominal-typing trap — so
+# ui's own copy is correct as-is, not a second install of the same problem.
 #
 # rm -rf before each link: if ui ever gains its own real install of one of
 # these (or the link already exists from a previous layer), `ln -s` alone
@@ -73,6 +70,11 @@ RUN mkdir -p ui/node_modules/@types \
  && test -e ui/node_modules/lucide-react/package.json \
  && test -e ui/node_modules/@types/react/index.d.ts \
  && test -e ui/node_modules/@types/react-dom/index.d.ts
+# `wasp install` sets up Wasp's own packages (.wasp/spec, which main.wasp.ts
+# imports), and `wasp build` refuses to run without it; the script also
+# compiles, so the generated code's packages are installed as the lockfile pins
+# them, and fails if the lockfile moved.
+RUN NODE_OPTIONS=--max-old-space-size=4096 hq/scripts/install.sh
 # The robots, where the picker's client code reads them from (spec, The robots).
 COPY --from=robots /robots hq/assets/robots
 # Building Wasp's SDK type-checks every operation, and has grown past Node's default heap (as in CI's checks).
@@ -133,7 +135,7 @@ RUN rm -rf /core/node_modules /ui/node_modules
 # above is the building machine's, on glibc; this one is the image's) rather than keep
 # what `rm -rf` just removed. site's copy of this stage skips this because
 # site never imports past the surface of @agenthix/ui; hq does.
-RUN cd /ui && npm install --legacy-peer-deps --no-audit --no-fund
+RUN cd /ui && npm ci --no-audit --no-fund
 WORKDIR /app
 COPY --from=wasp /repo/hq/.wasp/out/src ./src
 COPY --from=wasp /repo/hq/.wasp/out/package.json /repo/hq/.wasp/out/package-lock.json ./
@@ -142,8 +144,10 @@ COPY --from=wasp /repo/hq/.wasp/out/server .wasp/out/server
 COPY --from=wasp /repo/hq/.wasp/out/sdk .wasp/out/sdk
 COPY --from=wasp /repo/hq/.wasp/out/libs .wasp/out/libs
 COPY --from=wasp /repo/hq/.wasp/out/db .wasp/out/db
-COPY hq/.npmrc ./
-RUN npm install && cd .wasp/out/server && npm install
+# `npm ci` installs exactly what the lockfile `wasp build` wrote pins: the same
+# packages at the same versions as hq's own. The server's own `npm install`, as
+# in Wasp's generated Dockerfile, then only prunes what the server does not use.
+RUN npm ci --no-audit --no-fund && cd .wasp/out/server && npm install --no-audit --no-fund
 # /app's package.json declares npm workspaces including .wasp/out/*. hq's
 # dependency tree has no version conflict that forces anything nested under
 # .wasp/out/server/node_modules (site's does, for @types alone), so npm
@@ -158,7 +162,7 @@ RUN mkdir -p .wasp/out/server/node_modules
 # it rather than installing a second, differently-pathed copy, which
 # TypeScript would treat as unrelated types (see the wasp stage's note).
 # socket.io-client is left unlinked here too, for the same reason: it is
-# ui's own devDependency, already reinstalled by the `npm install` above.
+# ui's own devDependency, already reinstalled by the `npm ci` above.
 # rm -rf + `-fn` + the test line: same defence as the wasp stage — always
 # hq's copy, and a loud failure right here rather than a confusing
 # TypeScript error steps later if a link ever resolves to nothing.

@@ -2,7 +2,7 @@
 name: ADRs
 description: This codebase's architecture decision records — every ADR, its title, and its state.
 created: 2026-08-09
-updated: 2026-10-27
+updated: 2026-11-15
 author: leang
 ---
 
@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0191`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0192`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -326,3 +326,4 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0188](adr-0188-memory-is-a-persons-saved-by-an-agent-where-it-works.md) | Memory Is a Person's, Saved by an Agent Where It Works | Accepted |
 | [ADR-0189](adr-0189-agenthix-cloud-ships-behind-a-preview-flag.md) | Agenthix Cloud Ships Behind a Preview Flag | Accepted |
 | [ADR-0190](adr-0190-a-release-is-started-by-one-workflow.md) | A Release Is Started by One Workflow | Accepted |
+| [ADR-0191](adr-0191-dependencies-are-updated-by-our-own-step-as-part-of-releasing.md) | Dependencies Are Updated by Our Own Step, as Part of Releasing | Accepted |

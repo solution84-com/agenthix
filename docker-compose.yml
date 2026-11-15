@@ -19,7 +19,7 @@ services:
   # over; renaming it would silently start hq on an empty database.
   hq-db:
     container_name: agenthix-dev-hq-db
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     environment:
       POSTGRES_USER: agenthix
       POSTGRES_PASSWORD: agenthix
@@ -34,7 +34,7 @@ services:
   # Execution-site database — the new module. Fresh volume; it has no history.
   site-db:
     container_name: agenthix-dev-site-db
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     environment:
       POSTGRES_USER: agenthix
       POSTGRES_PASSWORD: agenthix
