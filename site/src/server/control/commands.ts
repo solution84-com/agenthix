@@ -11,7 +11,6 @@ import { pairedBySecret } from '../registration/pairing'
 
 export type SiteStatusReport = {
   siteId: string
-  name: string
   /** hq's own site, connected by HQ_PAIRING_SECRET (adr-0070): it cannot leave hq. */
   pairedBySecret: boolean
   /** Why it is not connected, from a closed set; null while it is, or when nothing says why. */
@@ -55,7 +54,6 @@ export async function readStatus(): Promise<SiteStatusReport> {
   const connected = Boolean(link) && hqConnectionManager.connectionState() === 'connected'
   return {
     siteId: config.siteId,
-    name: config.name,
     pairedBySecret: pairedBySecret(),
     problem: linkProblem(link, connected),
     hq: link

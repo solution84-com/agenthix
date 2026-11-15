@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const db = vi.hoisted(() => ({
-  config: { siteId: 'site-uuid', name: 'Build box' } as any,
+  config: { siteId: 'site-uuid' } as any,
   link: null as any,
 }))
 vi.mock('#db', () => ({
@@ -34,7 +34,7 @@ beforeEach(() => {
 
 describe('status', () => {
   it('reports a site that is not connected to an HQ', async () => {
-    expect(await readStatus()).toEqual({ siteId: 'site-uuid', name: 'Build box', pairedBySecret: false, problem: null, hq: null, moving: null, replaced: null })
+    expect(await readStatus()).toEqual({ siteId: 'site-uuid', pairedBySecret: false, problem: null, hq: null, moving: null, replaced: null })
   })
 
   it('names why it is not connected, from the closed set', async () => {

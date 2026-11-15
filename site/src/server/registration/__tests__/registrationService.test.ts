@@ -13,7 +13,7 @@ import { readConnectionToken } from '../../hq/connectionToken'
 
 process.env.SECRETS_MASTER_KEY = Buffer.alloc(32, 6).toString('base64')
 
-const link = { orgId: 'org-1', hqUrl: 'https://hq.example.com', hqWsUrl: 'wss://hq.example.com', machineCredential: 'smc_a_b' }
+const link = { hqUrl: 'https://hq.example.com', hqWsUrl: 'wss://hq.example.com', machineCredential: 'smc_a_b' }
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -27,7 +27,7 @@ describe('storing the link to hq', () => {
     await storeHqLink(link)
     const { where, create, update } = mockHqUpsert.mock.calls[0][0]
     expect(where).toEqual({ id: 'singleton' })
-    expect(create).toMatchObject({ orgId: 'org-1', hqWsUrl: 'wss://hq.example.com', status: 'PENDING' })
+    expect(create).toMatchObject({ hqWsUrl: 'wss://hq.example.com', status: 'PENDING' })
     for (const written of [create, update]) {
       expect(written.connectionToken).not.toContain('smc_a_b')
       expect(readConnectionToken(written.connectionToken)).toBe('smc_a_b')

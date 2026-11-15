@@ -93,8 +93,8 @@ describe('getExecutionSites @SC-282', () => {
 describe('describeExecutionSite @SC-295 @SC-296', () => {
   it('returns what the site reported, asked over its channel', async () => {
     const admin = await createUserWithRole('ADMIN', { fleetAdmin: true })
-    h.request.mockResolvedValue({ siteId: 's1', name: 'Box', protocolVersion: '6.0', startedAt: 'now' })
-    await expect(describeExecutionSite({ siteId: 's1' }, ctx(admin))).resolves.toMatchObject({ name: 'Box' })
+    h.request.mockResolvedValue({ siteId: 's1', protocolVersion: '6.0', startedAt: 'now' })
+    await expect(describeExecutionSite({ siteId: 's1' }, ctx(admin))).resolves.toMatchObject({ siteId: 's1', protocolVersion: '6.0' })
     expect(h.request).toHaveBeenCalledWith('s1', 'site.describe', {})
   })
 

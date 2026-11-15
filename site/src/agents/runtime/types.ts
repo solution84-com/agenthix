@@ -118,7 +118,7 @@ export type RunContext = {
    *  absent when the org has none. Held here for the `web_search` platform tool
    *  and never put in a container's environment. */
   webSearchKey?: string
-  /** SiteConfig.riskRules (RunContextPayload.riskRules), pre-resolved by hq at dispatch —
+  /** The site-wide risk rules (RunContextPayload.riskRules), pre-resolved by hq at dispatch —
    *  read by sdkToolGate's audit-log risk rating. */
   riskRules: RunContextPayload['riskRules']
   /** The cached package content this run loads, by digest (ADR-0072). */

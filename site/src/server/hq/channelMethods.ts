@@ -86,7 +86,6 @@ export const channelMethods: ChannelHandlers = {
     const config = await prisma.siteConfig.findFirst()
     return {
       siteId: config?.siteId ?? '',
-      name: config?.name ?? '',
       protocolVersion: SITE_PROTOCOL_VERSION,
       startedAt: startedAt.toISOString(),
     }

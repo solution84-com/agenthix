@@ -27,7 +27,7 @@ describe('the person-scoped execution contract', () => {
   })
 
   it('adds CLOSED to the session statuses without dropping any', () => {
-    expect(SESSION_STATUSES).toEqual(['ACTIVE', 'EXPIRED', 'ARCHIVED', 'CLOSED'])
+    expect(SESSION_STATUSES).toEqual(['ACTIVE', 'ARCHIVED', 'CLOSED'])
     expect(SESSION_CLOSED_REASONS).toContain('HARNESS_STATE_MISSING')
   })
 

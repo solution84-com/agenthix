@@ -52,11 +52,11 @@ describe('finding the socket', () => {
 
 describe('status output', () => {
   it('says plainly when the site is not connected to an HQ, and who adds it', () => {
-    expect(formatStatus({ siteId: 's', name: 'Build box', hq: null })).toMatch(/Not connected to an HQ\. A fleet admin adds this site in the Fleet Console/)
+    expect(formatStatus({ siteId: 's', hq: null })).toMatch(/Not connected to an HQ\. A fleet admin adds this site in the Fleet Console/)
   })
 
   it('says why it is not connected in a sentence with what to do, never the link\'s status word', () => {
-    const text = formatStatus({ siteId: 's', name: 'Build box', problem: 'unreachable', hq: { url: 'https://hq', status: 'DEGRADED', connected: false, connectedAt: null, lastError: 'ECONNREFUSED', requiredProtocolVersion: null } })
+    const text = formatStatus({ siteId: 's', problem: 'unreachable', hq: { url: 'https://hq', status: 'DEGRADED', connected: false, connectedAt: null, lastError: 'ECONNREFUSED', requiredProtocolVersion: null } })
     expect(text).toMatch(/https:\/\/hq/)
     expect(text).toMatch(/Status:     Not connected\. HQ does not answer/)
     expect(text).toMatch(/ECONNREFUSED/)
@@ -64,27 +64,27 @@ describe('status output', () => {
   })
 
   it('says a site HQ removed or replaced must be added again in the Fleet Console, not that it is degraded', () => {
-    const text = formatStatus({ siteId: 's', name: 'Build box', problem: 'credentialRefused', hq: { url: 'https://hq', status: 'REVOKED', connected: false, connectedAt: null, lastError: 'hq refused the connection (HTTP 401)', requiredProtocolVersion: null } })
+    const text = formatStatus({ siteId: 's', problem: 'credentialRefused', hq: { url: 'https://hq', status: 'REVOKED', connected: false, connectedAt: null, lastError: 'hq refused the connection (HTTP 401)', requiredProtocolVersion: null } })
     expect(text).toMatch(/removed or replaced in HQ\. A fleet admin adds this site again in the Fleet Console/)
     expect(text).not.toMatch(/REVOKED|DEGRADED/)
   })
 
   it('has a sentence for every cause the site reports', () => {
     for (const problem of ['secretTooShort', 'addressRefused', 'credentialStore', 'credentialRefused', 'versionMismatch', 'unreachable']) {
-      const text = formatStatus({ siteId: 's', name: 'Build box', problem, hq: { url: 'https://hq', status: 'DEGRADED', connected: false, connectedAt: null, lastError: null, requiredProtocolVersion: null } })
+      const text = formatStatus({ siteId: 's', problem, hq: { url: 'https://hq', status: 'DEGRADED', connected: false, connectedAt: null, lastError: null, requiredProtocolVersion: null } })
       expect(text).toMatch(/Status:     Not connected\. [A-Z].*\.|Status:     Not connected\. .*<hq-url>/)
       expect(text).not.toContain(problem)
     }
   })
 
   it('says why hq\'s own site did not pair, rather than telling it to register', () => {
-    const text = formatStatus({ siteId: 's', name: 'Build box', pairedBySecret: true, problem: 'secretTooShort', hq: null })
+    const text = formatStatus({ siteId: 's', pairedBySecret: true, problem: 'secretTooShort', hq: null })
     expect(text).toMatch(/Not connected\. Its pairing secret/)
     expect(text).not.toMatch(/register/)
   })
 
   it('says plainly that a connected site is connected — a later cross-app test parses this exact line', () => {
-    const text = formatStatus({ siteId: 's', name: 'Build box', hq: { url: 'https://hq', status: 'ACTIVE', connected: true, connectedAt: null, lastError: null, requiredProtocolVersion: null } })
+    const text = formatStatus({ siteId: 's', hq: { url: 'https://hq', status: 'ACTIVE', connected: true, connectedAt: null, lastError: null, requiredProtocolVersion: null } })
     expect(text).toMatch(/Status:     Connected/)
   })
 })

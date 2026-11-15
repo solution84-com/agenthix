@@ -7,7 +7,7 @@
  * generated types, so the apps' zod validators feed from these arrays instead.
  */
 
-export const SESSION_STATUSES = ['ACTIVE', 'EXPIRED', 'ARCHIVED', 'CLOSED'] as const
+export const SESSION_STATUSES = ['ACTIVE', 'ARCHIVED', 'CLOSED'] as const
 export type SessionStatusValue = (typeof SESSION_STATUSES)[number]
 
 /**

@@ -41,7 +41,7 @@ export async function seedRuns({ hq, site, ago, people, agents, projects, tasks,
     const toolUseId = `toolu_${id.slice(0, 8)}`
     await site.agentRun.create({
       data: {
-        id, agentId: agent.id, sessionId: sessionRow.id, taskId: task?.id ?? null, rootRunId: id, model: MODEL,
+        id, agentId: agent.id, sessionId: sessionRow.id, taskId: task?.id ?? null, model: MODEL,
         inputText: input, createdAt: startedAt, startedAt, endedAt, status: end.status ?? 'COMPLETED',
         outputText: end.status === 'FAILED' ? null : output ?? null, error: end.error ?? null,
         usage: { inputTokens: 18_400, outputTokens: 2_100, totalTokens: 20_500 }, auditSummary: audit(tool ? 1 : 0),

@@ -174,7 +174,6 @@ export type SiteEventMessage = HQConnectionMessage<SiteEventPayload> & {
  */
 export type SiteDescribeResult = {
   siteId: string
-  name: string
   protocolVersion: string
   startedAt: string
 }

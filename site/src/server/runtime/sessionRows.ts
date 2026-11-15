@@ -38,7 +38,6 @@ export async function getSession(id: string): Promise<SessionRow | null> {
     totalCacheWriteTokens: session.totalCacheWriteTokens,
     createdAt: session.createdAt.toISOString(),
     updatedAt: session.updatedAt.toISOString(),
-    expiresAt: session.expiresAt ? session.expiresAt.toISOString() : null,
     taskId: session.taskId,
     primaryOwnerType: session.primaryOwnerType as SessionRow['primaryOwnerType'],
     primaryOwnerId: session.primaryOwnerId,

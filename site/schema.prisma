@@ -31,10 +31,6 @@ model SiteConfig {
   // Stable per-installation identity. Generated once on first SiteConfig
   // creation, never rotated. Source of truth for HQ's ExecutionSite registry.
   siteId            String   @unique @default(uuid())
-  name              String   @default("Agenthix Site")
-  description       String   @default("")
-  bootstrapRequired Boolean  @default(false)
-  riskRules         Json?    // RiskRule[] — evaluated before built-in defaults; null = defaults only
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -42,23 +38,16 @@ model SiteConfig {
 model HqConnection {
   id              String    @id @default("singleton")
 
-  // Not written by pairing — reserved, currently
-  // unused.
-  nonce           String?   @unique
-  nonceExpiresAt  DateTime?
-
   // Target hq (set once the site is paired — see registration/)
   hqUrl           String
 
   // Set once hq grants the registration (registrationService.ts's storeHqLink).
   // siteId is NOT here — site identity lives on SiteConfig.
-  orgId           String?
   hqWsUrl         String?
   // This site's credential to hq, ENCRYPTED at rest (src/server/crypto/secretCrypto.ts,
   // under this site's SECRETS_MASTER_KEY). Read only through hq/connectionToken.ts;
   // a value it cannot decrypt is treated as no credential.
   connectionToken String?
-  protocolVersion Int       @default(1)
 
   status          String    @default("LINKING")
   connectedAt     DateTime?
@@ -106,7 +95,6 @@ model HqConnection {
 
 enum SessionStatus {
   ACTIVE
-  EXPIRED
   ARCHIVED
   // The harness's own state for this conversation is gone; the history stays.
   CLOSED
@@ -173,7 +161,6 @@ model AgentSession {
   entries    TranscriptEntry[]
   createdAt  DateTime
   updatedAt  DateTime          @updatedAt
-  expiresAt  DateTime?
   AgentRun   AgentRun[]
   taskId     String?           @unique  // null = conversational; set = task-scoped (ADR-0030)
   // Primary storage location the run works in (ADR-0039): an owner's files (workspaceId null) or a workspace.
@@ -244,22 +231,16 @@ model AgentRun {
   sessionId String
 
   // Orchestration tracking
-  parentRun   AgentRun?  @relation("SubRuns", fields: [parentRunId], references: [id])
-  parentRunId String?
-  rootRunId   String? // The ID of the primary run that started this delegation chain
   taskId      String? // null = a reply in a conversation, or a routine's run; set = a task's run
   routineId   String? // hq's routine whose firing started it (adr-0177); null for a task's run or a reply
-  subRuns     AgentRun[] @relation("SubRuns")
 
   status     RunStatus @default(PENDING)
   inputText  String
   outputText String?
-  thought    String? // The detailed internal reasoning for this specific run
   metadata   Json? // Flexible metadata for sub-agent types (e.g. search queries, code snippets)
 
   model         String
   usage         Json? // { inputTokens, outputTokens, totalTokens }
-  diagnosticLog Json?     @default("[]") // Detailed history of model attempts and errors
   error         String?
   startedAt     DateTime?
   endedAt       DateTime?
@@ -290,7 +271,6 @@ model AgentRun {
   @@index([sessionId, createdAt])
   @@index([taskId, createdAt])
   @@index([routineId, createdAt])
-  @@index([parentRunId])
 }
 
 model ToolCallLog {
@@ -470,10 +450,6 @@ model ExecutorRun {
   ownerId      String
   /// Null for the owner's own files.
   workspaceId  String?
-  workflowName String
-  versionHash  String
-  /// The executor image it ran on, `sha256:…`.
-  imageDigest  String
   state        ExecutorRunState   @default(RUNNING)
   /// The step running now, by its position.
   currentStep  Int?

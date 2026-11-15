@@ -64,7 +64,7 @@ export type RunContextPayload = {
     /** locationResolver's slug lookups, pre-resolved by owner id. */
     ownerSlugs: Record<string, string>
   }
-  /** SiteConfig.riskRules (sdkToolGate), null when unset. */
+  /** The site-wide risk rules hq resolved for the run (sdkToolGate), null when unset. */
   riskRules: RiskRule[] | null
   /**
    * The one model credential this run may use, decided by the boundary it acts

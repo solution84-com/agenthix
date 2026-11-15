@@ -158,7 +158,6 @@ export type SessionRow = {
   totalCacheWriteTokens: number
   createdAt: string
   updatedAt: string
-  expiresAt: string | null
   taskId: string | null
   primaryOwnerType: WorkspaceOwnerType | null
   primaryOwnerId: string | null

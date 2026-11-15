@@ -69,7 +69,6 @@ export async function connectFromPairingSecretIfConfigured(options: PairingOptio
   // hq may have moved since HQ_URL was set, and this site followed it once the new address passed the move check.
   const { hqUrl: dial, keepMove } = await pairedAddress(base)
   await storeHqLink({
-    orgId: null, // HqConnection.orgId is optional; nothing on this side reads it
     hqUrl: dial,
     hqWsUrl: channelUrlOf(dial),
     machineCredential: secret,

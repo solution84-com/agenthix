@@ -10,10 +10,9 @@ const logger = new Logger('registration')
  * is the `HQ_URL` it came from; a move hq said it makes is kept only with `keepMove` (hq/addressFollow.ts).
  */
 export async function storeHqLink(link: {
-  orgId: string | null; hqUrl: string; hqWsUrl: string; machineCredential: string; pairedHqUrl?: string; keepMove?: boolean
+  hqUrl: string; hqWsUrl: string; machineCredential: string; pairedHqUrl?: string; keepMove?: boolean
 }): Promise<void> {
   const data = {
-    orgId: link.orgId,
     hqUrl: link.hqUrl,
     hqWsUrl: link.hqWsUrl,
     connectionToken: sealConnectionToken(link.machineCredential),
