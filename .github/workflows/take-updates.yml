@@ -65,6 +65,8 @@ jobs:
       THEN_RELEASE: ${{ inputs.then_release }}
       VERSION: ${{ inputs.version }}
       WASP_TELEMETRY_DISABLE: '1'
+      # Wasp's compile type-checks its generated code, which needs more than Node's default heap, as in Checks.
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - name: Started on main, with a branch to prove only under updates/
         run: |
