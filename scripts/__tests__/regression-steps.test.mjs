@@ -22,6 +22,46 @@ test('the full regression runs every suite, the end-to-end and cross-app suites 
   assert.ok(steps.every((s) => GROUPS.includes(s.group)))
 })
 
+test('the full regression runs what CI proves besides the suites: the rules, the builds, the packages, the lockfiles, the workflows', () => {
+  const steps = planSteps(fullSelection(), { logs: '/logs' })
+  const by = (id) => steps.find((s) => s.id === id)
+  for (const id of ['dependency-rules', 'release-scripts-tests', 'core-package', 'host-build', 'console-build', 'console-web-build',
+    'lockfiles-held', 'workflows-lint', 'guide-compare', 'migration-check']) assert.ok(by(id), id)
+  assert.match(by('dependency-rules').cmd.at(-1), /node --test "scripts\/deps\/__tests__\/\*\.test\.mjs" && node scripts\/deps\/check\.mjs/)
+  assert.match(by('release-scripts-tests').cmd.at(-1), /scripts\/release\/__tests__.*scripts\/install-test\/__tests__/)
+  assert.match(by('scripts-tests').cmd.at(-1), /scripts\/robots\/__tests__.*scripts\/cla\/__tests__/)
+  assert.match(by('core-package').cmd.at(-1), /check:package && npm pack --dry-run/)
+  assert.match(by('host-build').cmd.at(-1), /npm run build && npm run check:bundles/)
+  assert.deepEqual(by('lockfiles-held').cmd, ['scripts/deps/held.sh'])
+  assert.match(by('workflows-lint').cmd.at(-1), /brew install actionlint[\s\S]*brew install shellcheck[\s\S]*\nactionlint$/)
+  assert.equal(by('migration-check').group, 'docker')
+  assert.equal(by('migration-check').lane, undefined)
+  assert.ok(!by('upgrade-test'), 'the upgrade test runs only when what it proves changed')
+  assert.equal(by('hq-typecheck').env.NODE_OPTIONS, '--max-old-space-size=4096')
+  assert.equal(by('hq-build').env.NODE_OPTIONS, '--max-old-space-size=4096')
+})
+
+test("console-web's build, the guide's capture and its comparison run one after another, the token from the GitHub login when none is given", () => {
+  const steps = planSteps(fullSelection(), { logs: '/logs' })
+  assert.deepEqual(steps.filter((s) => s.lane === 'guide').map((s) => s.id), ['console-web-build', 'guide-capture', 'guide-compare'])
+  const compare = steps.find((s) => s.id === 'guide-compare')
+  assert.equal(compare.cwd, 'hq')
+  assert.match(compare.cmd.at(-1), /GH_TOKEN="\$\{GH_TOKEN:-\$\(gh auth token 2>\/dev\/null \|\| true\)\}" npm run guide:compare/)
+})
+
+test('an affected run: the rules and workflows when the dependency job is reached, the migration check when a migration changed, the upgrade test when changes.mjs says', () => {
+  const plain = planSteps(selectionFromAffected(affected(['secure-page', 'ui'])), { logs: '/l' })
+  for (const id of ['dependency-rules', 'workflows-lint', 'migration-check', 'upgrade-test', 'core-package']) assert.ok(!ids(plain).includes(id), id)
+  assert.ok(ids(plain).includes('lockfiles-held'))
+  const deps = planSteps(selectionFromAffected(affected(['secure-page', 'dependencies'])), { logs: '/l' })
+  assert.ok(ids(deps).includes('dependency-rules') && ids(deps).includes('workflows-lint'))
+  assert.ok(!ids(deps).includes('release-scripts-tests'), 'nothing built core')
+  const migrated = planSteps(selectionFromAffected(affected(['hq', 'hq-integration']), { changes: { migrations: true, upgrade: 'hq/migrations/x changed' } }), { logs: '/l' })
+  assert.ok(ids(migrated).includes('migration-check'))
+  assert.deepEqual(migrated.find((s) => s.id === 'upgrade-test').env, { UPGRADE_TEST_LOGS: '/l/upgrade-test' })
+  assert.ok(ids(migrated).includes('release-scripts-tests'))
+})
+
 test("the guide's screenshots are captured from the run's hq build, with its logs in the run's, whenever the browser tests run", () => {
   const capture = planSteps(fullSelection(), { logs: '/logs' }).find((s) => s.id === 'guide-capture')
   assert.deepEqual(capture.cmd, ['node', 'scripts/guide/capture.mjs', '--no-build', '--logs', '/logs/guide-capture'])
@@ -41,6 +81,8 @@ test('every step declares its slots: Vitest and e2e steps sized by workers, the 
   assert.equal(by('cross-app').slots, 2)
   assert.deepEqual(by('core-test').workers, [1, 4])
   assert.deepEqual(steps.filter((s) => s.lane === 'docker').map((s) => s.id), ['images', 'install-test', 'host-container', 'site-container'])
+  const upgrading = planSteps(fullSelection({ changes: { upgrade: 'asked' } }), { logs: '/logs' })
+  assert.deepEqual(upgrading.filter((s) => s.lane === 'docker').map((s) => s.id), ['images', 'install-test', 'upgrade-test', 'host-container', 'site-container'])
   assert.equal(by('site-container').workers, undefined)
   for (const s of steps) assert.ok(s.workers ? s.workers[0] >= 1 && s.workers[1] >= s.workers[0] : (s.slots ?? 1) >= 1, s.id)
 })
@@ -68,9 +110,9 @@ test('a change to site alone runs site and its dependents, its integration and t
 
 test('a change to ui runs the browser tests once, as shipped, and no cross-app suite', () => {
   const steps = planSteps(selectionFromAffected(affected(['secure-page', 'ui', 'hq', 'hq-integration', 'console-web'])), { logs: '/l' })
-  assert.deepEqual(ids(steps, 'stacks'), ['cross-app', 'e2e', 'guide-capture'])
+  assert.deepEqual(ids(steps, 'stacks'), ['cross-app', 'e2e', 'guide-capture', 'guide-compare'])
   const ui = planSteps(selectionFromAffected(affected(['ui'])), { logs: '/l' })
-  assert.deepEqual(ids(ui, 'stacks'), ['e2e', 'guide-capture'])
+  assert.deepEqual(ids(ui, 'stacks'), ['e2e', 'guide-capture', 'guide-compare'])
 })
 
 test('changed image parts are start-tested, then the install test runs', () => {
@@ -81,7 +123,7 @@ test('changed image parts are start-tested, then the install test runs', () => {
 
 test("no step inherits the caller's secrets key, flag switch or run state", () => {
   const env = baseEnv({ PATH: '/bin', SECRETS_MASTER_KEY: 'k', TEST_ALL_FEATURES: '1', CROSSAPP_PORTS: '1,2', E2E_TASK_KEY: 'x', VITEST_MAX_WORKERS: '1', DATABASE_URL: 'u' })
-  assert.deepEqual(env, { PATH: '/bin', DATABASE_URL: 'u' })
+  assert.deepEqual(env, { PATH: '/bin', DATABASE_URL: 'u', WASP_TELEMETRY_DISABLE: '1' })
 })
 
 test('reads free memory on macOS and Linux', () => {

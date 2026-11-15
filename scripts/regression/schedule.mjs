@@ -19,6 +19,9 @@ export const DEFAULT_SECONDS = {
   'cross-app-all-flags': 275, 'site-container': 266, 'hq-typecheck': 111, 'host-container': 95, 'host-test': 94,
   'site-test': 87, 'console-web-test': 73, 'install-test': 40, 'ui-test': 27, 'core-test': 18, 'console-test': 12,
   'site-integration': 7, 'relay-test': 5, 'guide-capture': 180,
+  // Not yet measured by a close-out run (15 Nov): what the plan expects of each.
+  'upgrade-test': 300, 'migration-check': 60, 'guide-compare': 60, 'host-build': 60, 'console-web-build': 60,
+  'core-package': 40, 'console-build': 20,
 }
 const UNKNOWN_SECONDS = 5
 // What one light command beside the run (heavy --light) is counted as: a slot of processor, and about this much memory.

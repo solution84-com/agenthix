@@ -15,7 +15,8 @@
 # when the namespace is already in use here, or a port it would publish is taken. Settings, all optional:
 #   UPGRADE_TEST_NAMESPACE     the installation's namespace (a new one, hut<random>, when unset)
 #   UPGRADE_TEST_HQ_PORT       HQ's port, on 127.0.0.1; UPGRADE_TEST_CONSOLE_PORT the Fleet Console's. Free ports when unset.
-#   UPGRADE_TEST_FROM          the version installed first, pulled from UPGRADE_TEST_REGISTRY (0.1.0-alpha.4 unless set)
+#   UPGRADE_TEST_FROM          the version installed first, pulled from UPGRADE_TEST_REGISTRY (the newest release tag
+#                              before this commit unless set: `git describe --tags --match 'v*' --abbrev=0`, without the v)
 #   UPGRADE_TEST_FROM_TAG      instead: the images here as <image name>:<tag> (agenthix-hq-server:<tag> …)
 #   UPGRADE_TEST_FROM_REFS     instead: a file of `<part> <image>` lines, such as images by digest
 #   UPGRADE_TEST_TO_TAG        the candidate: the images here as <image name>:<tag>. Unset, the images built from the
@@ -25,8 +26,10 @@
 #   UPGRADE_TEST_NO_BUILD=1    build nothing: a missing image is an error
 #   UPGRADE_TEST_KEEP=1        leave everything as it is at the end, and say how to remove it
 #   UPGRADE_TEST_LOGS          where the logs go (a new folder under the system's temporary folder)
-# It takes about 14 minutes, most of it the forced failure's health check, which waits 10 minutes for an hq-server
-# that never answers.
+#   UPGRADE_TEST_HQ_WAIT_SECONDS  how long the host service waits for HQ to answer (90 unless set; a development build's
+#                              setting HOST_DEV_HQ_WAIT_SECONDS, which a published host service ignores)
+# It takes about 5 minutes once the images are built, the forced failure's health check waiting that long for an
+# hq-server that never answers (an installation's waits 10 minutes).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -87,6 +90,14 @@ CONSOLE_PORT="${UPGRADE_TEST_CONSOLE_PORT:-${CHOSEN[1]}}"
 taken="$(node "$ROOT/scripts/install-test/ports.mjs" taken "$HQ_PORT" "$CONSOLE_PORT")"
 [ -z "$taken" ] || fail "port $taken is already in use here. Nothing was touched; choose others with UPGRADE_TEST_HQ_PORT and UPGRADE_TEST_CONSOLE_PORT."
 ADDRESS="http://127.0.0.1:$HQ_PORT"
+FROM_VERSION="${UPGRADE_TEST_FROM:-}"
+if [ -z "$FROM_VERSION" ] && [ -z "${UPGRADE_TEST_FROM_TAG:-}${UPGRADE_TEST_FROM_REFS:-}" ]; then
+  FROM_VERSION="$(git -C "$ROOT" describe --tags --match 'v*' --abbrev=0 2>/dev/null || true)"
+  FROM_VERSION="${FROM_VERSION#v}"
+  [ -n "$FROM_VERSION" ] || fail 'no release tag (v*) is in this history, so there is no version to upgrade from: fetch the tags (git fetch --tags), or set UPGRADE_TEST_FROM.'
+fi
+HQ_WAIT="${UPGRADE_TEST_HQ_WAIT_SECONDS:-90}"
+[[ "$HQ_WAIT" =~ ^[1-9][0-9]*$ ]] || fail "UPGRADE_TEST_HQ_WAIT_SECONDS is a whole number of seconds, not \"$HQ_WAIT\"."
 echo "Namespace $NS; HQ at $ADDRESS; the Fleet Console on 127.0.0.1:$CONSOLE_PORT; logs in $LOGS"
 
 # --- The images ---------------------------------------------------------------------------------------------------
@@ -99,7 +110,7 @@ from_ref() { # <part>: the image installed first
   elif [ -n "${UPGRADE_TEST_FROM_TAG:-}" ]; then
     echo "$(image "$1"):$UPGRADE_TEST_FROM_TAG"
   else
-    echo "${UPGRADE_TEST_REGISTRY:-ghcr.io/solution84-com}/$PREFIX-$1:${UPGRADE_TEST_FROM:-0.1.0-alpha.4}"
+    echo "${UPGRADE_TEST_REGISTRY:-ghcr.io/solution84-com}/$PREFIX-$1:$FROM_VERSION"
   fi
 }
 to_ref() { if [ -n "${UPGRADE_TEST_TO_TAG:-}" ]; then echo "$(image "$1"):$UPGRADE_TEST_TO_TAG"; else echo "imgtest/$1:dev"; fi; }
@@ -163,7 +174,7 @@ say "Starting the host service ($HOST_IMAGE)"
 guard "$NS-host" "$NS-host-figures"
 docker run -d --name "$NS-host" \
   -v /var/run/docker.sock:/var/run/docker.sock -v "$STATE:/state" \
-  -v "$NS-host-figures:/run/host-figures" -e TZ=UTC -e INSTALL_NAMESPACE="$NS" \
+  -v "$NS-host-figures:/run/host-figures" -e TZ=UTC -e INSTALL_NAMESPACE="$NS" -e HOST_DEV_HQ_WAIT_SECONDS="$HQ_WAIT" \
   --network host --cap-add NET_ADMIN \
   --label "com.docker.compose.project=$NS-host" "$HOST_IMAGE" >/dev/null
 for _ in $(seq 1 60); do docker exec "$NS-host" "$CLI" status >/dev/null 2>&1 && break; sleep 2; done
@@ -202,7 +213,7 @@ no_rows_lost installed upgraded
 # --- An upgrade that fails, put back --------------------------------------------------------------------------------
 rows seed two || fail 'the second rows could not be seeded.'
 counts before-failure
-say 'Upgrading to a build whose hq-server never answers (the health check waits 10 minutes)'
+say "Upgrading to a build whose hq-server never answers (the health check waits $HQ_WAIT seconds)"
 if host_cli hq upgrade --image-tag "$NS-broken" --yes >"$LOGS/failed-upgrade.txt" 2>&1; then
   fail 'the upgrade to a build that never answers was not put back.'
 fi

@@ -29,10 +29,16 @@ const vitest = (id, group, cwd, script, extra = {}) => ({ id, group, cwd, cmd: [
 const plain = (id, group, cwd, cmd, extra = {}) => ({ id, group, cwd, cmd, kind: 'plain', ...extra })
 
 /**
- * The selection: { full, modules: Set, integration: Set, crossApp, e2e, allFlags, imageParts: string[] | null,
- * installTest, containers }. `imageParts` null runs no image start test; [] runs every part.
+ * hq's type checks and Wasp's compile grew past Node's default heap; CI gives them this much, and so does the run.
  */
-export function selectionFromAffected(result, { staleImageParts = [] } = {}) {
+const HQ_HEAP = { NODE_OPTIONS: '--max-old-space-size=4096' }
+
+/**
+ * The selection: { full, modules: Set, integration: Set, crossApp, e2e, allFlags, imageParts: string[] | null,
+ * installTest, containers, dependencies, migrationCheck, upgradeTest }. `imageParts` null runs no image start test;
+ * [] runs every part. `upgradeTest` is why the upgrade test runs, or null; `changes` is what changes.mjs judged.
+ */
+export function selectionFromAffected(result, { staleImageParts = [], changes = {} } = {}) {
   const jobs = new Set(result.selected)
   const modules = new Set(MODULES.filter((m) => jobs.has(m)))
   return {
@@ -45,15 +51,28 @@ export function selectionFromAffected(result, { staleImageParts = [] } = {}) {
     imageParts: staleImageParts.length ? staleImageParts : null,
     installTest: staleImageParts.length > 0,
     containers: false,
+    dependencies: jobs.has('dependencies'),
+    migrationCheck: Boolean(changes.migrations),
+    upgradeTest: changes.upgrade ?? null,
   }
 }
 
-export function fullSelection() {
+/** Everything, the migration check included; the upgrade test only when what it proves changed (`changes`). */
+export function fullSelection({ changes = {} } = {}) {
   return {
     full: true, modules: new Set(MODULES), integration: new Set(['hq', 'site']), crossApp: true, e2e: true,
-    allFlags: true, imageParts: [], installTest: true, containers: true,
+    allFlags: true, imageParts: [], installTest: true, containers: true, dependencies: true, migrationCheck: true,
+    upgradeTest: changes.upgrade ?? null,
   }
 }
+
+// actionlint checks the workflows, and each `run:` block with shellcheck when shellcheck is installed; without it the
+// shell would go unchecked, so the step needs both.
+const LINT_WORKFLOWS = [
+  'command -v actionlint >/dev/null || { echo "actionlint is not installed: brew install actionlint (or see https://github.com/rhysd/actionlint/blob/main/docs/install.md)"; exit 1; }',
+  'command -v shellcheck >/dev/null || { echo "shellcheck is not installed, so actionlint would not check the workflows\' shell: brew install shellcheck"; exit 1; }',
+  'actionlint',
+].join('\n')
 
 /** The steps a selection runs, in order within each group. `logs` is where steps that write logs of their own put them. */
 export function planSteps(sel, { logs }) {
@@ -62,24 +81,39 @@ export function planSteps(sel, { logs }) {
   const steps = []
   const add = (cond, step) => { if (cond) steps.push(step) }
 
-  add(sel.modules.size > 0 || stacks, plain('core-build', 'prepare', 'core', ['npm', 'run', 'build']))
-  add(has('hq') || stacks, plain('hq-build', 'prepare', '.', ['node', 'scripts/regression/hq-built.mjs', '--build']))
+  const coreBuilt = sel.modules.size > 0 || stacks
+  add(coreBuilt, plain('core-build', 'prepare', 'core', ['npm', 'run', 'build']))
+  add(has('hq') || stacks, plain('hq-build', 'prepare', '.', ['node', 'scripts/regression/hq-built.mjs', '--build'], { env: HQ_HEAP }))
   add(stacks, plain('relay-build', 'prepare', 'relay', ['npm', 'run', 'build']))
   add(stacks, plain('platform-guide', 'prepare', 'hq', ['node', 'scripts/guide/build-platform-guide.mjs']))
   add(sel.crossApp, plain('cross-app-install', 'prepare', 'tests/cross-app', ['sh', '-c', '[ -d node_modules ] || npm ci --no-audit --no-fund']))
 
   steps.push(plain('secure-page', 'units', '.', ['sh', '-c', 'node --test scripts/__tests__/check-secure-page.test.mjs && node scripts/check-secure-page.mjs']))
-  steps.push(plain('scripts-tests', 'units', '.', ['sh', '-c', 'node --test scripts/__tests__/*.test.mjs']))
+  // With the tests of the robots bundle and the contributor agreement, which Checks runs beside them.
+  steps.push(plain('scripts-tests', 'units', '.', ['sh', '-c', 'node --test scripts/__tests__/*.test.mjs scripts/robots/__tests__/*.test.mjs scripts/cla/__tests__/*.test.mjs']))
+  // The installs are all made before (prepare): no lockfile may differ from what was committed.
+  steps.push(plain('lockfiles-held', 'units', '.', ['scripts/deps/held.sh']))
+  add(sel.dependencies, plain('dependency-rules', 'units', '.', ['sh', '-c', 'node --test "scripts/deps/__tests__/*.test.mjs" && node scripts/deps/check.mjs']))
+  add(sel.dependencies, plain('workflows-lint', 'units', '.', ['sh', '-c', LINT_WORKFLOWS]))
+  // The release's and the install test's scripts, as the release build and the install test run them; one reads core's build.
+  add(coreBuilt, plain('release-scripts-tests', 'units', '.', ['sh', '-c', 'node --test "scripts/release/__tests__/*.test.mjs" "scripts/install-test/__tests__/*.test.mjs"']))
   add(has('core'), vitest('core-test', 'units', 'core', 'test'))
+  // core as a project outside this repository installs it, and as the release packs it.
+  add(has('core'), plain('core-package', 'units', 'core', ['sh', '-c', 'npm run check:package && npm pack --dry-run']))
   for (const m of ['ui', 'site', 'relay', 'host', 'console', 'console-web']) {
     if (!has(m)) continue
     // ui's npm script is not its typecheck (the testing-a-change skill): tsc is.
     steps.push(plain(`${m}-typecheck`, 'units', m, m === 'ui' ? ['npx', 'tsc', '--noEmit'] : ['npm', 'run', 'typecheck']))
     if (m === 'site') steps.push(plain('site-plugin-typecheck', 'units', 'site/opencode-plugin', ['npm', 'run', 'typecheck']))
     steps.push(vitest(`${m}-test`, 'units', m, 'test'))
+    // The builds CI makes, and the host service's bundles started as its image starts them. console-web's build is
+    // the one the guide's capture makes again, into the same folder, so the two run one after the other.
+    if (m === 'host') steps.push(plain('host-build', 'units', m, ['sh', '-c', 'npm run build && npm run check:bundles']))
+    if (m === 'console') steps.push(plain('console-build', 'units', m, ['npm', 'run', 'build']))
+    if (m === 'console-web') steps.push(plain('console-web-build', 'units', m, ['npm', 'run', 'build'], { lane: 'guide' }))
   }
   if (has('hq')) {
-    steps.push(plain('hq-typecheck', 'units', 'hq', ['npm', 'run', 'typecheck']))
+    steps.push(plain('hq-typecheck', 'units', 'hq', ['npm', 'run', 'typecheck'], { env: HQ_HEAP }))
     steps.push(plain('hq-typecheck-guide', 'units', 'hq', ['npm', 'run', 'typecheck:guide']))
     steps.push(vitest('hq-test', 'units', 'hq', 'test', { workers: [2, 4] }))
     steps.push(plain('hq-web-address', 'units', '.', ['sh', 'hq/docker/test/web-address.test.sh']))
@@ -98,8 +132,12 @@ export function planSteps(sel, { logs }) {
   const docker = { lane: 'docker', slots: 2 }
   add(sel.imageParts !== null, plain('images', 'docker', '.', ['scripts/images/start-test-all.sh', ...(sel.imageParts ?? [])], { ...docker, slots: 3 }))
   add(sel.installTest, plain('install-test', 'docker', '.', ['scripts/install-test/run.sh'], { ...docker, env: { INSTALL_TEST_LOGS: `${logs}/install-test` } }))
+  // From the newest release's images to the ones just built, and put back from a forced failure (changes.mjs says when).
+  add(sel.upgradeTest != null, plain('upgrade-test', 'docker', '.', ['scripts/upgrade-test/run.sh'], { ...docker, env: { UPGRADE_TEST_LOGS: `${logs}/upgrade-test` } }))
   add(sel.containers, vitest('host-container', 'docker', 'host', 'test:container', { ...docker, workers: undefined }))
   add(sel.containers, vitest('site-container', 'docker', 'site', 'test:container', { ...docker, workers: undefined }))
+  // A Postgres container of its own, and Prisma: no image built, so it runs beside the Docker steps.
+  add(sel.migrationCheck, plain('migration-check', 'docker', '.', ['scripts/migration-check/run.sh']))
 
   // A cross-app run: its stack's servers and one test file at a time. An e2e run: its stack, and a browser per worker.
   const crossApp = (id, env) => ({ id, group: 'stacks', cwd: 'tests/cross-app', cmd: ['npx', 'vitest', 'run'], kind: 'chain', slots: 2, env: { CROSSAPP_PREBUILT: '1', CROSSAPP_DB_CONNECTION_LIMIT: String(DB_CONNECTION_LIMIT), ...env } })
@@ -110,7 +148,10 @@ export function planSteps(sel, { logs }) {
   add(sel.e2e && sel.allFlags, e2e('e2e-all-flags', 'all'))
   // The user guide's screenshots, as the release rehearsal and GitHub take them (scripts/guide/capture.mjs): its own
   // hq and site, and one browser. A stack, so it counts toward the stacks run at once.
-  add(sel.e2e, plain('guide-capture', 'stacks', '.', ['node', 'scripts/guide/capture.mjs', '--no-build', '--logs', `${logs}/guide-capture`], { slots: 2, stack: true }))
+  add(sel.e2e, plain('guide-capture', 'stacks', '.', ['node', 'scripts/guide/capture.mjs', '--no-build', '--logs', `${logs}/guide-capture`], { slots: 2, stack: true, lane: 'guide' }))
+  // Then each screenshot against the one its page links, read from the releases with the GitHub login while the
+  // repository is private, as the release rehearsal does; the report is hq/e2e/guide/.report/.
+  add(sel.e2e, plain('guide-compare', 'stacks', 'hq', ['sh', '-c', 'GH_TOKEN="${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}" npm run guide:compare'], { lane: 'guide' }))
   return steps
 }
 
@@ -118,6 +159,7 @@ export function planSteps(sel, { logs }) {
 export const NEVER_INHERITED = [/^SECRETS_MASTER_KEY$/, /^TEST_DB_SERVER_URL$/, /^TEST_ALL_FEATURES$/, /^TEST_DB_NAME$/, /^TEST_DB_WORKERS$/,
   /^VITEST_MAX_WORKERS$/, /^CROSSAPP_/, /^E2E_/, /^EXPERIMENTAL_FAILURES_DIR$/, /^PLAYWRIGHT_JSON_OUTPUT_NAME$/]
 
+/** The caller's environment without what no step inherits, and with Wasp's telemetry off, as CI runs it. */
 export function baseEnv(env) {
-  return Object.fromEntries(Object.entries(env).filter(([k]) => !NEVER_INHERITED.some((re) => re.test(k))))
+  return { ...Object.fromEntries(Object.entries(env).filter(([k]) => !NEVER_INHERITED.some((re) => re.test(k)))), WASP_TELEMETRY_DISABLE: '1' }
 }

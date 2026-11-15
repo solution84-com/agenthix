@@ -12,7 +12,8 @@
 #
 # The databases are in one Postgres container of its own, <namespace>-db, published on 127.0.0.1 on a free port, and
 # removed at the end with nothing else touched. Settings, all optional:
-#   MIGRATION_CHECK_FROM        the release whose schema it starts from (v0.1.0-alpha.4 unless set)
+#   MIGRATION_CHECK_FROM        the release whose schema it starts from (the newest release tag before this commit unless
+#                               set: `git describe --tags --match 'v*' --abbrev=0`)
 #   MIGRATION_CHECK_NAMESPACE   the container's namespace (mck<random> unless set)
 #   MIGRATION_CHECK_KEEP=1      leave the container running, and say how to remove it
 # It takes under a minute once the Postgres image is on the machine.
@@ -20,7 +21,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HERE="$ROOT/scripts/migration-check"
-FROM="${MIGRATION_CHECK_FROM:-v0.1.0-alpha.4}"
+FROM="${MIGRATION_CHECK_FROM:-$(git -C "$ROOT" describe --tags --match 'v*' --abbrev=0 2>/dev/null || true)}"
 NS="${MIGRATION_CHECK_NAMESPACE:-mck$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 8 || true)}"
 DB="$NS-db"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/$NS.XXXXXX")"
@@ -29,6 +30,7 @@ say() { printf '\n== %s\n' "$*"; }
 fail() { printf '\nThe migration check failed: %s\n' "$*" >&2; exit 1; }
 
 command -v docker >/dev/null || fail 'Docker is not on this machine.'
+[ -n "$FROM" ] || fail 'no release tag (v*) is in this history to start from: fetch the tags (git fetch --tags), or set MIGRATION_CHECK_FROM.'
 [[ "$NS" =~ ^[a-z][a-z0-9-]{0,30}$ ]] || fail "\"$NS\" cannot be a namespace."
 git -C "$ROOT" rev-parse --verify --quiet "$FROM^{commit}" >/dev/null || fail "$FROM is not a commit here; fetch its tag first (git fetch --tags)."
 docker inspect "$DB" >/dev/null 2>&1 && fail "a container $DB is here already; nothing was touched."
