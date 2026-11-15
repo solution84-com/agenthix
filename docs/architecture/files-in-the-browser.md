@@ -183,7 +183,7 @@ say to write references, never an address, which it does not know.
   path text as before.
 - **The `@` picker** opens under the caret and lists files whose names hold what is typed after `@`, each with its
   folder (`hq/src/conversations/components/atPicker/`). hq checks the person's access, then asks the place's site with
-  `location.findFiles` (site protocol 1.8, `core/src/protocol/locationFind.ts`): one location only, links never
+  `location.findFiles` (`core/src/protocol/locationFind.ts`): one location only, links never
   followed, `.git` and `node_modules` skipped, at most 20 results, 20,000 entries, depth 12 and 1.5 seconds, answering
   what it found by then. Only the conversation's own place is searched (`hq/src/conversations/findConversationFiles.ts`),
   since a reference is read in that place's folder.
@@ -192,7 +192,7 @@ say to write references, never an address, which it does not know.
 
 One line above a workspace's files, and in the Files tool when `files/` is a repository (`GitLine.tsx`): the branch
 (or a detached commit), the count of changed files or no changes, the last commit, and a merge or rebase in progress.
-hq asks with `git.status` (site protocol 1.8, `core/src/protocol/gitStatus.ts`; `hq/src/storage/gitStatus.ts`) when the
+hq asks with `git.status` (`core/src/protocol/gitStatus.ts`; `hq/src/storage/gitStatus.ts`) when the
 folder opens and again on focus, after checking access.
 
 The site's read (`site/src/storage/gitStatusRead.ts`) runs git with fixed arguments and a time limit, never a shell,

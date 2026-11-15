@@ -8,14 +8,12 @@ A conversation is not a session. It is a record held in hq whose replies are dir
 stateDiagram-v2
     [*] --> ACTIVE: created
     ACTIVE --> ARCHIVED: person archives, or a run of its task finishes or fails
-    ACTIVE --> EXPIRED: set by an explicit status update
     ACTIVE --> CLOSED: harness state gone, or membership ended
     ARCHIVED --> [*]
-    EXPIRED --> [*]
     CLOSED --> [*]
 ```
 
-`CLOSED` is permanent: nothing reopens a conversation, and hq refuses to set a closed session back to `ACTIVE`. `EXPIRED` exists in the schema and can be set through hq's `updateSession` action, but nothing in the platform sets it on a timer. Releasing an idle conversation's processes is a different thing and does not change the status (see Idle release).
+`CLOSED` is permanent: nothing reopens a conversation, and hq refuses to set a closed session back to `ACTIVE`. A session has no expiry: nothing ends one on a timer. Releasing an idle conversation's processes is a different thing and does not change the status (see Idle release).
 
 ## A run
 

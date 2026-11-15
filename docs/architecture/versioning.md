@@ -294,13 +294,12 @@ never a step of an ordinary change: from then on every difference is judged by t
 
 What one release writes, a later one reads: the databases, sealed backups and agent packages.
 
-- **The databases.** Each app has one initial migration, generated from its schema
-  (`hq/migrations/`, `site/migrations/`). **Until `v0.1.0`, nothing is carried
-  forward**: old data is wiped, never converted, and each app's migrations are squashed into one initial migration in
-  the commit tagged `v0.1.0`. From `v0.1.0` every schema change is a new migration that carries a release's data
-  forward. That is a rule for the build, not a guarantee to users: an upgrade that cannot carry data forward is a
-  breaking change, and the changelog says so before it ships, with what to do. The
-  `database-migrations` skill (`.agents/skills/`) has the commands.
+- **The databases.** Each app's migrations start from one initial migration (`hq/migrations/`,
+  `site/migrations/`), made before `v0.1.0` from the reviewed schema; installations from before it are installed
+  again, not upgraded. From it on, every schema change is a new migration that carries an installation's data
+  forward, and the migration check (`scripts/migration-check/`) proves no row is lost. That is a rule for the build,
+  not a guarantee to users: an upgrade that cannot carry data forward is a breaking change, and the changelog says so
+  before it ships, with what to do. The `database-migrations` skill (`.agents/skills/`) has the commands.
 - **Formats carry a whole number, starting at 1**: the agent package's contents (`PACKAGE_FORMAT_VERSION`,
   `core/src/protocol/packages.ts`), a Library asset's manifest (`ASSET_MANIFEST_FORMAT`, now 2,
   `core/src/assets/manifest.ts`, which the signed statement also names; a package in the earlier format is refused),

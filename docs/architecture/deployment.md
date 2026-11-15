@@ -572,7 +572,9 @@ Both are the host service's ([host-management.md](host-management.md#maintenance
 - **Upgrades:** `agenthix hq upgrade` or `agenthix site upgrade`, now or `--at` a time, or from the Fleet Console's
   *Maintenance*. Members are told, runs pause, a sealed backup is taken first, and a version that does not come up
   healthy within 10 minutes is rolled back. Fixes apply by themselves in the maintenance window
-  (`agenthix upgrades`). `agenthix upgrades host` moves the host service itself, through its launcher.
+  (`agenthix upgrades`). `agenthix upgrades host` moves the host service itself, through its launcher. An
+  installation of `0.1.0-alpha.5` or earlier can't be upgraded: each app's migrations were squashed into one before
+  `v0.1.0`, so it is installed again, fresh. Every installation from then on upgrades with its data.
 - **Backups:** every machine backs itself up, sealed, each night at 02:00 machine time. `agenthix backup location
   <path>` adds a copy in a folder of your choosing — set only on the machine — and `agenthix backup export` writes one
   sealed to a key shown once. (A machine Agenthix Cloud runs has its location set by Cloud, to an S3-compatible store,

@@ -254,7 +254,7 @@ The events say what hq and the client tell each other; they do not say when to s
      clips repeats, and nothing plays over the person.
    **Holding a turn.** For a spoken message the lead decides in its own call whether the person has finished: a
    `keep_listening` call (its reason logged, no text) holds the turn. hq then sends `conversationVoice:turnHeld` to the
-   holder (client protocol 1.19), with no message and no second model call, and the person's next words join the held
+   holder, with no message and no second model call, and the person's next words join the held
    message. Otherwise the lead replies, opening with one short sentence only when the reply needs real work (an
    Adaptive voice that is off leaves the sentence out). The lead's voice instructions come in the turn block, added to
    a spoken message only, after the cached part (`conversations/lead/voiceTurnBlock.ts`, `voiceLogic.ts`); with the

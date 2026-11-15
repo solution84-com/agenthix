@@ -53,8 +53,8 @@ https (plain http only to the machine itself), and hq refuses an approval page t
   account exists) and on *Providers* in the admin area (`hq/src/cloud/adminCloud.ts`: `getHqCloudConnection`,
   `connectHqToCloud`, `disconnectHqFromCloud`). A connection adds Agenthix Cloud as a provider (`supplyCloudProvider`, written by the organisation admin who connected, or by Cloud's controller on a machine it runs), which reads *not
   available yet* until hq's calls to Cloud's models and voice exist; a disconnection leaves it as *disconnected*.
-  The Fleet Console only shows the state (`cloud.state`) and says where to connect; its `cloud.connect` and
-  `cloud.disconnect` methods on the console link are deprecated and refuse. From hq's machine,
+  The Fleet Console only shows the state (`cloud.state`) and says where to connect; the console link has no
+  method to connect or disconnect. From hq's machine,
   `agenthix cloud connect|disconnect` asks the same of hq over its control socket (`cloud-connection`,
   `hq/src/cloud/machineCommands.ts`), recorded as made by the machine admin.
 - **On a machine Agenthix Cloud runs, Cloud connects hq itself, with no code** (ADR-0135). The host service tells hq
@@ -91,7 +91,7 @@ https (plain http only to the machine itself), and hq refuses an approval page t
   Cloud answers, and the status it goes with, is declared in `core/src/cloud/answers.ts`. An admin
   asking to connect is told *Agenthix Cloud is busy — try again in N minutes*; a request waiting on approval polls
   again once the wait is over.
-- **The protocol has a version, 1.1** (`CLOUD_PROTOCOL_VERSION`, `core/src/cloud/version.ts`; 1.0 is the connection, sign-in, pledge and downtime notice, and 1.1 the [AI contract](#the-ai-contract)), under the rule every
+- **The protocol has a version, 1.0** (`CLOUD_PROTOCOL_VERSION`, `core/src/cloud/version.ts`; it holds the connection, sign-in, pledge and downtime notice and the [AI contract](#the-ai-contract)), under the rule every
   connection follows ([control-channel.md](control-channel.md#protocol-versions)): the two sides work together while their
   majors are at most one apart. Every call hq makes states it in `X-Cloud-Protocol-Version`, with
   `User-Agent: hq/<release>`, and Cloud states its own on every answer. Cloud refuses a call that states no version,
@@ -158,7 +158,7 @@ to that hq. HQ keeps the answer an hour, shows it to that person alone, and asks
 
 Agenthix Cloud is one provider of models, speech to text and text to speech, with no key: every call carries a short-lived
 access token that hq signed for with its own key, and the Cloud connection is the whole of the credential. The contract
-both sides build to is declared in `core/src/cloud/ai.ts` and `aiKeys.ts` and added to the protocol at 1.1. **hq's own side of
+both sides build to is declared in `core/src/cloud/ai.ts` and `aiKeys.ts` and part of the protocol. **hq's own side of
 these calls is built when the hosted side is ready** (`CLOUD_AI_AVAILABLE` in `hq/src/cloud/adminCloud.ts` is false): until
 then a connected hq shows Agenthix Cloud as *not available yet*, setup's Cloud card cannot be chosen, and a site that asks hq
 for a Cloud token is refused with `not_connected` or `not_available`.

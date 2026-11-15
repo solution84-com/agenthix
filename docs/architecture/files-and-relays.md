@@ -77,10 +77,10 @@ sequenceDiagram
    (`assertLocationAccess`) before anything is asked of a site; a file they may not read answers `not-found`, the same
    as a file that is not there. It finds the site holding the place and that site's relay. A relay that is not
    connected to hq answers `relay-unavailable` at once, before the site is asked or anything is signed.
-2. **About the file.** `file.about` (site protocol 1.8, `core/src/protocol/fileAbout.ts`) answers the facts and
+2. **About the file.** `file.about` (`core/src/protocol/fileAbout.ts`) answers the facts and
    whether the first bytes look like text; no content crosses hq. A file with more than one hard link is refused as
-   `linked` (site protocol 1.17), which `openFile` answers as its own state so the frame can say why. A place's file may
-   name a `commit` (1.18): see *A workspace's file at a commit* below.
+   `linked`, which `openFile` answers as its own state so the frame can say why. A place's file may
+   name a `commit`: see *A workspace's file at a commit* below.
 3. **The kind** is chosen by core's `chooseFileKind` (`core/src/files/kind.ts`), so hq and the page agree.
 4. **Two tickets**, preview and download, are signed and recorded by `issueFileTicket` (`hq/src/relays/fileTickets.ts`):
    a `FileOpened` row is written for each before it is returned, so no browser holds a ticket hq has no record of.
@@ -98,8 +98,7 @@ time, and one file that cannot be opened answers its own state without failing t
 `getFileFacts`, which checks access and asks the site about the file but signs nothing.
 
 **What the answer can be** (`FileOpenAnswer`, `core/src/files/open.ts`): `ready`, `no-files-address`, `no-relay`
-(the site has no relay yet), `relay-unavailable` (naming the site and its relay), `site-unavailable` (with `upgrade`
-naming the site when it answers but is older than 1.18 and was asked for a file at a commit), `linked` (the file has
+(the site has no relay yet), `relay-unavailable` (naming the site and its relay), `site-unavailable`, `linked` (the file has
 more than one hard link) or `not-found`. `getFileFacts` for a chip answers `linked` the same way. The frame words each one ([files-in-the-browser.md](files-in-the-browser.md#the-frame-and-its-states)).
 
 ### A workspace's file at a commit
@@ -113,8 +112,7 @@ the helper writes the file whole into `git-file-reads/`, a folder of the site's 
 site serves it from there for the ranges a PDF viewer reads and for the download. The file's version in the ticket is its
 blob id, so a commit's file never reads as changed. The copy is kept a little longer than a ticket lives, the folder is
 emptied when the site starts, and every open checks again that the site holds the workspace as a code workspace. A
-`commit` on any other kind of file names nothing and is not found. An older site ignores `commit`, so hq does not
-ask one (`site-unavailable` with `upgrade`).
+`commit` on any other kind of file names nothing and is not found.
 
 **Who may read a commit.** Anyone who may read the workspace may read any commit of its own repository, not only the
 branches and versions its screen lists: an intermediate commit, or one of a deleted branch while git keeps it. The
@@ -151,9 +149,8 @@ the file changes.
 
 ## The site's line
 
-hq tells a connected site which relay to hold a line to with `relay.assign` (site protocol 1.8,
-`core/src/protocol/relayFiles.ts`; `hq/src/relays/relayAssignment.ts`): the relay, the line's address and a pass. It
-sends the same assignment again before the pass ends; a site speaking less than 1.8 is sent none.
+hq tells a connected site which relay to hold a line to with `relay.assign` (`core/src/protocol/relayFiles.ts`; `hq/src/relays/relayAssignment.ts`): the relay, the line's address and a pass. It
+sends the same assignment again before the pass ends.
 
 - **The site dials** (`site/src/server/relay/relayLines.ts`, `relayLine.ts`) with the pass as its bearer credential,
   `X-Site-Id`, and both its site protocol and the relay protocol. It dials only the address hq gave, resolved against
@@ -211,8 +208,7 @@ Configuration, not enrolment, as hq's site is ([ADR-0070](../adr/adr-0070-hq-and
   relays on machines of their own ([ADR-0154](../adr/adr-0154-a-machine-carries-a-site-or-a-relay-never-both-outside-hqs.md));
   adding one is not built yet.
 - **It is named after hq's machine**, and shown as its site is: *hq-box · HQ's relay* (`displayRelayName`).
-- **The Fleet Console** shows it on HQ's page, from `relay.facts` on the console link (host protocol 1.2,
-  `hq/src/fleet/relayFacts.ts`): its files address, whether it is answering, the sites holding a line, open streams and
+- **The Fleet Console** shows it on HQ's page, from `relay.facts` on the console link (`hq/src/fleet/relayFacts.ts`): its files address, whether it is answering, the sites holding a line, open streams and
   traffic. A relay not answering is on the Dashboard's *Needs you*.
 
 How it is installed and routed is [deployment.md](deployment.md#hqs-address); its port is in [ports.md](ports.md).
@@ -222,8 +218,8 @@ How it is installed and routed is [deployment.md](deployment.md#hqs-address); it
 hq reads a file's content through the content transport only for its own work, never to hand it to a browser:
 `location.readFile` for a place's instruction file the lead reads, `location.readKnowledge` for knowledge pages (the
 Knowledge tool's reader and editor and the lead's knowledge tools), and `packages.put`. A live app's bytes and a branch carried to another site cross a relay, never hq
-([ADR-0169](../adr/adr-0169-live-apps-travel-through-relays.md)). `location.readArtefact` has no caller
-in hq and is deprecated since site protocol 1.8.
+([ADR-0169](../adr/adr-0169-live-apps-travel-through-relays.md)). The site has no method that streams an owner's
+artefact to hq; `location.listArtefacts` only lists them.
 
 ## Where things are in the code
 

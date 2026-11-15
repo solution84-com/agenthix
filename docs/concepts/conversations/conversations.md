@@ -236,8 +236,8 @@ takes the conversation's model for that run ([models](../models/models.md#choosi
 ## Memory
 
 The lead reads memory by meaning, not as a whole: before each turn hq looks for items that match the message and either
-includes them or hints at them; the lead can `recall`, `remember` and `forget`. Workers get the person's pinned items as
-a file and can recall the rest. [Memory](../memory/memory.md) has the scopes, the ranking, and how memory differs from
+includes them or hints at them; the lead can `recall`, `remember` and `forget`. Workers get what memory found for their
+brief as a file and can recall the rest. [Memory](../memory/memory.md) has the scopes, the ranking, and how memory differs from
 [knowledge](../knowledge/knowledge.md), which the lead and workers search and read by other tools. When a person
 corrects what a knowledge page says, the lead changes the page and does not also remember the correction.
 

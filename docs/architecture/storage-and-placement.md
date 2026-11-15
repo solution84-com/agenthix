@@ -231,7 +231,6 @@ as these reads are ([files-and-relays.md](files-and-relays.md)).
 | `git.status` | control channel | The git line above a workspace or `files/` ([files-in-the-browser.md](files-in-the-browser.md#git-status-at-a-glance)) |
 | `location.readFile` | content transport | A place's instruction file, which the lead reads |
 | `location.listArtefacts` | control channel | The Artefacts tool |
-| `location.readArtefact` | content transport | Nothing in hq; deprecated since site protocol 1.8 |
 | `location.listKnowledge`, `location.searchKnowledge`, `location.write`/`edit`/`delete`/`restoreKnowledge`, `location.knowledgeVersions` | control channel | The Knowledge tool, and the knowledge tools of agents ([below](#where-knowledge-lives)) |
 | `location.readKnowledge` | content transport | Opening a page, or one of its versions |
 | `location.seedFiles`, `location.ensureDir` | control channel | hq creating a project's starting files and folders |

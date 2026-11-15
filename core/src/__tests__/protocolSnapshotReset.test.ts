@@ -12,7 +12,7 @@ const shapes = (version: string, mark = '') => snapshotOf({
   `,
 }, version)
 
-describe('a deliberate reset records a new baseline at 1.0', () => {
+describe('a deliberate reset records a new baseline at 1.0 @SC-2169', () => {
   it('allows shapes at 1.0 that carry no deprecation mark', () => {
     expect(resetProblems(shapes('1.0'))).toEqual([])
   })

@@ -78,9 +78,10 @@ into code or a document as a new literal.
 - **Verify by running things**: a typecheck, the tests, or reading the file; never a script that prints a conclusion
   written in advance. Which tests, when, and which model a model check runs on: the `testing-a-change` skill.
 
-**Until `v0.1.0`: a clean slate.** No install needs its data carried forward yet.
-Never write code that converts existing rows, stored values or on-disk layout — old data and old locations are
-ignored or wiped. Each app's migrations are squashed into one initial migration in the commit tagged `v0.1.0`; from `v0.1.0` on, every schema change carries a release's data forward; remove this rule then.
+**Every migration keeps the data.** Each app's migrations start from one initial migration, made before `v0.1.0`.
+From it on, every schema change is a new migration that carries an installation's rows forward (add, backfill, then
+tighten), and the migration check proves it. Something stored that a change can't carry is a breaking change, made
+only as [versioning](docs/architecture/versioning.md#stored-data) says.
 
 ## Writing and terminology
 

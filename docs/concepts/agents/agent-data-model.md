@@ -23,7 +23,7 @@ erDiagram
         string agentId FK
         string userId FK
         string title
-        string status "ACTIVE | EXPIRED | ARCHIVED | CLOSED"
+        string status "ACTIVE | ARCHIVED | CLOSED"
         string closedReason "set only when status is CLOSED"
         string runtime "recorded at creation; never changes"
         string sessionType "chat by default"
@@ -110,7 +110,7 @@ Key fields:
 - `primaryOwnerType`, `primaryOwnerId`, `primaryWorkspaceId` — the storage location the run works in ([storage-and-placement.md](../../architecture/storage-and-placement.md)).
 - `totalInputTokens`, `totalOutputTokens`, `totalCacheReadTokens`, `totalCacheWriteTokens` — running token totals, incremented per run.
 - `harnessSessionId` — on the site's copy only: the harness's own id for the conversation, where the harness chooses it (OpenCode). Null for Claude.
-- `status` — `ACTIVE`, `EXPIRED`, `ARCHIVED` or `CLOSED`, where `CLOSED` means the conversation cannot continue; `closedReason` says why — its harness state is gone (`HARNESS_STATE_MISSING`), the person left the project or the organisation, or the project was deleted. Set by the site, which owns session status, and replicated to hq (person-scoped execution spec §4, [ADR-0076](../../adr/adr-0076-a-conversation-whose-harness-state-is-gone-is-closed.md)).
+- `status` — `ACTIVE`, `ARCHIVED` or `CLOSED`, where `CLOSED` means the conversation cannot continue; `closedReason` says why — its harness state is gone (`HARNESS_STATE_MISSING`), the person left the project or the organisation, or the project was deleted. Set by the site, which owns session status, and replicated to hq (person-scoped execution spec §4, [ADR-0076](../../adr/adr-0076-a-conversation-whose-harness-state-is-gone-is-closed.md)).
 - `closedReason` — set only when `status` is `CLOSED`: `HARNESS_STATE_MISSING`, `LEFT_PROJECT`, `LEFT_ORGANISATION` or `PROJECT_DELETED`.
 - `runtime` — the runtime the session was created on, which the model chosen for its first run decided (`"claude-sdk"` or `"opencode"`). Recorded once and never changed: a conversation keeps the runtime it started with even if the models chosen for the agent are changed afterwards ([ADR-0078](../../adr/adr-0078-a-conversation-keeps-the-runtime-it-started-with.md)).
 
@@ -120,7 +120,7 @@ A single execution unit — one prompt in, one response out. Every message the u
 
 Key fields:
 - `taskId` — `null` for conversational runs (user-initiated). Set for task runs.
-- `parentRunId` / `rootRunId` — unused and always null. They were for runs started by another run, which were removed with sub-agent runs ([ADR-0020](../../adr/adr-0020-task-delegation-over-spawn-agent.md)); nothing sets them.
+- A run is never started by another run: sub-agent runs were removed ([ADR-0020](../../adr/adr-0020-task-delegation-over-spawn-agent.md)), so a run row names no parent.
 - `status` — lifecycle: `PENDING → RUNNING → COMPLETED | FAILED | CANCELLED`.
 - `model` — which model handled this run.
 - `manifestStatus`, `pendingManifest`, `approvedManifest`, `manifestApprovedAt`, `manifestDecidedById`, `manifestDecidedAt` — the tool approval state: `PENDING_APPROVAL`, `APPROVED`, `REJECTED`, or `SUPERSEDED` when something newer in the task or conversation replaced an unanswered request ([tool-manifest.md](../../architecture/tools/tool-manifest.md), [human approval](./hitl-and-tool-control.md#an-approval-is-for-the-next-run-only)).

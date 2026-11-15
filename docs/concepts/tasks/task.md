@@ -250,8 +250,7 @@ change a task can still archive it by hand.
 
 - **Automatic column advance.** Nothing moves a task to the next column when its run finishes. A person or an agent moves
   it.
-- **Routing and deferral.** An earlier design had a model call that decided which tasks to run, defer or escalate, using
-  `deferCount` and `lastWorkedAt`, two columns nothing reads or writes. There is no such step.
+- **Routing and deferral.** An earlier design had a model call that decided which tasks to run, defer or escalate, There is no such step.
 - **Linked tasks** (blocks, waiting on), and custom fields other than single select.
 
 ## Where in the code
