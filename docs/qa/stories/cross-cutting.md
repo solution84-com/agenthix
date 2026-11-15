@@ -284,3 +284,16 @@ As a member or an administrator, I want a failed press to say that the server di
 - AC-494a: when HQ cannot be reached the dialog says *HQ did not answer.* with Try again, and when HQ failed with no words of its own, *Something went wrong in HQ.*; when HQ wrote words for it, those words.
 - AC-494b: the Fleet Console's screens say it the same way for their own server, named in the sentence.
 
+### US-496 — Keep outside software current and consistent
+
+As a maintainer, I want every outside dependency kept within what the others require of it and brought up to date as part of releasing, so that each release carries the month's fixes and nothing installs versions nobody committed.
+
+Written on 2026-11-15 from the finished code at the close of the dependency-updates unit.
+
+**Acceptance criteria:**
+- AC-496a: a change that breaks a dependency rule — an exact version off the allowed list, a switched-off peer check, two versions of TypeScript, esbuild or Prisma, Node's types off Node's major, TypeScript's range wider than patches, an outside image without a digest — fails Checks, naming the module, the file and the rule.
+- AC-496b: the month's minor and patch updates are made together, within each package's ranges, moving only lockfiles, digests and action commits, and reach main only once Checks pass on them.
+- AC-496c: pressing Release takes the updates first when they are more than a month old, then releases; a dry run and a patch release never wait for them.
+- AC-496d: every install, in CI, the images and a new checkout, installs exactly the committed lockfile, and CI fails when one changes it.
+- AC-496e: a dev start stops when the branch is behind GitHub and installs a module whose lockfile changed, without pulling.
+

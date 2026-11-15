@@ -4,7 +4,7 @@ import { lockMoves } from '../npm.mjs'
 
 const lock = versions => ({ packages: { '': {}, ...Object.fromEntries(Object.entries(versions).map(([k, v]) => [`node_modules/${k}`, { version: v }])) } })
 
-test('the packages a module names move version to version; the rest are counted', () => {
+test('the packages a module names move version to version; the rest are counted @SC-2161', () => {
   const pkg = { dependencies: { zod: '^4.0.0', '@scope/a': '^1.0.0' }, devDependencies: { vitest: '^3.2.0' } }
   const before = lock({ zod: '4.1.0', '@scope/a': '1.0.0', vitest: '3.2.1', 'deep/x': '1.0.0', 'node_modules/b/node_modules/c': '2.0.0', gone: '1.0.0' })
   const after = lock({ zod: '4.1.5', '@scope/a': '1.0.0', vitest: '3.2.4', 'deep/x': '1.0.1', 'node_modules/b/node_modules/c': '2.0.0', added: '1.0.0' })
@@ -17,7 +17,7 @@ test('the packages a module names move version to version; the rest are counted'
   })
 })
 
-test('nothing moved, nothing listed', () => {
+test('nothing moved, nothing listed @SC-2161', () => {
   const pkg = { dependencies: { zod: '^4.0.0' } }
   assert.deepEqual(lockMoves('core', pkg, lock({ zod: '4.1.0' }), lock({ zod: '4.1.0' })), { moves: [], others: 0 })
 })

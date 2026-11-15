@@ -35,26 +35,26 @@ function tree(change = () => {}) {
 
 const failuresOf = change => check(tree(change))
 
-test('a tree where every rule holds passes without a line', () => {
+test('a tree where every rule holds passes without a line @SC-2160', () => {
   assert.deepEqual(failuresOf(), [])
 })
 
-test('an exact version off the allowed list fails, naming the module, file and package', () => {
+test('an exact version off the allowed list fails, naming the module, file and package @SC-2160', () => {
   const f = failuresOf(files => { files['core/package.json'].devDependencies.vitest = '4.0.1' })
   assert.equal(f.length, 1)
   assert.match(f[0], /^core: core\/package\.json: vitest is exact \(4\.0\.1\)/)
 })
 
-test('file: and workspace references are not versions, and the allowed exact ones pass', () => {
+test('file: and workspace references are not versions, and the allowed exact ones pass @SC-2160', () => {
   assert.deepEqual(failuresOf(files => { files['core/package.json'].dependencies.y = 'workspace:*' }), [])
 })
 
-test('an allowed package is exact only in its own module', () => {
+test('an allowed package is exact only in its own module @SC-2160', () => {
   const f = failuresOf(files => { files['core/package.json'].devDependencies.prisma = '5.19.1' })
   assert.match(f[0], /^core: .*prisma is exact/)
 })
 
-test('legacy-peer-deps in an .npmrc, a Dockerfile, a workflow or a script fails, naming each', () => {
+test('legacy-peer-deps in an .npmrc, a Dockerfile, a workflow or a script fails, naming each @SC-2160', () => {
   const f = failuresOf(files => {
     files['hq/.npmrc'] = 'legacy-peer-deps=true\n'
     files['hq/docker/Dockerfile'] = 'RUN npm ci --legacy-peer-deps\n'
@@ -68,7 +68,7 @@ test('legacy-peer-deps in an .npmrc, a Dockerfile, a workflow or a script fails,
   assert.ok(f.some(l => l.startsWith('scripts: scripts/a.sh:1: ')))
 })
 
-test('legacy-peer-deps under node_modules is not read', () => {
+test('legacy-peer-deps under node_modules is not read @SC-2160', () => {
   assert.deepEqual(failuresOf(files => { files['hq/node_modules/p/.npmrc'] = 'legacy-peer-deps=true\n' }), [])
 })
 
@@ -84,20 +84,20 @@ for (const pkg of ['typescript', 'esbuild', 'prisma']) {
   })
 }
 
-test('a copy another package brings in, at another version, passes', () => {
+test('a copy another package brings in, at another version, passes @SC-2160', () => {
   const f = failuresOf(files => {
     files['core/package-lock.json'] = lock({ typescript: '6.0.3', esbuild: '0.27.7', '@types/node': '24.2.0' })
   })
   assert.deepEqual(f, [])
 })
 
-test("@types/node's major differing from .nvmrc's fails", () => {
+test("@types/node's major differing from .nvmrc's fails @SC-2160", () => {
   const f = failuresOf(files => { files['site/package-lock.json'] = lock({ typescript: '6.0.3', esbuild: '0.28.2', prisma: '5.19.1', '@types/node': '22.20.5' }) })
   assert.equal(f.length, 1)
   assert.match(f[0], /^site: site\/package-lock\.json: @types\/node is 22\.20\.5 but \.nvmrc is Node 24/)
 })
 
-test("TypeScript's range must be patch-only outside hq's exact one", () => {
+test("TypeScript's range must be patch-only outside hq's exact one @SC-2160", () => {
   const caret = failuresOf(files => { files['core/package.json'].devDependencies.typescript = '^6.0.3' })
   assert.equal(caret.length, 1)
   assert.match(caret[0], /^core: core\/package\.json: typescript is "\^6\.0\.3"/)
@@ -107,7 +107,7 @@ test("TypeScript's range must be patch-only outside hq's exact one", () => {
 
 const digest = `sha256:${'a'.repeat(64)}`
 
-test('an outside image on a FROM line without a digest fails; a stage, scratch and our own image do not', () => {
+test('an outside image on a FROM line without a digest fails; a stage, scratch and our own image do not @SC-2160', () => {
   const f = failuresOf(files => {
     files['hq/docker/Dockerfile'] = [
       `FROM node:24.14.1-alpine3.23@${digest} AS build`,
@@ -121,7 +121,7 @@ test('an outside image on a FROM line without a digest fails; a stage, scratch a
   assert.match(f[0], /^hq: hq\/docker\/Dockerfile:5: alpine:3\.23 is not pinned by a digest/)
 })
 
-test("a workflow's service image without a digest fails", () => {
+test("a workflow's service image without a digest fails @SC-2160", () => {
   const f = failuresOf(files => {
     files['.github/workflows/checks.yml'] = `jobs:\n  a:\n    services:\n      db:\n        image: postgres:16-alpine\n`
   })
@@ -129,7 +129,7 @@ test("a workflow's service image without a digest fails", () => {
   assert.match(f[0], /\.github\/workflows\/checks\.yml:5: postgres:16-alpine is not pinned by a digest/)
 })
 
-test('an outside image in a compose file without a digest fails; our own image does not', () => {
+test('an outside image in a compose file without a digest fails; our own image does not @SC-2160', () => {
   const f = failuresOf(files => {
     files['hq/compose.yml'] = `services:\n  a:\n    image: agenthix-hq-server\n  b:\n    image: postgres:16-alpine\n  c:\n    image: caddy:2-alpine@${digest}\n`
   })
@@ -137,7 +137,7 @@ test('an outside image in a compose file without a digest fails; our own image d
   assert.match(f[0], /^hq: hq\/compose\.yml:5: postgres:16-alpine is not pinned by a digest/)
 })
 
-test('a string constant naming an outside image without a digest fails; one with a digest, and other strings, do not', () => {
+test('a string constant naming an outside image without a digest fails; one with a digest, and other strings, do not @SC-2160', () => {
   const f = failuresOf(files => {
     files['hq/compose.yml'] = `services:\n  a:\n    image: postgres:16-alpine@${digest}\n`
     files['host/src/a.ts'] = [

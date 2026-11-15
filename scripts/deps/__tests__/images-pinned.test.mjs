@@ -20,13 +20,13 @@ const constant = (file, name) => {
   return m[1]
 }
 
-test('every compose file names Postgres as the host service does, by digest', () => {
+test('every compose file names Postgres as the host service does, by digest @SC-2161', () => {
   const composes = refs.filter(r => r.name === 'postgres' && /compose/.test(r.file)).map(r => r.file)
   assert.deepEqual([...new Set(composes)].sort(), ['docker-compose.yml', 'hq/compose.yml', 'site/compose.yml'])
   assert.deepEqual(pins('postgres'), new Set([constant('host/src/images/published.ts', 'POSTGRES_IMAGE').slice('postgres:'.length)]))
 })
 
-test('the front door compose file names Caddy as the host service\'s front door does, by digest', () => {
+test('the front door compose file names Caddy as the host service\'s front door does, by digest @SC-2161', () => {
   assert.ok(refs.some(r => r.name === 'caddy' && r.file === 'front-door/compose.yml'))
   const inCompose = new Set(refs.filter(r => r.name === 'caddy' && r.file === 'front-door/compose.yml').map(r => `${r.tag}@${r.digest}`))
   assert.deepEqual(inCompose, new Set([constant('host/src/frontDoor/config.ts', 'FRONT_DOOR_IMAGE').slice('caddy:'.length)]))

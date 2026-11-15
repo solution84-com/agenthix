@@ -27,22 +27,22 @@ run() { FRESH_ROOT="$W" PATH="$TMP/bin:$PATH" bash "$DIR/fresh.sh" 2>&1; }
 
 msg="$(run)"; rc=$?
 [ $rc -ne 0 ] && [[ "$msg" == *"This branch is behind GitHub: pull first"* ]] && [ "$(git -C "$W" rev-list --count HEAD)" = 1 ]
-check "a branch behind its upstream stops and does not pull" $?
+check "a branch behind its upstream stops and does not pull @SC-2165" $?
 
 git -C "$W" pull -q
-run >/dev/null; check "an up-to-date branch carries on" $?
+run >/dev/null; check "an up-to-date branch carries on @SC-2165" $?
 
 git -C "$W" remote set-url origin "$TMP/missing.git"
 git -C "$TMP/other" commit -q --allow-empty -m three
 msg="$(run)"; rc=$?
 [ $rc -eq 0 ] && [[ "$msg" == *"could not reach GitHub"* ]]
-check "offline carries on, in one line" $?
+check "offline carries on, in one line @SC-2165" $?
 git -C "$W" remote set-url origin "$TMP/origin.git"
 
 git -C "$W" checkout -q --detach
 msg="$(run)"; rc=$?
 [ $rc -eq 0 ] && [[ "$msg" == *"detached head"* ]]
-check "a detached head carries on" $?
+check "a detached head carries on @SC-2165" $?
 git -C "$W" checkout -q main
 
 mkdir -p "$W/hq/node_modules" "$W/site" "$W/core/node_modules"
@@ -54,14 +54,14 @@ touch -t 201901010000 "$W/core/package-lock.json"
 : >"$NPM_LOG"
 run >/dev/null
 [ "$(cat "$NPM_LOG")" = "$W/hq" ]
-check "a changed lockfile runs npm install, only there; unchanged and not-installed modules are left alone" $?
+check "a changed lockfile runs npm install, only there; unchanged and not-installed modules are left alone @SC-2165" $?
 
 : >"$NPM_LOG"
 run >/dev/null
 [ ! -s "$NPM_LOG" ]
-check "a second run, nothing changed, installs nothing" $?
+check "a second run, nothing changed, installs nothing @SC-2165" $?
 
 echo 'v99.0.0' >"$W/.nvmrc"
 msg="$(run)"; [[ "$msg" == *".nvmrc names Node 99.0.0"* ]]
-check "a different Node in .nvmrc is said in one line" $?
+check "a different Node in .nvmrc is said in one line @SC-2165" $?
 exit $FAILS

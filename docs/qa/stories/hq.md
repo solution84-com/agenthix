@@ -3,7 +3,7 @@ name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
 updated: 2026-11-14
 verified: 2026-06-19
-next-us: US-496
+next-us: US-497
 ---
 
 # User Stories — `hq/`

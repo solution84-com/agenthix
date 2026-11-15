@@ -4,7 +4,7 @@ import { imageRefsOf, parseComposeImages, parseFromLines, parseSourceImages, pla
 
 const d = c => `sha256:${c.repeat(64)}`
 
-test('a pinned FROM line is read, with or without a platform; a stage name or an unpinned image is not', () => {
+test('a pinned FROM line is read, with or without a platform; a stage name or an unpinned image is not @SC-2161', () => {
   const text = [
     `FROM --platform=$BUILDPLATFORM node:24.14.1-alpine3.23@${d('a')} AS robots`,
     'FROM wasp AS web-build',
@@ -17,7 +17,7 @@ test('a pinned FROM line is read, with or without a platform; a stage name or an
   ])
 })
 
-test('Node moves to one version that every variant in use has, within its major', () => {
+test('Node moves to one version that every variant in use has, within its major @SC-2161', () => {
   const pins = [
     { name: 'node', tag: '24.14.1-alpine3.23', digest: d('a') },
     { name: 'node', tag: '24.14.1-bookworm-slim', digest: d('b') },
@@ -29,7 +29,7 @@ test('Node moves to one version that every variant in use has, within its major'
   ]))
 })
 
-test('other images move within their major, and a major-only tag keeps its tag (its digest may still move)', () => {
+test('other images move within their major, and a major-only tag keeps its tag (its digest may still move) @SC-2161', () => {
   const pins = [
     { name: 'alpine', tag: '3.23', digest: d('a') },
     { name: 'caddy', tag: '2-alpine', digest: d('b') },
@@ -43,13 +43,13 @@ test('other images move within their major, and a major-only tag keeps its tag (
   ]))
 })
 
-test('the old Node version is replaced where it stands alone, never inside another number', () => {
+test('the old Node version is replaced where it stands alone, never inside another number @SC-2161', () => {
   const text = 'Node 24.14.1 or later; node:24.14.1-alpine3.23; ">=24.14.1"; 124.14.1; 24.14.10; §24.14.1.7'
   assert.equal(replaceNodeVersion(text, '24.14.1', '24.22.3'),
     'Node 24.22.3 or later; node:24.22.3-alpine3.23; ">=24.22.3"; 124.14.1; 24.14.10; §24.14.1.7')
 })
 
-test('a compose file\'s pinned image is read; our own and an unpinned one are not', () => {
+test('a compose file\'s pinned image is read; our own and an unpinned one are not @SC-2161', () => {
   const text = [
     'services:',
     '  db:',
@@ -64,7 +64,7 @@ test('a compose file\'s pinned image is read; our own and an unpinned one are no
   ])
 })
 
-test('a pinned image in a source string constant is read, in any kind of quote', () => {
+test('a pinned image in a source string constant is read, in any kind of quote @SC-2161', () => {
   const text = [
     `export const A = 'postgres:16-alpine@${d('a')}'`,
     `const b = "ghcr.io/x/y:v1.2.3@${d('b')}"`,
@@ -77,7 +77,7 @@ test('a pinned image in a source string constant is read, in any kind of quote',
   ])
 })
 
-test('each file kind is read by its own rule, and a test file\'s example strings are not images', () => {
+test('each file kind is read by its own rule, and a test file\'s example strings are not images @SC-2161', () => {
   const ref = `postgres:16-alpine@${d('a')}`
   assert.equal(imageRefsOf('hq/compose.yml', `image: ${ref}`).length, 1)
   assert.equal(imageRefsOf('docker-compose.yml', `image: ${ref}`).length, 1)
