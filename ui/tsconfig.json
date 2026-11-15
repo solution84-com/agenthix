@@ -9,6 +9,8 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    // TypeScript 6 loads no @types package by itself; these declare react-syntax-highlighter's subpath imports.
+    "types": ["react-syntax-highlighter"],
     "outDir": "dist",
     "declaration": true,
     "noEmit": true

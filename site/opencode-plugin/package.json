@@ -10,9 +10,9 @@
   },
   "devDependencies": {
     "@opencode-ai/plugin": "1.18.32",
-    "@types/node": "22.20.4",
-    "esbuild": "0.28.2",
-    "typescript": "5.8.2"
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.28.2",
+    "typescript": "~6.0.3"
   },
   "license": "Elastic-2.0"
 }

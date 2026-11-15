@@ -45,7 +45,7 @@ const u32 = (n: number) => { const b = Buffer.alloc(4); b.writeUInt32BE(n); retu
 export class ForwarderLink {
   private readonly streams = new Map<number, Stream>()
   private nextId = 1
-  private buf = Buffer.alloc(0)
+  private buf: Buffer = Buffer.alloc(0)
   private dead = false
   private helloSeen: (ok: boolean) => void = () => {}
   readonly ready: Promise<boolean>

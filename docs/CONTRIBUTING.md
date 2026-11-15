@@ -35,7 +35,7 @@ cp hq/.env.server.example hq/.env.server
 cp hq/.env.client.example hq/.env.client
 cp site/.env.server.example site/.env.server
 (cd core && npm install && npm run build)  # hq and site use core's build
-(cd ui && npm install --legacy-peer-deps)
+(cd ui && npm install)
 (cd hq && npm install && npx wasp install)
 (cd site && npm install)
 (cd site/opencode-plugin && npm install)   # site's tests import it

@@ -12,14 +12,14 @@
  * constructs (agent config, chat/task sub-object, mounts) but not
  * exhaustively down to every nested scalar — the same trust boundary
  * `SessionSeed.metadata` already gets elsewhere in this module family
- * (`z.record(z.unknown())`, no deeper validation): hq is the sole caller,
+ * (`z.record(z.string(), z.unknown())`, no deeper validation): hq is the sole caller,
  * builds this object from its own typed `RunContextPayload` construction
  * (dispatchService.ts), and the wire types are shared from `@agenthix/core`
  * on both ends.
  */
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { ZodError, type ZodType, type ZodTypeDef } from 'zod'
+import { ZodError, type ZodType } from 'zod'
 import { prisma } from '#db'
 import {
   RUNTIME_METHODS,
@@ -56,7 +56,7 @@ const logger = new Logger('DispatchHandler')
 /** Same collapsing convention as runtimeChannelMethods.ts's parseParams — a raw
  *  ZodError's `.message` is an unreadable multi-issue blob in a `handler_failed`
  *  channel.error; collapse to the first issue's path + message on one line. */
-function parseParams<T>(schema: ZodType<T, ZodTypeDef, unknown>, params: unknown, method: string): T {
+function parseParams<T>(schema: ZodType<T, unknown>, params: unknown, method: string): T {
   try {
     return schema.parse(params)
   } catch (err) {

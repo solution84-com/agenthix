@@ -10,7 +10,7 @@
     "test:security": "node scripts/security/run.mjs"
   },
   "devDependencies": {
-    "typescript": "~5.9"
+    "typescript": "~6.0.3"
   },
   "engines": {
     "node": ">=24.14.1"

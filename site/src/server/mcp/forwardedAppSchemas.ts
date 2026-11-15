@@ -18,8 +18,10 @@ function argSchema(arg: AppToolArg): ZodTypeAny {
 }
 
 export const FORWARDED_APP_TOOLS: ForwardedTool[] = APP_TOOL_DECLARATIONS.map(d => {
-  const schema: ZodRawShape = Object.fromEntries(Object.entries(d.args).map(([k, a]) => [k, argSchema(a)]))
-  schema.runId = z.string().optional().describe('Filled in by the site with the run this is called from; leave it out')
+  const schema: ZodRawShape = {
+    ...Object.fromEntries(Object.entries(d.args).map(([k, a]) => [k, argSchema(a)])),
+    runId: z.string().optional().describe('Filled in by the site with the run this is called from; leave it out'),
+  }
   return { name: d.name, description: d.description, schema, runIdFromCaller: true as const }
 })
 

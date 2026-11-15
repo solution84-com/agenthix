@@ -45,7 +45,7 @@ const definition = z.object({
   variables: z.array(z.string()).max(WORKFLOW_LIMITS.variablesMax),
   parameters: z.array(parameter).max(WORKFLOW_LIMITS.parametersMax),
   hosts: z.array(z.object({ host: z.string().min(1).max(253), port: z.number().int().min(1).max(65535) }).strict()).max(WORKFLOW_LIMITS.hostsMax),
-  github: z.record(z.enum(GITHUB_REPOSITORY_PERMISSIONS), z.enum(GITHUB_PERMISSION_LEVELS)),
+  github: z.partialRecord(z.enum(GITHUB_REPOSITORY_PERMISSIONS), z.enum(GITHUB_PERMISSION_LEVELS)),
   timeoutSeconds: seconds,
   files: z.array(z.string()).max(WORKFLOW_LIMITS.filesMax),
 }).strict()

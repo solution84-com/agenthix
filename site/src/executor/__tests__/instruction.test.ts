@@ -109,6 +109,13 @@ describe('reading a run instruction @SC-1336', () => {
     const github = { repository: 'o/r', repositoryId: 1, cloneUrl: 'https://github.com/o/r.git' }
     expect(await checkInstruction({ ...good, github })).toMatchObject({ ok: false, reason: 'invalid_instruction' })
   })
+
+  it('reads GitHub permissions naming only some of them, and refuses one GitHub has not', async () => {
+    const some = await instruction({ definition: definition({ github: { contents: 'read', pull_requests: 'write' } }) })
+    expect((await checkInstruction(some)).ok).toBe(true)
+    const unknown = { ...some, definition: { ...some.definition, github: { contents: 'read', teleport: 'write' } } }
+    expect(await checkInstruction(unknown)).toMatchObject({ ok: false, reason: 'invalid_instruction' })
+  })
 })
 
 describe('the live preview a run is aimed at @SC-1746', () => {

@@ -103,7 +103,7 @@ export async function runEgressProxy(config: EgressProxyConfig, lib: EgressProxy
     sock.on('error', () => sock.destroy())
     const candidates = config.hosts.filter(h => h.port === port)
     let target: WorkflowHost | null = candidates.length === 1 ? candidates[0]! : null
-    let head = Buffer.alloc(0)
+    let head: Buffer = Buffer.alloc(0)
     if (!target) {
       const peeked = await peek(sock)
       head = peeked.head

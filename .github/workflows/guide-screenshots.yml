@@ -71,7 +71,7 @@ jobs:
           (cd core && npm ci --no-audit --no-fund && npm run build)
           # ui's peers (React and its types) are not installed in ui: hq's own copies are linked in after hq's
           # install, as hq's Dockerfile does, because two copies of @types/react type-check as unrelated types.
-          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd ui && npm install --no-audit --no-fund)
           (cd site && npm ci --no-audit --no-fund)
           (cd hq && npm install --no-audit --no-fund)
           mkdir -p ui/node_modules/@types

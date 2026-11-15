@@ -13,7 +13,7 @@ RUN cd core && npm ci --no-audit --no-fund
 COPY core core
 RUN cd core && npm run build
 # The schema comes before the install: its postinstall generates the Prisma client.
-COPY site/package.json site/package-lock.json site/.npmrc site/schema.prisma site/
+COPY site/package.json site/package-lock.json site/schema.prisma site/
 RUN cd site && npm ci --no-audit --no-fund
 COPY site site
 # @agenthix/core is bundled into dist/server.js, so pruning drops it with the

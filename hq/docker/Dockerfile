@@ -32,7 +32,7 @@ RUN cd core && npm install --no-audit --no-fund
 COPY core core
 RUN cd core && npm run build
 COPY ui/package.json ui/package-lock.json* ui/
-RUN cd ui && npm install --legacy-peer-deps --no-audit --no-fund
+RUN cd ui && npm install --no-audit --no-fund
 COPY ui ui
 COPY hq hq
 # `wasp install` sets up Wasp's own packages (.wasp/spec, which main.wasp.ts
@@ -40,19 +40,16 @@ COPY hq hq
 RUN cd hq && npm install --no-audit --no-fund && npx wasp install
 # hq imports ui/src components (sessions, tasks, voice, primitives) whose
 # peer deps — react, react-dom, lucide-react and their types — are declared
-# on @agenthix/ui but deliberately not installed there (--legacy-peer-deps
-# above); site never imports far enough into ui/src to need them, so its
-# build never surfaced this. A *second* install of the same packages into
-# ui/node_modules is not a fix: TypeScript treats two separate copies of
-# @types/react as unrelated types (its ref-callback branding uses a unique
-# symbol per install), which breaks every component that forwards a ref.
-# Point ui at hq's own copies instead, so the whole program type-checks
-# against one physical install. socket.io-client — ui's other peer dep — is
-# deliberately left unlinked: it is also ui's own devDependency, genuinely
-# installed by the `npm install` above (not skipped by --legacy-peer-deps,
-# which only affects peers), hq never imports it directly, and it carries
-# none of @types/react's nominal-typing trap — so ui's own copy is correct
-# as-is, not a second install of the same problem.
+# on @agenthix/ui, and ui's install above puts its own copies of them in
+# ui/node_modules; site never imports far enough into ui/src to need them, so
+# its build never surfaced this. Two copies are not a fix: TypeScript treats
+# two separate copies of @types/react as unrelated types (its ref-callback
+# branding uses a unique symbol per install), which breaks every component
+# that forwards a ref. Replace ui's copies with hq's own, so the whole program
+# type-checks against one physical install. socket.io-client — ui's other
+# peer dep — is deliberately left as ui installed it: hq never imports it
+# directly, and it carries none of @types/react's nominal-typing trap — so
+# ui's own copy is correct as-is, not a second install of the same problem.
 #
 # rm -rf before each link: if ui ever gains its own real install of one of
 # these (or the link already exists from a previous layer), `ln -s` alone
@@ -133,7 +130,7 @@ RUN rm -rf /core/node_modules /ui/node_modules
 # above is the building machine's, on glibc; this one is the image's) rather than keep
 # what `rm -rf` just removed. site's copy of this stage skips this because
 # site never imports past the surface of @agenthix/ui; hq does.
-RUN cd /ui && npm install --legacy-peer-deps --no-audit --no-fund
+RUN cd /ui && npm install --no-audit --no-fund
 WORKDIR /app
 COPY --from=wasp /repo/hq/.wasp/out/src ./src
 COPY --from=wasp /repo/hq/.wasp/out/package.json /repo/hq/.wasp/out/package-lock.json ./
@@ -142,7 +139,6 @@ COPY --from=wasp /repo/hq/.wasp/out/server .wasp/out/server
 COPY --from=wasp /repo/hq/.wasp/out/sdk .wasp/out/sdk
 COPY --from=wasp /repo/hq/.wasp/out/libs .wasp/out/libs
 COPY --from=wasp /repo/hq/.wasp/out/db .wasp/out/db
-COPY hq/.npmrc ./
 RUN npm install && cd .wasp/out/server && npm install
 # /app's package.json declares npm workspaces including .wasp/out/*. hq's
 # dependency tree has no version conflict that forces anything nested under

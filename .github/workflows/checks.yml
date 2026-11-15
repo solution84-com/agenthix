@@ -190,7 +190,7 @@ jobs:
       - name: Install
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
-          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd ui && npm install --no-audit --no-fund)
           (cd hq && npm install --no-audit --no-fund)
       - name: Link hq's React into ui
         run: |
@@ -240,7 +240,7 @@ jobs:
       - name: Install
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
-          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd ui && npm install --no-audit --no-fund)
           (cd hq && npm install --no-audit --no-fund)
       - name: Link hq's React into ui
         run: |
@@ -386,7 +386,7 @@ jobs:
       - name: Install
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
-          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd ui && npm install --no-audit --no-fund)
           (cd console-web && npm ci --no-audit --no-fund)
           # ui's peers (React and its types) are not installed in ui: console-web's own copies are linked in, as
           # the hq job links hq's, so ui's components and console-web type-check against one React.
@@ -518,7 +518,7 @@ jobs:
       - name: Install
         run: |
           (cd core && npm ci --no-audit --no-fund && npm run build)
-          (cd ui && npm install --legacy-peer-deps --no-audit --no-fund)
+          (cd ui && npm install --no-audit --no-fund)
           (cd hq && npm install --no-audit --no-fund)
       - name: Link hq's React into ui
         run: |

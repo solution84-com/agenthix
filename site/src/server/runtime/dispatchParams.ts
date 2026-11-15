@@ -121,7 +121,7 @@ export const runContextParams = z
     // A run reaches one owner's storage, so the only mount input is that
     // owner's slug — there is no owner set here to widen the mount set with.
     mounts: z.object({
-      ownerSlugs: z.record(z.string()),
+      ownerSlugs: z.record(z.string(), z.string()),
     }),
     riskRules: z.unknown(),
     // Spec §6.3: the one model credential the run may use, decided by hq from
@@ -225,7 +225,7 @@ export const runDispatchParams = z
         taskId: z.string().min(1).nullable(),
         title: z.string().max(500).nullable(),
         model: z.string().nullable(),
-        metadata: z.record(z.unknown()),
+        metadata: z.record(z.string(), z.unknown()),
         primaryOwnerType: z.enum(WORKSPACE_OWNER_TYPES).nullable(),
         primaryOwnerId: z.string().min(1).nullable(),
         primaryWorkspaceId: z.string().min(1).nullable(),

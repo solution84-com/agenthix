@@ -134,7 +134,7 @@ function parseAllowedToolsShape(value: unknown): string[] | null {
 // `undefined` too, so an absent `allowedTools` key would otherwise sail
 // through zod and only fail inside parseAllowedToolsShape with a generic
 // "must be null or a list" message — indistinguishable from a genuinely
-// wrong-shaped value. The union makes a missing key its own zod "Required"
+// wrong-shaped value. The union makes a missing key its own zod
 // error; entry-level validation (tool names, max length) still happens below.
 const setAllowedToolsParams = z
   .object({ id: z.string().min(1), allowedTools: z.union([z.null(), z.array(z.unknown())]) })
