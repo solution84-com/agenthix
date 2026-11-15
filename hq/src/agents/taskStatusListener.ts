@@ -129,7 +129,7 @@ async function processTaskStatus(e: RunStatusEvent, taskId: string, siteId: stri
   if (settled.runState === 'RUN_FAILED' && e.resource) settled.reason = shortRunSentence(e.resource, await siteNameOf(siteId)) ?? settled.reason
   const { count } = await prisma.task.updateMany({
     where: { id: taskId, ...thisRunIsCurrent(e.runId) },
-    data: { ...withExecutionState({ runState: settled.runState, runStateReason: settled.reason }, e.status === 'COMPLETED'), runId: e.runId },
+    data: { ...withExecutionState({ runState: settled.runState, runStateReason: settled.reason }, e.status === 'COMPLETED'), runId: e.runId, lastWorkedAt: new Date() },
   })
   if (count === 1) {
     if (settled.runState === 'RUN_QUEUED') await markTaskConversationPaused(taskId)

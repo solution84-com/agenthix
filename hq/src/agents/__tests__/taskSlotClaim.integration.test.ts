@@ -105,3 +105,23 @@ describe('a claim records the person a run is on behalf of @SC-520', () => {
     expect(await personOf(tasks[1].id)).toBeNull()
   })
 })
+
+describe('a claim records when the task was last worked on', () => {
+  const lastWorked = async (taskId: string) => (await prisma.task.findUniqueOrThrow({ where: { id: taskId } })).lastWorkedAt
+
+  it('a task that starts running records the time; one that only waits for the agent records nothing', async () => {
+    const { project, agent, tasks } = await setup(2)
+    const before = new Date()
+    expect(await claimTask(tasks[0].id, agent.id, project.id, 'person', 'ana')).toBe('claimed')
+    expect(await claimTask(tasks[1].id, agent.id, project.id, 'person', 'ana')).toBe('waiting')
+    expect((await lastWorked(tasks[0].id))?.getTime()).toBeGreaterThanOrEqual(before.getTime())
+    expect(await lastWorked(tasks[1].id)).toBeNull()
+  })
+
+  it('the next in line records the time it starts', async () => {
+    const { project, agent, tasks } = await setup(1)
+    const before = new Date()
+    expect(await claimNext(agent.id, project.id)).toMatchObject({ id: tasks[0].id })
+    expect((await lastWorked(tasks[0].id))?.getTime()).toBeGreaterThanOrEqual(before.getTime())
+  })
+})

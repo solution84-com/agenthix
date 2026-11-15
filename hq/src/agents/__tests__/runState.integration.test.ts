@@ -153,3 +153,15 @@ describe('a pulse batch of three, with the agent acting on its tasks mid-run', (
     await expectConsistent(project.id)
   })
 })
+
+describe('when a task was last worked on', () => {
+  it("a run's end records the time it ended, after its start", async () => {
+    const { ids } = await batchOfThree()
+    const started = (await prisma.task.findUniqueOrThrow({ where: { id: ids[0] } })).lastWorkedAt
+    expect(started).not.toBeNull()
+    await new Promise(r => setTimeout(r, 5))
+    await end(ids[0])
+    const ended = (await prisma.task.findUniqueOrThrow({ where: { id: ids[0] } })).lastWorkedAt
+    expect(ended!.getTime()).toBeGreaterThan(started!.getTime())
+  })
+})

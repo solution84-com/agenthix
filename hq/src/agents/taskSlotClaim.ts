@@ -105,7 +105,7 @@ export async function claimTask(
       where: pending,
       data: {
         ...withExecutionState({ runState: 'RUN_ACTIVE', runStateReason: SLOT_TAKEN_REASON }), runStartedBy: startedBy, runOnBehalfOfUserId, runId: null,
-        ...depthReset(startedBy),
+        lastWorkedAt: new Date(), ...depthReset(startedBy),
       },
     })
     return count === 1 ? 'claimed' : 'skipped'
@@ -135,6 +135,7 @@ export async function claimNext(agentId: string, projectId: string): Promise<Nex
       where: { id: next.id, runState: 'RUN_QUEUED', runStartedBy: startedBy },
       data: {
         ...withExecutionState({ runState: 'RUN_ACTIVE', runStateReason: SLOT_TAKEN_REASON }), runStartedBy: startedBy, runId: null,
+        lastWorkedAt: new Date(),
         // A start a person asked for keeps their name; any other run is nobody's.
         runOnBehalfOfUserId: startedBy === 'person' ? next.runOnBehalfOfUserId : null,
       },
