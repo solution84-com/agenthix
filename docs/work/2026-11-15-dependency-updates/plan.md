@@ -76,40 +76,41 @@ live, and have a strategy in place to prevent future issues"): site to zod 4, an
 
 ### Phase 2 — Build
 
-- [ ] 2.1 The rules applied to every module: ranges in `package.json` (exact only where Wasp requires), TypeScript
+- [x] 2.1 The rules applied to every module: ranges in `package.json` (exact only where Wasp requires), TypeScript
       patch only, `@types/node` on Node's major, `legacy-peer-deps` removed from hq, the hq Dockerfile and CI's `ui`
       install; core's standard library for `.at()`; the workflows' cosign version kept with the host image's
-- [ ] 2.2 `scripts/deps/check.mjs` and its Checks job, with a unit test per rule
-- [ ] 2.3 `scripts/deps/update.sh`: npm within ranges (lockfiles only), base-image digests and a Node minor everywhere
+- [x] 2.2 `scripts/deps/check.mjs` and its Checks job, with a unit test per rule
+- [x] 2.3 `scripts/deps/update.sh`: npm within ranges (lockfiles only), base-image digests and a Node minor everywhere
       it is named, actions within their major
-- [ ] 2.4 The *Take the updates* workflow: the script on an `updates/<date>` branch, the epoch raised, `taken.json`
+- [x] 2.4 The *Take the updates* workflow: the script on an `updates/<date>` branch, the epoch raised, `taken.json`
       written, Checks started and waited for, `main` moved with the release-pin deploy key when
       Checks pass; a branch input to prove a fixed branch again; a summary of what moved and what to do locally
-- [ ] 2.5 *Release*'s new first stage starts the step when `taken.json` is more than a month old, and the step starts
+- [x] 2.5 *Release*'s new first stage starts the step when `taken.json` is more than a month old, and the step starts
       *Release* again (a dry run and a patch on a release branch excepted)
-- [ ] 2.6 Remove `.github/dependabot.yml` and the *Rebuild epoch* workflow; close #164 once the first run takes it
-- [ ] 2.7 Local copies: `scripts/dev/fresh.sh`, run first by hq's dev start and the site's
+- [x] 2.6 Remove `.github/dependabot.yml` and the *Rebuild epoch* workflow; close #164 once the first run takes it
+- [x] 2.7 Local copies: `scripts/dev/fresh.sh`, run first by hq's dev start and the site's
 - [x] 2.8 Security alerts on in the repository's settings (15 Nov)
-- [ ] 2.9 Site to zod 4, before 2.2, so site checks peer dependencies too
-- [ ] 2.10 Every module to TypeScript 6.0 (hq exact, the others `~6.0.3`): host's and site's Buffer typing, ui's type
+- [x] 2.9 Site to zod 4, before 2.2, so site checks peer dependencies too
+- [x] 2.10 Every module to TypeScript 6.0 (hq exact, the others `~6.0.3`): host's and site's Buffer typing, ui's type
       packages named
 
 ### Phase 3 — Prove and document
 
-- [ ] 3.1 Run the new step on a pushed branch with real updates; Checks pass, `main`'s move is
-      exercised against a scratch branch protected like `main`
-- [ ] 3.2 The releasing skill, `docs/architecture/versioning.md` and the release's own comments describe the new order
+- [x] 3.1 The whole change proved on its pushed branch: Checks (every job) and a Release dry run passed. The step
+      itself first runs on `main`, once the unit has merged: GitHub starts a workflow by hand only once it is on
+      `main`
+- [x] 3.2 The releasing skill, `docs/architecture/versioning.md` and the release's own comments describe the new order
       (take the updates, then release) and the rules above
-- [ ] 3.3 `docs/architecture/dependencies.md` (the rules, the step, taking a major, when an update breaks), the line in
+- [x] 3.3 `docs/architecture/dependencies.md` (the rules, the step, taking a major, when an update breaks), the line in
       `AGENTS.md`, and the policy's ADR
-- [ ] 3.4 The full regression and a Release dry run over the whole change
+- [x] 3.4 The full regression and a Release dry run over the whole change
 
 ## Decision records
 
 | | Records |
 |---|---|
 | **Depends on** | ADR-0146 (a release is a proven build given a name), ADR-0190 (a release is started by one workflow) |
-| **Implements** | A new record for the update policy (phase 3) |
+| **Implements** | ADR-0191 (dependencies are updated by our own step, as part of releasing) |
 | **Revisits** | None |
 
 ## Key decisions
@@ -131,7 +132,30 @@ live, and have a strategy in place to prevent future issues"): site to zod 4, an
 | Phase | What changed | Why |
 |---|---|---|
 | 2 | The step records and lands every run, even with nothing to update; dry runs got their own concurrency group; the step takes the next release's version; outside images in compose files and code are pinned and moved too (a lane of its own); the check counts only direct dependencies for one-version packages; site's OpenCode plugin is a module, its plugin version exact (it equals the agent image's OpenCode) | Stopping with nothing to update would leave *Release* refusing for good; one shared group deadlocked the step on its own dry run; the dry run proves a version; a pin the step didn't move would never move; a copy another package brings in is that package's choice |
+| 3 | The step's own first run happens on `main` after the merge, not on a pushed branch, and its move of `main` is exercised for real rather than against a scratch branch | GitHub starts a workflow by hand only from the default branch; the rest of the change was proved on the branch |
 | 2 | The step proves with Checks only; the release it starts is the one image build (it was: a Release dry run in the step, then the release built every image again) | The owner: the second build is unnecessary when the first doesn't fail; a failed release build publishes nothing |
 | 2 | The updates are taken as part of releasing, at most once a month: *Release*'s new first stage starts the step when they are more than a month old, and the step starts *Release* again (it was: the step before every release, Release refusing since the last tag) | The owner: once a month, part of the release workflow, nothing separate to remember |
 | 2 | hq's installs made reproducible (`hq/scripts/install.sh`, `npm ci` everywhere, a CI step that fails when an install changes a lockfile), a lane of its own | A clean install rewrote 418 lines of hq's lockfile: CI, the images and a new checkout could each run versions nobody committed; it predates the unit |
 | 1 | Dependabot's version updates dropped for our own step; security alerts kept; *Release*'s refusal now reads the step's record instead of open Dependabot pull requests; the rules for what an update may move added, with a check; the step's branch moved outside `release/**` | The trial: the bot covered none of the links that broke, doesn't watch npm here, and its pull requests were never taken; the versions had drifted apart behind switched-off peer checks; a `release/**` push starts a second build |
+
+## Closing note
+
+Closed on 15 Nov 2026, accepted by the owner. The month's updates are now taken by our own step as part of
+releasing, at most once a month: Release's first stage starts *Take the updates* when they are more than a month old,
+the step proves them with Checks and moves `main`, and starts Release again, whose build is their one image build.
+Every package is held within what the others require (ranges in `package.json`, only lockfiles move, peer checks
+on, one TypeScript, Node's types on Node's major), every outside image is pinned by digest, every install installs
+exactly the lockfile, and a check in Checks holds the rules. Site moved to zod 4 and every module to TypeScript 6.0.
+Dependabot's version updates and the *Rebuild epoch* workflow are gone; security alerts are on.
+
+- **Proved:** the trial (phase 1); on the branch, Checks and a Release dry run (53 min) passed; the full regression
+  at the branch head passed every step (37), the image step with a token for the private repository's robots bundle.
+- **Open items:** closed in the unit — the hidden peer conflicts (site's zod, hq's React and vitest), hq's lockfile
+  rewritten by every clean install, unpinned outside images. Deferred — #292 (Debt: the packages ui shares with hq
+  and the Fleet Console's screens aren't held to one version). Nothing blocks a release.
+- **Still to do after the merge:** the step's first real run on `main` (by hand), which takes this month's updates;
+  #164 closes when it lands.
+- **QA:** US-496 and SC-2160–SC-2165 written from the finished code, their tests tagged; no QA audit ran — they wait
+  for the audit before release.
+- **Records:** ADR-0191 (Accepted) records the policy; ADR-0146 and ADR-0190 still hold.
+
