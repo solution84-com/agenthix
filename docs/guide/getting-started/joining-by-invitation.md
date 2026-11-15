@@ -10,7 +10,7 @@ organisation's **HQ** — its home in Agenthix — and lets you make your accoun
 
 ## Accept the invitation
 
-![Join your organisation, with who invited you and the fields for your account](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/join-invitation.png)
+![Join your organisation, with who invited you and the fields for your account](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/join-invitation.png)
 
 The page says who invited you, with which role, and to which projects.
 

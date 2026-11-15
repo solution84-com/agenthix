@@ -22,7 +22,7 @@ The built-in boards are:
 
 ## A board
 
-![A board's tasks, grouped under its columns](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/project-board.png)
+![A board's tasks, grouped under its columns](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/project-board.png)
 
 Open a board to see its cards in columns, with a count at the top of each. A card is calm: the task's priority and key,
 its title, and, when it has an agent, the agent's picture at the left of the foot with its ring (see [Tasks](tasks.md#the-tasks-list))

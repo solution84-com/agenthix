@@ -40,7 +40,7 @@ Files are opened from an address of their own, described under [The files addres
 Check what HQ has under **Manage › Infrastructure › HQ**, in **Address and environment**. It shows the
 address and whether each setting is set, never the value.
 
-![Manage › Infrastructure, with HQ, Execution Sites, Storage and More](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/infrastructure.png)
+![Manage › Infrastructure, with HQ, Execution Sites, Storage and More](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/infrastructure.png)
 
 ## The files address
 

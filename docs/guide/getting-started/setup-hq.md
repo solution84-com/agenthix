@@ -29,7 +29,7 @@ Agents need a model to think with, and a voice to hear and to talk. **HQ**, your
 gets both from *providers*: services such as Anthropic or Inworld that the organisation has an account with. This step
 is one screen, whether you have no provider, one or several.
 
-![Setup's AI step, with Inworld added and covering models, hearing and speaking, and What agents can do below it](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-ai.png)
+![Setup's AI step, with Inworld added and covering models, hearing and speaking, and What agents can do below it](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/setup-ai.png)
 
 **Your providers** comes first and lists each provider you added as one line: its name, what it covers and whether it
 works. Select a line to open it in place, with its state, what it runs and **Remove**. One line is open at a time.
@@ -39,7 +39,7 @@ works. Select a line to open it in place, with its state, what it runs and **Rem
 
 Select **Add a provider**. A pop-up lists every provider setup offers, with what each covers:
 
-![The Add a provider pop-up, listing each provider and what it covers](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-ai-add-provider.png)
+![The Add a provider pop-up, listing each provider and what it covers](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/setup-ai-add-provider.png)
 
 | Provider | What it covers |
 |---|---|
@@ -53,7 +53,7 @@ Select **Add a provider**. A pop-up lists every provider setup offers, with what
 
 The pop-up is the same one **Manage › AI** uses later. Select a provider and it asks for its key:
 
-![The key form for a provider, with a short guide to getting the key above the fields](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-ai-key-guide.png)
+![The key form for a provider, with a short guide to getting the key above the fields](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/setup-ai-key-guide.png)
 
 1. At the top, **Where do I get a key?** gives three steps: sign in or create an account at the provider, add credit if
    it asks, and create a key, copy it and paste it into the form. The button beside them opens the provider's key page.
@@ -93,7 +93,7 @@ what stays off. Once a provider works, the same place reads **Continue**.
 
 ## 4. Check everything
 
-![Check everything before you start, with You, Your organisation, AI, Your first agent and Where agents run](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/setup-review.png)
+![Check everything before you start, with You, Your organisation, AI, Your first agent and Where agents run](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/setup-review.png)
 
 The last look lists what you set, each part with **Edit** to change it. It only confirms: the choices were made on the
 AI step. **AI** is one row that says which providers work, then a short list of what agents can do: **Thinking**, **Hearing**,

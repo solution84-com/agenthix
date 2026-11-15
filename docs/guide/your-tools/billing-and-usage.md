@@ -12,7 +12,7 @@ profiles** and **Usage** under **Models and billing**.
 
 ## Billing profiles
 
-![Billing profiles, with the default profile and one for client work, each with its projects and this month's cost](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/billing-profiles.png)
+![Billing profiles, with the default profile and one for client work, each with its projects and this month's cost](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/billing-profiles.png)
 
 There is always exactly one **Default** profile, made at setup from the organisation's name. A project bills to it
 unless it names another; so do everyone's own places and HQ's own calls. Each line lists the profile's projects and
@@ -31,7 +31,7 @@ can see a project can read which profile it bills to.
 
 ## Usage
 
-![Usage for the month, by project, with each billing profile's cost](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/usage.png)
+![Usage for the month, by project, with each billing profile's cost](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/usage.png)
 
 **Usage** shows a month of cost. Choose the month with **‹** and **›**; **Group by** sets the rows to billing profile,
 project, agent or person, and when the organisation has two or more profiles, a second menu narrows to one. **Export

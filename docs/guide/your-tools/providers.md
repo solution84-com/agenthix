@@ -32,7 +32,7 @@ under **Models and billing**. It has three sections: **What agents can do** firs
 and **Which models may run** (folded, because most organisations never open it; it is on
 [Models](models.md#which-models-may-run)).
 
-![The AI page, with What agents can do and Your providers, one provider opened](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/providers.png)
+![The AI page, with What agents can do and Your providers, one provider opened](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/providers.png)
 
 ## Your providers
 
@@ -123,7 +123,7 @@ How an agent searches the web depends on what it runs on, not on which provider 
   an administrator changes it, so a person approves each search. An agent set to **Never** says so rather than
   trying. See [Fetching pages and searching the web](../agents/permissions.md#fetching-pages-and-searching-the-web).
 
-![The Web search for OpenCode pop-up, asking for an Exa key](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/web-search-key.png)
+![The Web search for OpenCode pop-up, asking for an Exa key](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/web-search-key.png)
 
 When both kinds of agent are in use, the line says **Every agent can search** or **Some agents can search** and lists
 each kind: **✓ on its own** for Claude Code, **✓ Exa** or **needs a search key** for OpenCode. The **?** beside **Web

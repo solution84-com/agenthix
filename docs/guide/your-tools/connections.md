@@ -11,7 +11,7 @@ on for it.
 
 ## Create a connection
 
-![The New connection form, with a name, permissions, projects and an expiry](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/new-connection.png)
+![The New connection form, with a name, permissions, projects and an expiry](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/new-connection.png)
 
 1. Open **Settings**. Under **Devices and connections**, beside **Connections**, select **Manage**.
 2. Select **New connection**.

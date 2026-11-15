@@ -105,7 +105,7 @@ Every list that applies narrows the set, and none widens it: a model runs only w
 project has no list of its own; its owner's applies. Most organisations never open the organisation's list: the section is folded, and its line reads
 **Any model your providers reach**. Select **Edit the list** to open the editor, where every change is saved at once.
 
-![Which models may run, open on the AI page](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/models.png)
+![Which models may run, open on the AI page](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/models.png)
 
 A list is in one of two modes:
 

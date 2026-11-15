@@ -34,7 +34,7 @@ An organisation administrator sets these on the agent's page, and they apply whe
    **＋ Add a command pattern** to treat a start such as `git` or `npm run` differently.
 6. Select **Save**.
 
-![An agent's permissions open for editing, with the three approval choices and the presets](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.4/agent-permissions.png)
+![An agent's permissions open for editing, with the three approval choices and the presets](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/agent-permissions.png)
 
 When an agent may use the web without asking and may also change files, run commands, change tasks or use
 administrative tools without asking, a note warns that a page it reads could steer it into doing so. Set the web
