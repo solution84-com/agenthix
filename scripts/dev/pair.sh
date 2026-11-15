@@ -118,7 +118,10 @@ elif [ "${#RELAY_SECRET}" -lt "$MIN_LENGTH" ]; then
   exit 1
 fi
 if [ -d "$(dirname "$RELAY_ENV_FILE")" ]; then
-  [ -f "$RELAY_ENV_FILE" ] || { : > "$RELAY_ENV_FILE"; chmod 600 "$RELAY_ENV_FILE"; }
+  [ -f "$RELAY_ENV_FILE" ] || {
+    printf '# Written by scripts/dev/pair.sh, which keeps HQ_RELAY_SECRET the same as in hq/.env.server. Do not edit.\n' > "$RELAY_ENV_FILE"
+    chmod 600 "$RELAY_ENV_FILE"
+  }
   if [ "$(env_value HQ_RELAY_SECRET "$RELAY_ENV_FILE")" != "$RELAY_SECRET" ]; then
     set_env_value HQ_RELAY_SECRET RELAY_SECRET "$RELAY_ENV_FILE"
     echo "pair: wrote HQ_RELAY_SECRET to relay/.env.server"

@@ -38,6 +38,7 @@ K1="$(val SECRETS_MASTER_KEY "$SITE_ENV_FILE")"
 S1R="$(val HQ_RELAY_SECRET "$HQ_ENV_FILE")"
 [ "${#S1R}" -eq 64 ] && [[ "$S1R" =~ ^[0-9a-f]+$ ]]; check "hq gets a 64-hex-character relay secret" $?
 [ "$(val HQ_RELAY_SECRET "$RELAY_ENV_FILE")" = "$S1R" ]; check "hq's relay carries the same value, in a file it is made" $?
+head -1 "$RELAY_ENV_FILE" | grep -q "^# Written by scripts/dev/pair.sh"; check "the relay's file it makes says who writes it" $?
 [ "$S1R" != "$S1" ]; check "the relay's secret is not the pairing secret" $?
 [ -z "$(val HQ_RELAY_SECRET "$SITE_ENV_FILE")" ]; check "the site is not given the relay's secret" $?
 [[ "$OUT1" != *"$S1R"* ]]; check "the relay secret is not printed" $?

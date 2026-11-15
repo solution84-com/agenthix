@@ -25,6 +25,7 @@ sends usage telemetry unless `WASP_TELEMETRY_DISABLE=1` is set in your environme
 
 Before the first run, copy the env templates: `hq/.env.server.example` → `hq/.env.server`,
 `hq/.env.client.example` → `hq/.env.client`, `site/.env.server.example` → `site/.env.server`.
+The relay's `relay/.env.server` has no template: `scripts/dev/pair.sh` writes it.
 
 The site is a plain Node server ([ADR-0086](../../../docs/adr/adr-0086-the-execution-site-is-a-plain-node-server.md)):
 `npm install` also generates its Prisma client, `npm run db:deploy` applies its migrations, and `npm run dev`
