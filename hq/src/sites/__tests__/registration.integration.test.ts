@@ -23,9 +23,9 @@ beforeEach(async () => {
 })
 
 async function enrol(siteId: string) {
-  const { value, prefix } = generateCredential(MACHINE_CREDENTIAL_PREFIX)
+  const { value } = generateCredential(MACHINE_CREDENTIAL_PREFIX)
   await prisma.executionSite.create({
-    data: { siteId, label: 'Build box', status: 'REGISTERED', credentialHash: hashCredential(value), credentialPrefix: prefix, createdById: admin.id },
+    data: { siteId, label: 'Build box', status: 'REGISTERED', credentialHash: hashCredential(value), createdById: admin.id },
   })
   return { machineCredential: value }
 }

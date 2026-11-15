@@ -134,10 +134,10 @@ describe('update_task', () => {
 
 // hq's own MCP endpoint answers a person's connection, and a task it creates is on behalf of that person (adr-0089).
 describe('create_task', () => {
-  it("is created on behalf of the connection's person, through the connection", async () => {
+  it("is created on behalf of the connection's person", async () => {
     const r = await callTool(admin(), 'create_task', { title: 'My task', projectId: w.project.id, orgId: 'org' })
     expect(r.isError).toBeFalsy()
-    expect(await prisma.task.findUniqueOrThrow({ where: { id: parsed(r).taskId } })).toMatchObject({ onBehalfOfUserId: w.member.id, createdByConnectionId: 'conn-1' })
+    expect(await prisma.task.findUniqueOrThrow({ where: { id: parsed(r).taskId } })).toMatchObject({ onBehalfOfUserId: w.member.id })
   })
 
   it('is refused, creating nothing, when its person no longer exists', async () => {
@@ -153,7 +153,7 @@ describe('add_comment', () => {
     expect(r.isError).toBeFalsy()
     const comment = await prisma.taskComment.findFirstOrThrow()
     expect(parsed(r)).toMatchObject({ success: true, commentId: comment.id })
-    expect(comment).toMatchObject({ taskId: w.task.id, authorType: 'USER', userId: w.member.id, connectionId: 'conn-1', agentId: null, content: 'Work complete.' })
+    expect(comment).toMatchObject({ taskId: w.task.id, authorType: 'USER', userId: w.member.id, agentId: null, content: 'Work complete.' })
   })
 
   it('answers isError for a task that does not exist', async () => {

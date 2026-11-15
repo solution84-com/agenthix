@@ -247,7 +247,7 @@ describe("a person's connection (adr-0090) — its person, never an agent", () =
   it('add_comment writes as its person and ignores an agentId it names', async () => {
     await taskOps.addCommentOp(admin(), { taskId: openTask.id, agentId: 'agent-1', content: 'hi' })
     expect(await prisma.taskComment.findFirstOrThrow()).toMatchObject({
-      taskId: openTask.id, authorType: 'USER', userId: w.outsider.id, connectionId: 'conn-1', content: 'hi', agentId: null,
+      taskId: openTask.id, authorType: 'USER', userId: w.outsider.id, content: 'hi', agentId: null,
     })
   })
 

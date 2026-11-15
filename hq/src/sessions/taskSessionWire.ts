@@ -52,7 +52,7 @@ export function taskSessionView(
     id: s.id, agentId: s.agentId, userId: s.userId, title: s.title, status: s.status, sessionType: s.sessionType,
     model: s.model, totalInputTokens: s.totalInputTokens, totalOutputTokens: s.totalOutputTokens,
     totalCacheReadTokens: s.totalCacheReadTokens, totalCacheWriteTokens: s.totalCacheWriteTokens,
-    createdAt: s.createdAt, updatedAt: s.updatedAt, expiresAt: s.expiresAt, taskId: s.taskId,
+    createdAt: s.createdAt, updatedAt: s.updatedAt, taskId: s.taskId,
     primaryOwnerType: s.primaryOwnerType, primaryOwnerId: s.primaryOwnerId, primaryWorkspaceId: s.primaryWorkspaceId,
     closedReason: s.closedReason, runtime: s.runtime, conversationId: s.conversationId,
     workerGeneration: s.workerGeneration,

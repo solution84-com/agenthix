@@ -17,20 +17,17 @@ import { recalledFacts, rememberAppOwner, rememberAppPermissions } from '../perm
 import { decryptSecret, encryptSecret } from '../../server/crypto/secretCrypto'
 
 describe('githubApp registration @SC-256', () => {
-  it('stores the conversion result with the private key and both secrets encrypted', async () => {
+  it('stores the conversion result with the private key encrypted, and keeps none of its other secrets', async () => {
     await storeAppFromConversion({
       id: 12345, slug: 'agenthix-acme', pem: '-----BEGIN RSA PRIVATE KEY-----\nKEY\n-----END RSA PRIVATE KEY-----\n',
       webhook_secret: 'whsec', client_id: 'Iv1.abc', client_secret: 'cs_xyz',
     } as any)
 
     const row = await prisma.gitHubApp.findFirstOrThrow()
-    expect(row).toMatchObject({ appId: 12345, slug: 'agenthix-acme', clientId: 'Iv1.abc' })
+    expect(row).toMatchObject({ appId: 12345, slug: 'agenthix-acme' })
     expect(row.privateKey).not.toContain('BEGIN RSA PRIVATE KEY')
     expect(decryptSecret(row.privateKey)).toContain('BEGIN RSA PRIVATE KEY')
-    expect(row.clientSecret).not.toBe('cs_xyz')
-    expect(decryptSecret(row.clientSecret!)).toBe('cs_xyz')
-    expect(row.webhookSecret).not.toBe('whsec')
-    expect(decryptSecret(row.webhookSecret!)).toBe('whsec')
+    expect(JSON.stringify(row)).not.toMatch(/whsec|cs_xyz|Iv1\.abc/)
     expect(await getAppPrivateKey()).toContain('BEGIN RSA PRIVATE KEY')
   })
 
@@ -52,7 +49,7 @@ describe('getApp is deterministic (R-168)', () => {
 describe('disconnect @SC-262', () => {
   it('forgets the App credential — deletes all installations and the app row', async () => {
     await prisma.gitHubApp.create({ data: { appId: 1, slug: 's', privateKey: encryptSecret('k') } })
-    await prisma.gitHubInstallation.create({ data: { installationId: 7, accountLogin: 'acme', accountType: 'Organization' } })
+    await prisma.gitHubInstallation.create({ data: { installationId: 7, accountLogin: 'acme', accountType: 'Organization', accountId: 7 } })
 
     await disconnectApp()
 

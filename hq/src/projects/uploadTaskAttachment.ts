@@ -27,7 +27,7 @@ export const uploadTaskAttachment: UploadTaskAttachment<
   // Parse the data URL — accept any MIME type
   const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/)
   if (!match) throw new HttpError(400, 'Invalid data URL — expected data:<mime>;base64,<data>')
-  const [, mimeType, b64] = match
+  const [, , b64] = match
   const buf = Buffer.from(b64, 'base64')
   if (buf.length > ATTACHMENT_MAX_BYTES) throw new HttpError(400, ATTACHMENT_TOO_LARGE)
 
@@ -37,7 +37,7 @@ export const uploadTaskAttachment: UploadTaskAttachment<
   await fs.writeFile(path.join(dir, filename), buf)
 
   const attachment = await context.entities.TaskAttachment.create({
-    data: { taskId, uuid, fileName: filename, mimeType, fileSizeBytes: buf.length, label: label ?? null },
+    data: { taskId, uuid, fileName: filename, fileSizeBytes: buf.length, label: label ?? null },
   })
 
   // The path a client asks `/file-link` for: hq's relay serves the file on the ticket hq signs for it (adr-0153).

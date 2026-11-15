@@ -54,8 +54,6 @@ export interface KnowledgeGuide {
 export interface KnowledgeChangeEntry {
   owner: KnowledgeOwnerRef
   page: string
-  /** For the moved page's record: where it was. */
-  fromPage?: string
   kind: KnowledgeChangeKind
   version: string
   reach: Pick<KnowledgeReach, 'userId' | 'agent'>

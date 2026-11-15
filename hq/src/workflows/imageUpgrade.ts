@@ -60,7 +60,6 @@ export async function upgradeApprovedVersion(versionId: string, from: ExecutorIm
         executorImageDigest: to.digest,
         state: kept ? 'APPROVED' : 'PROPOSED',
         origin: 'IMAGE_UPGRADE',
-        upgradeOfId: old.id,
         // The content is the same, so what the plain checks and the reviewer found still applies.
         checkFlags: old.checkFlags ?? Prisma.JsonNull,
         checkSummary: old.checkSummary,

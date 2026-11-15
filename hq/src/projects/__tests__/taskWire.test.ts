@@ -11,11 +11,10 @@ function taskRow(over: Partial<TaskWithKind> = {}): TaskWithKind {
     typeId: null, columnId: null, state: 'BACKLOG', rank: null, executionState: 'NOT_STARTED',
     sprintId: null, modelChoice: null, assignedAgentId: 'a1', priority: 'HIGH', labels: ['ops'], archived: false,
     doneAt: null, runState: 'RUN_NONE', runStateReason: null, runId: null, runCount: 0,
-    applicationData: { template: 'secret' }, deferCount: 0, lastWorkedAt: null, runStartedBy: null,
+    applicationData: { template: 'secret' }, lastWorkedAt: null, runStartedBy: null,
     runOnBehalfOfUserId: null, queueDepth: 0, onBehalfOfUserId: 'u1', queuedByUserId: null, queuedByAgentId: null,
-    queuedBySessionId: null, queuedByConnectionId: null, createdByConnectionId: null, scheduleAt: null,
-    scheduleNextDueAt: null, scheduleSetByUserId: null, scheduleSetByAgentId: null, scheduleSetBySessionId: null,
-    scheduleSetByConnectionId: null, planStart: null, planFinish: null,
+    queuedBySessionId: null, scheduleAt: null,
+    scheduleNextDueAt: null, scheduleSetByUserId: null, scheduleSetByAgentId: null, planStart: null, planFinish: null,
     type: null, epicId: null, milestoneId: null, workspaceId: null, createdAt: at, updatedAt: at,
     ...over,
   }
@@ -43,7 +42,7 @@ describe('a task as the client protocol declares it @SC-1142', () => {
 
   it('gives a comment its agent as a reference only', () => {
     const view = taskCommentView({
-      id: 'c1', taskId: 't1', authorType: 'AGENT', agentId: 'a1', userId: null, connectionId: null, runId: 'r1',
+      id: 'c1', taskId: 't1', authorType: 'AGENT', agentId: 'a1', userId: null, runId: 'r1',
       content: 'done', parentId: 'c0', savedFromConversation: false, createdAt: at, agent: { id: 'a1', name: 'Kernel', handle: 'kernel', avatarUrl: 'x' } as never,
     })
     expect(view.agent).toEqual({ id: 'a1', name: 'Kernel', handle: 'kernel' })
@@ -51,7 +50,7 @@ describe('a task as the client protocol declares it @SC-1142', () => {
   })
 
   it('says whether a comment was saved from the conversation', () => {
-    const row = { id: 'c1', taskId: 't1', authorType: 'USER', agentId: null, userId: 'u1', connectionId: null, runId: null, content: 'kept', parentId: null, createdAt: at, agent: null } as const
+    const row = { id: 'c1', taskId: 't1', authorType: 'USER', agentId: null, userId: 'u1', runId: null, content: 'kept', parentId: null, createdAt: at, agent: null } as const
     expect(taskCommentView({ ...row, savedFromConversation: true } as never).savedFromConversation).toBe(true)
     expect(taskCommentView({ ...row, savedFromConversation: false } as never).savedFromConversation).toBe(false)
   })

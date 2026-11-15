@@ -43,9 +43,9 @@ function makeReqRes(headers: Record<string, string>, body: unknown) {
 }
 
 async function registerSite(siteId: string, adminUserId: string) {
-  const { value, prefix } = generateCredential(MACHINE_CREDENTIAL_PREFIX)
+  const { value } = generateCredential(MACHINE_CREDENTIAL_PREFIX)
   await prisma.executionSite.create({
-    data: { siteId, label: 'Test Site', status: 'REGISTERED', credentialHash: hashCredential(value), credentialPrefix: prefix, createdById: adminUserId },
+    data: { siteId, label: 'Test Site', status: 'REGISTERED', credentialHash: hashCredential(value), createdById: adminUserId },
   })
   return value
 }

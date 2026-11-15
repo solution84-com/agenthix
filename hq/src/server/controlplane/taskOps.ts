@@ -183,8 +183,8 @@ export async function addCommentOp(
   await loadTaskScoped(ctx, args.taskId, 'add_comment', 'work')
   // A connection writes as its person, never as an agent it names (adr-0090).
   if (ctx.kind === 'connection') {
-    const { userId, connectionId } = ctx.connection
-    const comment = await createTaskComment({ taskId: args.taskId, authorType: 'USER', userId, connectionId, content: args.content })
+    const { userId } = ctx.connection
+    const comment = await createTaskComment({ taskId: args.taskId, authorType: 'USER', userId, content: args.content })
     return { success: true, commentId: comment.id, source: 'local' }
   }
   const agentId = actingAgentId(ctx, args.agentId)

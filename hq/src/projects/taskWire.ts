@@ -42,13 +42,11 @@ export function taskFields(t: TaskWithKind & { result?: string | null }): TaskFi
     boardId: t.projectId, column: columnOfState(t.state), sprintId: t.sprintId, modelChoice: t.modelChoice, status: statusOfState(t.state),
     assignedAgentId: t.assignedAgentId, priority: t.priority, labels: labelsOf(t.labels), archived: t.archived,
     doneAt: t.doneAt, runState: t.runState, runStateReason: t.runStateReason, runId: t.runId, result: t.result ?? null,
-    deferCount: t.deferCount, lastWorkedAt: t.lastWorkedAt, runStartedBy: t.runStartedBy,
+    lastWorkedAt: t.lastWorkedAt, runStartedBy: t.runStartedBy,
     runOnBehalfOfUserId: t.runOnBehalfOfUserId, queueDepth: t.queueDepth, onBehalfOfUserId: t.onBehalfOfUserId,
     queuedByUserId: t.queuedByUserId, queuedByAgentId: t.queuedByAgentId, queuedBySessionId: t.queuedBySessionId,
-    queuedByConnectionId: t.queuedByConnectionId, createdByConnectionId: t.createdByConnectionId,
     scheduleAt: t.scheduleAt, scheduleNextDueAt: t.scheduleNextDueAt, scheduleSetByUserId: t.scheduleSetByUserId,
-    scheduleSetByAgentId: t.scheduleSetByAgentId, scheduleSetBySessionId: t.scheduleSetBySessionId,
-    scheduleSetByConnectionId: t.scheduleSetByConnectionId,
+    scheduleSetByAgentId: t.scheduleSetByAgentId,
     // Deprecated wire fields (a routine makes no task, adr-0177): always null.
     routineId: null, roundAt: null,
     planStart: t.planStart, planFinish: t.planFinish, isEpic: isEpicTask(t), epicId: t.epicId,
@@ -105,7 +103,7 @@ export function projectTaskListItem(t: ListedRow): ProjectTaskListItem {
 export function taskCommentView(c: TaskComment & { agent: AgentRef | null }): TaskCommentView {
   return {
     id: c.id, taskId: c.taskId, authorType: c.authorType, agentId: c.agentId, userId: c.userId,
-    connectionId: c.connectionId, runId: c.runId, content: c.content, parentId: c.parentId, savedFromConversation: c.savedFromConversation, createdAt: c.createdAt,
+    runId: c.runId, content: c.content, parentId: c.parentId, savedFromConversation: c.savedFromConversation, createdAt: c.createdAt,
     agent: agentRef(c.agent),
   }
 }

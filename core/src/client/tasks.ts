@@ -71,7 +71,6 @@ export type TaskFields = {
   runId: string | null
   /** Its latest run's result, as that run stated it: null when that run stated none, or it has had no run. */
   result: string | null
-  deferCount: number
   lastWorkedAt: Date | null
   runStartedBy: string | null
   runOnBehalfOfUserId: string | null
@@ -80,14 +79,10 @@ export type TaskFields = {
   queuedByUserId: string | null
   queuedByAgentId: string | null
   queuedBySessionId: string | null
-  queuedByConnectionId: string | null
-  createdByConnectionId: string | null
   scheduleAt: Date | null
   scheduleNextDueAt: Date | null
   scheduleSetByUserId: string | null
   scheduleSetByAgentId: string | null
-  scheduleSetBySessionId: string | null
-  scheduleSetByConnectionId: string | null
   /**
    * A routine makes no task (adr-0177).
    * @deprecated since 1.16; stops working in 3.0. Nothing replaces it.
@@ -143,8 +138,6 @@ export type TaskCommentFields = {
   authorType: CommentAuthorType
   agentId: string | null
   userId: string | null
-  /** The person's connection a person's comment was written through, when one was. */
-  connectionId: string | null
   runId: string | null
   content: string
   /** The top-level comment this one replies to (since 1.14); null or absent on a top-level comment. Replies go one level deep. */

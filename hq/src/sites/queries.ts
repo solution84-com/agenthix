@@ -20,9 +20,9 @@ export type ExecutionSiteSummary = {
 
 /**
  * Readable by any authenticated user — the site picker on project creation needs
- * it, and it carries nothing sensitive: no version and no address (those are a fleet admin's, spec §10). credentialHash/credentialPrefix are
+ * it, and it carries nothing sensitive: no version and no address (those are a fleet admin's, spec §10). credentialHash is
  * excluded by an explicit select rather than by trusting every caller to drop
- * them.
+ * it.
  */
 export const getExecutionSites: GetExecutionSites<void, ExecutionSiteSummary[]> = async (_args, context) => {
   if (!context.user) throw new HttpError(401)

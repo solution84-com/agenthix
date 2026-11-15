@@ -62,7 +62,6 @@ describe("a tool call's row @SC-957", () => {
     await operationRows.settle(operationId, { state: 'COMPLETED', result: { tasks: ['a'] } })
     const row = await prisma.operation.findUniqueOrThrow({ where: { id: operationId } })
     expect(row.state).toBe('COMPLETED')
-    expect(row.completedAt).not.toBeNull()
     expect(openJson(row.resultSummary!)).toEqual({ tasks: ['a'] })
     const again = await admit()
     expect(again.alreadyRunning).toBe(false)

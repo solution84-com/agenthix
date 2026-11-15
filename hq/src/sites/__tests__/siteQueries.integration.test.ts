@@ -28,7 +28,7 @@ let seq = 0
 function makeSite(data: Record<string, unknown> = {}) {
   seq++
   return prisma.executionSite.create({
-    data: { siteId: `site-${seq}`, label: `Site ${seq}`, status: 'ONLINE', lastSeenAt: new Date(), credentialHash: 'a'.repeat(64), credentialPrefix: 'smc_9f2a', ...data } as any,
+    data: { siteId: `site-${seq}`, label: `Site ${seq}`, status: 'ONLINE', lastSeenAt: new Date(), credentialHash: 'a'.repeat(64), ...data } as any,
   })
 }
 
@@ -136,7 +136,7 @@ describe('figures, versions and the credential reach only a fleet admin (spec §
       expect(entry).toMatchObject({ figures: false, health: null, protocolVersion: null, load: { running: 1, maxAtOnce: 4 } })
       const text = JSON.stringify(entry)
       // Quoted, so a timestamp's seconds ("13.2…") or a random id cannot match by accident.
-      for (const leaked of ['"27.1"', '"0.4.0"', '"3.2"', 'freeBytes', 'credentialPrefix', 'smc_9f2a']) expect(text).not.toContain(leaked)
+      for (const leaked of ['"27.1"', '"0.4.0"', '"3.2"', 'freeBytes']) expect(text).not.toContain(leaked)
     }
   })
 

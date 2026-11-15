@@ -69,7 +69,7 @@ beforeEach(async () => {
   await fs.writeFile(file, MD)
   const stat = await fs.stat(file)
   const attachment = await prisma.taskAttachment.create({
-    data: { taskId: task.id, uuid: 'u-1', fileName: 'q3 notes.md', mimeType: 'text/markdown', fileSizeBytes: MD.length },
+    data: { taskId: task.id, uuid: 'u-1', fileName: 'q3 notes.md', fileSizeBytes: MD.length },
   })
   world = {
     relayId: relay.id, member: member.id, outsider: outsider.id, attachmentId: attachment.id,

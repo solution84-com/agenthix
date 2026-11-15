@@ -37,7 +37,7 @@ const INSTALLATION_SELECT = {
 export type RuledInstallation = {
   id: string
   installationId: number
-  accountId: number | null
+  accountId: number
   accountLogin: string
   accountType: string
   repositorySelection: string | null
@@ -54,7 +54,7 @@ function toRuled(row: InstallationRow): RuledInstallation {
   return {
     id: row.id,
     installationId: row.installationId,
-    accountId: row.accountId === null ? null : Number(row.accountId),
+    accountId: Number(row.accountId),
     accountLogin: row.accountLogin,
     accountType: row.accountType,
     repositorySelection: row.repositorySelection,

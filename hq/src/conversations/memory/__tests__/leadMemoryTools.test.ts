@@ -60,7 +60,7 @@ describe('recall @SC-990', () => {
     expect(result.cut).toEqual(['older'])
     expect(result).not.toHaveProperty('knowledge')
     expect(service.recordOutcomes).toHaveBeenCalledTimes(1)
-    expect(service.recordOutcomes).toHaveBeenCalledWith([{ itemId: 'id-staging', kind: 'RECALLED', similarity: 0.7, conversationId: 'conv-1', turnId: 'turn-1' }])
+    expect(service.recordOutcomes).toHaveBeenCalledWith([{ itemId: 'id-staging', kind: 'RECALLED', similarity: 0.7, turnId: 'turn-1' }])
   })
 
   it('by key reads one item', async () => {
@@ -148,7 +148,7 @@ describe('remember and forget @SC-990', () => {
   it('records a miss on what memory already held when the lead remembers a correction it was not shown', async () => {
     const { tools, service } = setup({ nearest: vi.fn(async () => ({ itemId: 'id-old', similarity: 0.7 })), probeScore: vi.fn(() => 0.3) })
     await tools.remember!.run(turn, { title: 'Report format', body: 'Wants reports as a table, never prose.', kind: 'rule', correction: true }, { signal })
-    expect(service.recordOutcomes).toHaveBeenCalledWith([{ itemId: 'id-old', kind: 'MISSED', similarity: 0.3, conversationId: 'conv-1', turnId: 'turn-1' }])
+    expect(service.recordOutcomes).toHaveBeenCalledWith([{ itemId: 'id-old', kind: 'MISSED', similarity: 0.3, turnId: 'turn-1' }])
   })
 
   it('records no miss when the correction is not marked as one', async () => {
@@ -169,7 +169,7 @@ describe('used_memory @SC-990', () => {
     const { tools, service } = setup({ probeScore: vi.fn((_t: string, id: string) => (id === 'id-staging' ? 0.33 : undefined)) }, shown)
     expect(await tools.used_memory!.run(turn, { keys: ['coffee', 'staging'] }, { signal })).toEqual({ status: 'done', operationId: 'turn-1', result: { noted: true } })
     const recorded = service.recordOutcomes.mock.calls[0]![0]
-    const ids = { conversationId: 'conv-1', turnId: 'turn-1' }
+    const ids = { turnId: 'turn-1' }
     expect(recorded).toEqual(expect.arrayContaining([
       { itemId: 'id-coffee', kind: 'USED', ...ids },
       { itemId: 'id-staging', kind: 'USED', ...ids },

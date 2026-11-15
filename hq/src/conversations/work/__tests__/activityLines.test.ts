@@ -55,7 +55,7 @@ describe('the sheet @SC-972', () => {
 
   it.each([
     ['ACCEPTED', 'queued'], ['QUEUED', 'queued'], ['RUNNING', 'working'], ['UNCERTAIN', 'working'],
-    ['WAITING_FOR_APPROVAL', 'waiting'], ['SCHEDULED', 'waiting'],
+    ['WAITING_FOR_APPROVAL', 'waiting'],
     ['FAILED', 'failed'], ['COMPLETED', 'completed'], ['CANCELLED', 'cancelled'],
   ] as const)('words %s as %s', (state, word) => {
     expect(toActivityView(row({ state }), true).word).toBe(word)

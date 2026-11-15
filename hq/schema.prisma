@@ -120,7 +120,6 @@ model Provider {
   name      String   // "assemblyai" | "inworld" | "deepgram" | "elevenlabs"
   apiKey    String   // ENCRYPTED at rest (secretCrypto, via providerService)
   config    Json?
-  isEnabled Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -135,9 +134,6 @@ model GitHubApp {
   appId          Int      @unique          // numeric GitHub App id
   slug           String                    // e.g. agenthix-acme
   privateKey     String                    // PEM, ENCRYPTED at rest (secretCrypto)
-  webhookSecret  String?                   // ENCRYPTED at rest
-  clientId       String?
-  clientSecret   String?                   // ENCRYPTED at rest
   createdAt      DateTime @default(now())
 }
 
@@ -149,8 +145,8 @@ model GitHubInstallation {
   installationId Int      @unique          // numeric installation id
   accountLogin   String                    // org/user the App is installed on; shown, never matched on
   accountType    String                    // "Organization" | "User"
-  /// GitHub's id for the account. Null only on a row written before it was recorded, which the mint gate refuses.
-  accountId      BigInt?
+  /// GitHub's id for the account.
+  accountId      BigInt
   /// "all" or "selected", as GitHub last reported; a selected-repositories installation can't take a new repository.
   repositorySelection String?
   state          GitHubInstallationState @default(WANTS_TO_CONNECT)
@@ -317,7 +313,7 @@ model RateLimit {
 model MobileAuthToken {
   id        String    @id @default(uuid())
   /// SHA-256 of the token handed to the person; the token itself is never stored.
-  token     String    @unique @default(uuid())
+  token     String    @unique
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
@@ -403,7 +399,6 @@ model AgentSession {
   totalCacheWriteTokens Int @default(0)
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
-  expiresAt  DateTime?
   taskId     String?           @unique  // null = conversational; set = task-scoped (ADR-0030)
   task       Task?             @relation(fields: [taskId], references: [id], onDelete: SetNull)
   // Primary storage location the run works in (ADR-0039): an owner's files (workspaceId null) or a workspace.
@@ -433,7 +428,6 @@ model AgentSession {
 
 enum SessionStatus {
   ACTIVE
-  EXPIRED
   ARCHIVED
   // The harness's own state for this conversation is gone; the history stays.
   CLOSED
@@ -690,7 +684,6 @@ enum OperationMode {
 /// One set of states for every operation (conversation layer spec).
 enum OperationState {
   WAITING_FOR_APPROVAL
-  SCHEDULED
   ACCEPTED
   QUEUED
   RUNNING
@@ -743,11 +736,8 @@ model Operation {
   workerSessionId String?
   /// Ends without a report turn: the person stopped it, or cut the turn that asked for it. Its card is still written.
   noReport       Boolean              @default(false)
-  /// When the person saw it ended in the activity sheet; it leaves the sheet then.
-  seenAt         DateTime?
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
-  completedAt    DateTime?
 
   @@unique([conversationId, idempotencyKey])
   @@index([conversationId, state])
@@ -948,7 +938,6 @@ model CloudSignInAsk {
 model OfferDismissal {
   userId      String
   offer       String
-  dismissedAt DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, offer])
@@ -1017,9 +1006,6 @@ model ExecutionSite {
   /// registration response; hq cannot recover it. Null for the local
   /// in-process site, which nothing authenticates into.
   credentialHash   String?
-  /// First 16 characters, for identifying the credential in the UI without
-  /// revealing it. Null alongside credentialHash.
-  credentialPrefix String?
 
   /// The site that comes with this hq and connects by configuration (a shared
   /// secret in both environments) rather than by registering. At most one row;
@@ -1088,11 +1074,10 @@ model ExecutionSite {
   @@index([relayId])
 }
 
-/// The state of a relay: answering (ON), quiet for a while (QUIET), or taken out of service (REMOVED). A removed
+/// The state of a relay: answering (ON), or taken out of service (REMOVED). A removed
 /// relay's credential is cleared, so its link is refused, and no site is placed on it.
 enum RelayState {
   ON
-  QUIET
   REMOVED
 }
 
@@ -1265,12 +1250,12 @@ model Program {
 model Project {
   id             String          @id @default(uuid())
   name           String
-  slug           String?         @unique  // auto-generated from name; null for pre-migration rows
+  slug           String?         @unique  // auto-generated from name; null for a personal project, whose name nobody else may learn is taken
   key            String          @unique
   description    String?
   /// The Execution Site whose disk holds this project's Workspace (spec §3).
-  /// Nullable only for rows created before the registry existed; backfilled to
-  /// the local site on boot (see localSite.ts) and required at creation.
+  /// Null only for a person's space, which has no storage of its own: its runs
+  /// work in the person's own storage. Required at every other creation.
   executionSiteId String?
   executionSite   ExecutionSite? @relation(fields: [executionSiteId], references: [id], onDelete: Restrict)
   productId      String?
@@ -1589,7 +1574,6 @@ model Task {
   /// the same write that counts it, so a number is never reused or renumbered.
   runCount        Int                @default(0)
   applicationData Json?                             // confirmed template selections for kernel execution
-  deferCount      Int                @default(0)    // times routing inference deferred this task (ADR-0031)
   lastWorkedAt    DateTime?                          // last time a session was opened for this task (ADR-0031)
   /// Who asked for a run of it to start ('person' | 'schedule' | 'agent'), and then what started the run it was
   /// claimed for (adr-0175). Every RUN_QUEUED task has one: it is in its agent's line, and starts as soon as the
@@ -1619,25 +1603,17 @@ model Task {
   queuedByUserId    String?
   queuedByAgentId   String?
   queuedBySessionId String?
-  /// The person's connection (adr-0090) they queued it through, when they did;
-  /// set only beside queuedByUserId.
-  queuedByConnectionId String?
-  /// The connection its person created it through, when one did (adr-0090).
-  createdByConnectionId String?
   // Start time (adr-0088): a Run a person asked for later. A task starts at most
   // once; work that repeats is a routine, below (adr-0177).
   scheduleAt             DateTime?
   /// When the scheduler next starts it; null = nothing due. Claimed by compare-and-set.
   scheduleNextDueAt      DateTime?
   /// Who set the schedule: always the person — the one who set it, or the one
-  /// whose run the setting agent was in — plus the agent and its session when an
-  /// agent set it. Setting a schedule also makes that person the one the task is
-  /// done on behalf of; this keeps who set it after a later reassignment.
+  /// whose run the setting agent was in — plus the agent when an agent set it.
+  /// Setting a schedule also makes that person the one the task is done on
+  /// behalf of; this keeps who set it after a later reassignment.
   scheduleSetByUserId    String?
   scheduleSetByAgentId   String?
-  scheduleSetBySessionId String?
-  /// The person's connection the schedule was set through, when one was (adr-0090).
-  scheduleSetByConnectionId String?
   // Plan (adr-0098): the dates the work is meant to happen. Apart from the start
   // time (scheduleAt) and the runs: changing it starts, stops and queues nothing.
   planStart        DateTime?          @db.Date
@@ -1681,7 +1657,6 @@ model TaskAttachment {
   task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   uuid          String   // the directory UUID under tasks/<taskId>/
   fileName      String
-  mimeType      String?
   fileSizeBytes Int?
   label         String?  // e.g. "application", "draft-selections", "confirmed-selections"
   createdAt     DateTime @default(now())
@@ -1732,8 +1707,6 @@ model Org {
   setupCompletedAt DateTime?
   /// How much of the organisation the sign-in page shows to someone not signed in.
   signInShows      SignInShows @default(COVER)
-  /// Conversations idle this many days are archived (on-screen spec, Archive); a person may keep one out.
-  conversationArchiveAfterDays Int @default(90)
   /// Memory recalled by meaning (memory and knowledge spec): the probe's two bars; null for the model's calibration.
   memoryCertainBar     Float?
   memoryProbableBar    Float?
@@ -2259,8 +2232,6 @@ model TaskComment {
   agentId    String?
   agent      Agent?     @relation(fields: [agentId], references: [id])
   userId     String?
-  /// The person's connection a USER comment was written through, when one was (adr-0090).
-  connectionId String?
   runId      String?
   content    String
   /// A reply's comment: always a top-level one (one level of replies). Null on a top-level comment.
@@ -2466,7 +2437,7 @@ model OrgKnowledgePlacement {
 }
 
 /// One change to a knowledge page (gate step G5): who made it and what it was. Written by hq as the site reports
-/// each finished change. `page` is the page's path in its place; for a move, `fromPage` is where it was.
+/// each finished change. `page` is the page's path in its place; a move is recorded at both its paths.
 model KnowledgeChange {
   id           String              @id @default(uuid())
   placeKind    KnowledgePlaceKind
@@ -2475,7 +2446,6 @@ model KnowledgeChange {
   userId       String?
   user         User?               @relation("KnowledgeChangePersonPlace", fields: [userId], references: [id], onDelete: Cascade)
   page         String
-  fromPage     String?
   kind         KnowledgeChangeKind
   /// The page's version after the change, the hex SHA-256 of its bytes (the version that was current, for a delete).
   version      String
@@ -2733,8 +2703,6 @@ model MemoryItem {
   recallCount Int           @default(0)
   usedCount  Int            @default(0)
   lastRecalledAt DateTime?
-  /// The item this one replaced or merged.
-  supersedesId String?
   /// The agent that saved it, apart from the scope so a promotion can flip back; emptied when that agent is deleted.
   savedBy   Agent?          @relation("MemoryItemSavedBy", fields: [writtenByAgentId], references: [id], onDelete: SetNull)
   writtenByAgentId String?
@@ -2759,9 +2727,7 @@ model MemoryOutcome {
   item      MemoryItem?       @relation(fields: [itemId], references: [id], onDelete: SetNull)
   itemId    String?
   kind      MemoryOutcomeKind
-  conversationId String?
   turnId    String?
-  runId     String?
   /// The probe's or the query's similarity, when there was one.
   similarity Float?
   /// A Rule included only because of its kind's weight (ADR-0188): the bar tuner leaves it out of its samples.
@@ -2786,7 +2752,6 @@ model SubscriptionGrant {
   signedInAt   DateTime
   /// The ExecutionSite.siteId the run was dispatched to.
   siteId       String
-  sessionId    String
   /// The run's runner claim: 'person' or 'project', and its id.
   runnerKind   String
   runnerId     String?
@@ -2830,11 +2795,9 @@ model Routine {
   onBehalfOfUserId      String
   /// The model each run names (`<providerId>/<model>`); null follows the agent's own.
   modelChoice           String?
-  /// Who set it up: a person, or an agent in a run (its session) when a person asked.
+  /// Who set it up: a person, or an agent in a run when a person asked.
   createdByUserId       String?
   createdByAgentId      String?
-  createdBySessionId    String?
-  createdByConnectionId String?
   /// Its place in the project's list of routines, the same for everyone; a new one goes last.
   position              Int          @default(0)
   runs                  RoutineRun[]
@@ -2842,7 +2805,6 @@ model Routine {
   updatedAt             DateTime     @updatedAt
 
   @@index([nextDueAt])
-  @@index([projectId])
   @@index([projectId, position])
 }
 
@@ -2873,7 +2835,6 @@ model RoutineRun {
   startedByUserId  String?
   /// The person the run is on behalf of.
   onBehalfOfUserId String
-  agentId          String?
   state            RoutineRunState
   /// What the person sees on its line: why it failed, did not start, or was skipped.
   reason           String?
@@ -2951,7 +2912,6 @@ model RelayJoin {
   hostFingerprint String?
   hostIdentity    Json?
   machineName     String?
-  binding         String?
   relayHostId     String?
   createdAt       DateTime @default(now())
 }
@@ -3368,7 +3328,6 @@ model RelayUsageReport {
   ledgeredAt       DateTime?
 
   @@index([ledgeredAt, receivedAt])
-  @@index([runId])
 }
 
 // ──────────────────────────────────────────────
@@ -3462,8 +3421,6 @@ model WorkflowVersion {
   executorImageDigest String
   state               WorkflowVersionState @default(PROPOSED)
   origin              WorkflowVersionOrigin @default(PROPOSED)
-  /// For IMAGE_UPGRADE: the version whose content this is, under its earlier image.
-  upgradeOfId         String?
   /// Who proposed it: the agent and its run, on behalf of a person; none for a starter or an image upgrade.
   proposedByAgentId   String?
   proposedByRunId     String?
@@ -3639,7 +3596,6 @@ model PlaceSecret {
   renewAt      String             @default("")
   /// An optional date to replace it by: the administrators are told a week before; on the day it shows overdue.
   rotateBy     DateTime?
-  rotateNoticeSentAt DateTime?
   createdById  String
   /// When the value was last set or replaced, and by whom.
   replacedAt   DateTime           @default(now())
@@ -3677,7 +3633,6 @@ model SecretRecord {
   at         DateTime           @default(now())
 
   @@index([placeType, placeId, secretName, at])
-  @@index([runId])
 }
 
 /// A plain setting of a place: visible to people and agents, edited in place, every change recorded.
@@ -3772,8 +3727,6 @@ model LivePreview {
   state             LivePreviewState    @default(STARTING)
   /// While PAUSED or STOPPED: core's LIVE_PREVIEW_PAUSE_REASONS or LIVE_PREVIEW_STOP_REASONS.
   reason            String?
-  /// The guard's signal, when the guard paused or stopped it.
-  signal            String?
   /// hq's sentence for what happened, while it is paused or stopped.
   detail            String?
   since             DateTime            @default(now())

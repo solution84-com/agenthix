@@ -38,11 +38,8 @@ describe('stream @SC-956', () => {
     expect(model.doStreamCalls[0].tools?.[0]).toMatchObject({ type: 'function', name: 'echo' })
   })
 
-  it('passes the step\'s tool choice: one tool it must call, or none, with the tools still sent', async () => {
+  it('passes the step\'s tool choice of none, with the tools still sent', async () => {
     const tools = [{ name: 'echo', description: 'Echoes', input: echoSchema }]
-    const forced = streamingModel(textChunks(['x']))
-    await collect(createModelAdapter({ languageModel: () => forced }).stream(requestFor({ tools, toolChoice: { tool: 'echo' } })))
-    expect(forced.doStreamCalls[0].toolChoice).toEqual({ type: 'tool', toolName: 'echo' })
     const words = streamingModel(textChunks(['x']))
     await collect(createModelAdapter({ languageModel: () => words }).stream(requestFor({ tools, toolChoice: 'none' })))
     expect(words.doStreamCalls[0].toolChoice).toEqual({ type: 'none' })

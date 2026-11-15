@@ -14,8 +14,6 @@ export type {
 
 /**
  * The states of live work, which the work bar lists (conversation layer spec, Conversation activity, What counts).
- * Not SCHEDULED: a task set for a time completes in the turn that set it (walkthrough finding 33), and the state
- * is no longer written.
  */
 export const OUTSTANDING_OPERATION_STATES = ['WAITING_FOR_APPROVAL', 'ACCEPTED', 'QUEUED', 'RUNNING', 'UNCERTAIN'] as const
 export const ENDED_OPERATION_STATES = ['COMPLETED', 'FAILED', 'CANCELLED', 'DETACHED'] as const
@@ -26,8 +24,7 @@ export function activityWord(state: OperationStateValue): ActivityWord {
     case 'QUEUED': return 'queued'
     case 'RUNNING':
     case 'UNCERTAIN': return 'working'
-    case 'WAITING_FOR_APPROVAL':
-    case 'SCHEDULED': return 'waiting'
+    case 'WAITING_FOR_APPROVAL': return 'waiting'
     case 'FAILED': return 'failed'
     case 'COMPLETED': return 'completed'
     case 'CANCELLED':

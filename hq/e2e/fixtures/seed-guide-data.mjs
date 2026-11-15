@@ -295,7 +295,7 @@ await hq.taskComment.createMany({
   ],
 })
 await hq.taskAttachment.create({
-  data: { taskId: tasks['WEB-1'].id, uuid: '0b7a3f55-6f0e-4b52-9f43-1f2d5b8f6c11', fileName: 'site-map.pdf', mimeType: 'application/pdf', fileSizeBytes: 184_320, createdAt: ago(13 * DAY) },
+  data: { taskId: tasks['WEB-1'].id, uuid: '0b7a3f55-6f0e-4b52-9f43-1f2d5b8f6c11', fileName: 'site-map.pdf', fileSizeBytes: 184_320, createdAt: ago(13 * DAY) },
 })
 
 // ── Automation, routines and the organisation's schedule setting ─────────────────────────────

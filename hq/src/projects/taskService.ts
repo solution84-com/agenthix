@@ -95,7 +95,6 @@ export async function createTask(params: {
         labels:         labels ?? [],
         runState: 'RUN_NONE',
         onBehalfOfUserId: origin.onBehalfOfUserId,
-        createdByConnectionId: origin.connectionId ?? null,
         number,
       },
       include: TASK_KIND_INCLUDE,

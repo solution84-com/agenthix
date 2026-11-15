@@ -245,7 +245,7 @@ withFeature('livePreview', () => {
 describe('removing a workspace @SC-1714', () => {
   it('tells every other site that ran one of its live previews, and not its own site', async () => {
     const away = await prisma.executionSite.create({
-      data: { siteId: `away-${n}`, label: 'preview-box', status: 'ONLINE', credentialHash: 'e'.repeat(64), credentialPrefix: 'smc_away', isDefault: false },
+      data: { siteId: `away-${n}`, label: 'preview-box', status: 'ONLINE', credentialHash: 'e'.repeat(64), isDefault: false },
     })
     const row = { projectId, workspaceId, ownerType: 'project' as const, ownerId: projectId, branchId, branch: 'add-login-page', copyKind: 'BUNDLE' as const, userId: member.id, state: 'STOPPED' as const }
     await prisma.livePreview.create({ data: { ...row, executionSiteId: away.id, copyId: 'c-away' } })

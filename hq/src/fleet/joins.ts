@@ -47,7 +47,7 @@ export async function claimJoin(lookup: string, now = new Date()): Promise<JoinC
 
 export async function recordJoinRequest(
   joinId: string,
-  request: { fingerprint: string; identity: HostIdentity; machineName: string; binding: string },
+  request: { fingerprint: string; identity: HostIdentity; machineName: string },
   now = new Date(),
 ): Promise<boolean> {
   const { count } = await prisma.relayJoin.updateMany({
@@ -56,7 +56,6 @@ export async function recordJoinRequest(
       hostFingerprint: request.fingerprint,
       hostIdentity: request.identity,
       machineName: request.machineName,
-      binding: request.binding,
     },
   })
   return count === 1

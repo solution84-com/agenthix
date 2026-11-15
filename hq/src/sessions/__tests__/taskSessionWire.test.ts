@@ -18,7 +18,7 @@ const session: AgentSession = {
   id: 's1', sessionKey: 'dispatch-key', agentId: 'a1', userId: 'u1', title: null, status: 'ACTIVE',
   sessionType: 'task', model: null, metadata: { dispatch: { startedBy: 'person' } }, totalInputTokens: 1,
   totalOutputTokens: 2, totalCacheReadTokens: 0, totalCacheWriteTokens: 0, createdAt: at, updatedAt: at,
-  expiresAt: null, taskId: 't1', primaryOwnerType: 'project', primaryOwnerId: 'p1', primaryWorkspaceId: null,
+  taskId: 't1', primaryOwnerType: 'project', primaryOwnerId: 'p1', primaryWorkspaceId: null,
   closedReason: null, runtime: 'claude-sdk', conversationId: null, workerGeneration: 0,
 }
 

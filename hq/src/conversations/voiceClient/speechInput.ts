@@ -23,9 +23,6 @@ export function rms(pcm16: Int16Array): number {
   return Math.sqrt(sum / pcm16.length)
 }
 
-/** Loud enough, twice in a row, to be a person speaking over the reply and not a click or a cough. */
-const LOUD_RMS = 0.08
-const LOUD_CHUNKS = 2
 const CHUNK_BYTES = 3200 // 100 ms of 16 kHz PCM16
 const MAX_RECONNECTS = 3
 /** A token fetched ahead for the next socket is used only this fresh (hq's tokens last ten minutes). */
@@ -36,14 +33,6 @@ const TOKEN_REFRESH_MS = 4 * 60_000
 const HELD_CHUNKS = 150
 /** Each socket numbers its turns from 0: turns are told apart across sockets by this much per socket. */
 const ORDER_PER_SOCKET = 1_000
-
-export function createLoudDetector(onLoud: () => void) {
-  let run = 0
-  return (level: number) => {
-    run = level > LOUD_RMS ? run + 1 : 0
-    if (run >= LOUD_CHUNKS) { run = 0; onLoud() }
-  }
-}
 
 const msOf = (chunk: Int16Array) => chunk.length / (SPEECH_RATE / 1000)
 
@@ -68,9 +57,6 @@ export type SpeechInputOptions = {
   /** `words`: each word with when it was spoken, on the clock `now` reads. */
   onPartial: (text: string, order: number | null, words?: HeardWord[]) => void
   onTurn: (text: string, order: number | null, words?: HeardWord[]) => void
-  /** Loud audio while `watchLoud()` holds. */
-  onLoud?: () => void
-  watchLoud?: () => boolean
   /** The microphone or the speech service could not be kept up: voice ends with this line. */
   onFail: (message: string) => void
   /** Development builds only: records timing, to measure how far the words shown lag behind speech. */
@@ -102,7 +88,6 @@ export function createSpeechInput(opts: SpeechInputOptions): EndableSpeechInput 
   let held: Held[] = []
   let sockets = 0
   let ahead: { at: number; token: ReturnType<SpeechInputOptions['getToken']> } | null = null
-  const loud = createLoudDetector(() => opts.onLoud?.())
   const trace = opts.trace
   const now = opts.now ?? Date.now
   const clock = createStreamClock()
@@ -208,9 +193,7 @@ export function createSpeechInput(opts: SpeechInputOptions): EndableSpeechInput 
     if (pendingBytes < CHUNK_BYTES) return
     const joined = joinPending()
     if (muted) return
-    const level = rms(joined)
-    if (opts.watchLoud?.()) loud(level)
-    send(joined, level)
+    send(joined, rms(joined))
   }
 
   return {

@@ -154,10 +154,9 @@ describe('the default site against a real database', () => {
     expect(await prisma.executionSite.count()).toBe(0)
   })
 
-  it('creates the default row with no credential prefix, and a changed secret replaces only the hash', async () => {
+  it('creates the default row, and a changed secret replaces only the hash', async () => {
     await ensureDefaultSite()
     const created = await prisma.executionSite.findFirstOrThrow()
-    expect(created.credentialPrefix).toBeNull()
     process.env.HQ_PAIRING_SECRET = '8'.repeat(64)
     await ensureDefaultSite()
     expect(await prisma.executionSite.findFirstOrThrow()).toMatchObject({

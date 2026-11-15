@@ -123,10 +123,10 @@ export interface LeadRequest {
   cacheAfterMessage?: number
   tools: LeadToolDefinition[]
   /**
-   * Which tools the step may call: any (absent), none — words only — or the one named, which it must call. The
-   * tools are still sent, since a provider refuses tool calls in the messages without them.
+   * Which tools the step may call: any (absent), or none — words only. The tools are still sent, since a provider
+   * refuses tool calls in the messages without them.
    */
-  toolChoice?: 'none' | { tool: string }
+  toolChoice?: 'none'
   /** One per conversation, for providers that route caching by a key. */
   cacheKey: string
   maxOutputTokens?: number

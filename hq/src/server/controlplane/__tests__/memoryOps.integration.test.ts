@@ -151,9 +151,9 @@ describe('other callers @SC-2102 @SC-990', () => {
     expect(await prisma.memoryItem.findFirstOrThrow()).toMatchObject({ userId: alice, placeType: 'project', placeId: shop, agentId: scout })
     await rememberOp(turnCaller({ actingUserId: alice, agentId: scout }), tea)
     expect((await recallOp(chat(), { key: 'tea' })).items).toHaveLength(1)
-    expect(await prisma.memoryOutcome.findFirstOrThrow()).toMatchObject({ conversationId: null })
+    expect(await prisma.memoryOutcome.findFirstOrThrow()).toMatchObject({ turnId: null })
     await recallOp(turnCaller({ actingUserId: alice, agentId: scout }), { key: 'tea' })
-    expect(await prisma.memoryOutcome.findFirstOrThrow({ where: { conversationId: 'conv-1' } })).toMatchObject({ turnId: 'turn-1' })
+    expect(await prisma.memoryOutcome.findFirstOrThrow({ where: { turnId: 'turn-1' } })).toBeTruthy()
   })
 
   it('a turn that answers no one only reads', async () => {

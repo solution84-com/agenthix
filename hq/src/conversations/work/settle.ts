@@ -15,7 +15,6 @@ export function createSettleOperation(mailbox: () => Mailbox): SettleOperation {
     if (!row) return false
     const data: Prisma.OperationUpdateManyMutationInput = {
       state: end.state,
-      completedAt: new Date(),
       // Only a pending operation holds its key: the same call made after this one ended is a new call.
       idempotencyKey: `${row.idempotencyKey}:${operationId}`,
       ...(end.result ? { resultSummary: sealJson(end.result) } : {}),

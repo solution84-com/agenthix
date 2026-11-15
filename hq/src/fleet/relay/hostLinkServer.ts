@@ -29,7 +29,7 @@ export interface HostLinkDeps {
   /** Spends the lookup: null when no join has it. */
   claimJoin(lookup: string): Promise<JoinClaim | null>
   /** Keeps the machine's half of the join; false when the join is no longer waiting for it. */
-  recordJoinRequest(joinId: string, request: { fingerprint: string; identity: HostIdentity; machineName: string; binding: string }): Promise<boolean>
+  recordJoinRequest(joinId: string, request: { fingerprint: string; identity: HostIdentity; machineName: string }): Promise<boolean>
   fingerprintOf(identity: HostIdentity): Promise<string>
   touchHost?(hostId: string): Promise<void>
   /** Every finished move of the Fleet Console, oldest first: a machine that slept through one follows it now. */
@@ -171,9 +171,7 @@ export function attachHostLink(server: HttpServer, deps: HostLinkDeps): void {
     const request: JoinRequest | null = readJoinRequest(payload)
     if (!request || request.lookup !== lookup) return void deps.hub.endJoin(joinId, 'refused')
     const fingerprint = await deps.fingerprintOf(request.identity)
-    const kept = await deps.recordJoinRequest(joinId, {
-      fingerprint, identity: request.identity, machineName: request.machineName, binding: request.binding,
-    })
+    const kept = await deps.recordJoinRequest(joinId, { fingerprint, identity: request.identity, machineName: request.machineName })
     if (!kept || ws.readyState !== ws.OPEN) return void deps.hub.endJoin(joinId, 'expired')
     const forward: JoinRequestPayload = {
       joinId, identity: request.identity, machineName: request.machineName, ...(request.runsHq ? { runsHq: true as const } : {}),

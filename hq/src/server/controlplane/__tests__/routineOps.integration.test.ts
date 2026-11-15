@@ -68,14 +68,14 @@ describe('create_routine', () => {
     expect(await routine((res as { routineId: string }).routineId)).toMatchObject({
       title: 'Board review', agentId: 'agent-1', instructions: 'Review the board', cron: WEEKDAYS, timezone: 'Europe/London',
       enabled: true, nextDueAt: expect.any(Date),
-      onBehalfOfUserId: dana, createdByUserId: dana, createdByAgentId: 'agent-1', createdBySessionId: 'chat-1',
+      onBehalfOfUserId: dana, createdByUserId: dana, createdByAgentId: 'agent-1',
     })
   })
 
-  it("through a person's connection, makes it as that person, recording the connection", async () => {
+  it("through a person's connection, makes it as that person", async () => {
     await projectAutomation(w.projectId, { agentSchedules: false })
     const res = await createRoutineOp(connectionCaller({ userId: dana, connectionId: 'conn-9' }), args()) as { routineId: string }
-    expect(await routine(res.routineId)).toMatchObject({ onBehalfOfUserId: dana, createdByUserId: dana, createdByAgentId: null, createdByConnectionId: 'conn-9' })
+    expect(await routine(res.routineId)).toMatchObject({ onBehalfOfUserId: dana, createdByUserId: dana, createdByAgentId: null })
   })
 
   it('a schedule more often than every 5 minutes comes back as invalid, saying why', async () => {
@@ -107,7 +107,7 @@ describe('update_routine', () => {
 
   it("is refused in a run of a routine, even one a person started with Run now, and so is create_routine", async () => {
     await prisma.agentSession.create({ data: { id: 'routine-run-1', userId: dana, agentId: 'agent-1', sessionType: 'chat' } })
-    await prisma.routineRun.create({ data: { routineId, number: 1, onBehalfOfUserId: dana, startedByUserId: dana, agentId: 'agent-1', state: 'RUNNING', sessionId: 'routine-run-1' } })
+    await prisma.routineRun.create({ data: { routineId, number: 1, onBehalfOfUserId: dana, startedByUserId: dana, state: 'RUNNING', sessionId: 'routine-run-1' } })
     const inRoutineRun = chat({ sessionId: 'routine-run-1', startedBy: 'person' })
     await expectCode(updateRoutineOp(inRoutineRun, { routineId, enabled: false }), 'forbidden', /a routine's run cannot make or change routines.*Nothing was changed/)
     await expectCode(createRoutineOp(inRoutineRun, args()), 'forbidden', /a routine's run cannot make or change routines/)

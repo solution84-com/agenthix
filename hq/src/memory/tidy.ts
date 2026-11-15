@@ -68,7 +68,8 @@ export async function applyChange(change: TidyChange, readAt: ReadonlyMap<string
     await prisma.$transaction(async (tx) => {
       if (change.kind === 'archive') {
         await guarded(tx.memoryItem.updateMany({ where: unchanged(change.id), data: { archived: true } }))
-        if (change.supersededBy) await guarded(tx.memoryItem.updateMany({ where: unchanged(change.supersededBy), data: { supersedesId: change.id } }))
+        // The newer item it gave way to must still be as it was read.
+        if (change.supersededBy && (await tx.memoryItem.count({ where: unchanged(change.supersededBy) })) !== 1) throw new Moved()
         return
       }
       // The merged item's vector is made again by the background re-embed.

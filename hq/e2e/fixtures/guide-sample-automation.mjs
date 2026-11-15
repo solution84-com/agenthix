@@ -56,7 +56,7 @@ export async function seedAutomation({ hq, ago, ahead, NOW, DAY, sample, people,
   // The routine's run last week, as hq records it; the run itself is the site's.
   await hq.routineRun.create({
     data: {
-      routineId: routine.id, number: 1, dueAt: ago(7 * DAY - 90), onBehalfOfUserId: people.jordan.id, agentId: agents.writer.id,
+      routineId: routine.id, number: 1, dueAt: ago(7 * DAY - 90), onBehalfOfUserId: people.jordan.id,
       state: 'FINISHED', startedAt: ago(7 * DAY - 90), endedAt: ago(7 * DAY - 120),
     },
   })

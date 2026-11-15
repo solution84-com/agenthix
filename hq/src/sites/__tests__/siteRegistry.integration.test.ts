@@ -42,7 +42,7 @@ let seq = 0
 function makeSite(data: Record<string, unknown> = {}) {
   seq++
   return prisma.executionSite.create({
-    data: { siteId: `site-${seq}`, label: `Site ${seq}`, credentialHash: 'a'.repeat(64), credentialPrefix: 'smc_prefix', ...data },
+    data: { siteId: `site-${seq}`, label: `Site ${seq}`, credentialHash: 'a'.repeat(64), ...data },
   })
 }
 
@@ -66,7 +66,6 @@ describe('getExecutionSites @SC-282', () => {
     expect(result[1]).toMatchObject({ status: 'ONLINE', projectCount: 0 })
     for (const row of result) {
       expect(row).not.toHaveProperty('credentialHash')
-      expect(row).not.toHaveProperty('credentialPrefix')
       expect(row).not.toHaveProperty('protocolVersion')
       expect(row).not.toHaveProperty('siteUrl')
     }

@@ -133,14 +133,14 @@ export const prismaSecretsDb: SecretsDb = {
         where: { id },
         data: {
           kind: r.kind, ciphertext: r.ciphertext, replacedById: r.replacedById, replacedAt: record.at,
-          rotateBy: r.rotateBy, rotateNoticeSentAt: null,
+          rotateBy: r.rotateBy,
         },
       }),
       prisma.secretRecord.create({ data: { ...row, ...record } }),
     ])
   },
   describeSecret: async (id, d) => {
-    await prisma.placeSecret.update({ where: { id }, data: { ...d, rotateNoticeSentAt: null } })
+    await prisma.placeSecret.update({ where: { id }, data: d })
   },
   deleteSecret: async (id, record) => {
     const row = await prisma.placeSecret.findUniqueOrThrow({ where: { id }, select: { placeType: true, placeId: true } })

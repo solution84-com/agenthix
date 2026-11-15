@@ -25,7 +25,6 @@ export async function recordKnowledgeChange(entry: KnowledgeChangeEntry): Promis
       projectId: owner.ownerType === 'project' ? owner.ownerId : null,
       userId: owner.ownerType === 'user' ? owner.ownerId : null,
       page: entry.page,
-      fromPage: entry.fromPage ?? null,
       kind: KIND[entry.kind],
       version: entry.version,
       actorUserId: reach.userId,

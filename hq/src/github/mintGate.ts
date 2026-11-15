@@ -79,15 +79,14 @@ export async function requirePerson(place: WorkflowPlace, userId: string, needs:
 /** The installation, allowed, still including the place. */
 export async function requireInstallationFor(
   inst: RuledInstallation | null, place: WorkflowPlace, deps: GateDeps,
-): Promise<RuledInstallation & { accountId: number }> {
+): Promise<RuledInstallation> {
   if (!inst) refuse(409, 'The GitHub account of this repository is no longer connected to HQ; an organisation administrator can connect it again on the GitHub page.')
   const i = inst as RuledInstallation
   if (i.rule.state !== 'ALLOWED') refuse(403, `HQ doesn't use the GitHub account ${i.accountLogin} until an organisation administrator allows it on the GitHub page.`)
-  if (i.accountId === null) refuse(409, `HQ hasn't recorded GitHub's id for the account ${i.accountLogin} yet; an organisation administrator can refresh it on the GitHub page.`)
   if (!ruleIncludesPlace(i.rule, place, await deps.personalProject(place))) {
     refuse(403, `This place may not connect to the GitHub account ${i.accountLogin}; an organisation administrator can add it on the GitHub page.`)
   }
-  return i as RuledInstallation & { accountId: number }
+  return i
 }
 
 export async function mint(ask: TokenAsk, deps: GateDeps): Promise<InstallationToken> {

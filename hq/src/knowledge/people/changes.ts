@@ -24,7 +24,7 @@ async function changeAccess(deps: PeopleKnowledgeDeps, owner: KnowledgeOwner, us
   throw new KnowledgeRefusal(403, `${who} ${UNCHANGED}`)
 }
 
-async function record(deps: PeopleKnowledgeDeps, access: OwnerAccess, userId: string, entry: { page: string; kind: KnowledgeChangeKind; version: string; fromPage?: string }): Promise<void> {
+async function record(deps: PeopleKnowledgeDeps, access: OwnerAccess, userId: string, entry: { page: string; kind: KnowledgeChangeKind; version: string }): Promise<void> {
   const full: KnowledgeChangeEntry = { owner: access.ref, ...entry, reach: { userId } }
   try {
     await deps.recordChange(full)
@@ -97,7 +97,7 @@ export async function movePage(
     await undoWrite(deps, access, to)
     return removed
   }
-  await record(deps, access, userId, { page: to, kind: 'moved', version: written.version ?? version, fromPage: from })
+  await record(deps, access, userId, { page: to, kind: 'moved', version: written.version ?? version })
   await record(deps, access, userId, { page: from, kind: 'moved', version })
   return written
 }

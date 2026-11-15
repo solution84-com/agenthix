@@ -145,8 +145,6 @@ export function useDictation({ text, setText, field, agentId, conversationId }: 
       config: DICTATION_CONFIG,
       onPartial: hear(false),
       onTurn: hear(true),
-      onLoud: () => undefined,
-      watchLoud: () => false,
       onFail: (message) => { close(); if (started.current) setStopped(message); else setError(message) },
     })
     input.current = made

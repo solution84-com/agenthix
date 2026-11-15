@@ -72,7 +72,7 @@ export async function reconcileSite(siteId: string, now = Date.now()): Promise<v
     // An opening still waiting on the site's answer is the opening's to settle.
     if (row.state === 'STARTING' && now - row.openedAt.getTime() < OPEN_TIMEOUT_MS * 2) continue
     const moved = await moveLivePreview(row.id, {
-      state: 'STOPPED', reason: row.state === 'STARTING' ? 'failed' : 'person', signal: null, since: new Date(), stoppedAt: new Date(),
+      state: 'STOPPED', reason: row.state === 'STARTING' ? 'failed' : 'person', since: new Date(), stoppedAt: new Date(),
       detail: `It was no longer running on ${site.label}. Its branch and its work are untouched; start it again when you want it.`,
     })
     if (moved) {
@@ -120,7 +120,7 @@ export async function sweepOnce(now = new Date()): Promise<number> {
     if (row.state === 'STARTING') {
       if (now.getTime() - row.openedAt.getTime() > OPEN_TIMEOUT_MS * 3) {
         const moved = await moveLivePreview(row.id, {
-          state: 'STOPPED', reason: 'failed', signal: null, since: now, stoppedAt: now,
+          state: 'STOPPED', reason: 'failed', since: now, stoppedAt: now,
           detail: `${site?.label ?? 'Its site'} never said it started. Nothing was left running; start it again.`,
         })
         if (moved && site && (await stopOnSite(site.siteId, row.id, 'person')).answered) await releaseCopyAfterStop(moved)

@@ -24,7 +24,7 @@ const row = (over: Partial<RepoAttachmentRow> = {}): RepoAttachmentRow => ({
   createdAt: '2026-10-24T00:00:00Z', installationId: 101, repositoryId: 5001, accountId: 77, accountLogin: 'acme-tests', ...over,
 })
 
-const installation = (over: Partial<RuledInstallation['rule']> = {}, accountId: number | null = 77): RuledInstallation => ({
+const installation = (over: Partial<RuledInstallation['rule']> = {}, accountId = 77): RuledInstallation => ({
   id: 'inst-row-1', installationId: 101, accountId, accountLogin: 'acme-tests', accountType: 'Organization', repositorySelection: 'all',
   rule: { state: 'ALLOWED', projectRule: 'CHOSEN_PROJECTS', projectIds: ['proj-a'], userIds: [], ...over },
 })
@@ -130,8 +130,6 @@ describe('the mint gate refuses @A17 @SC-1305', () => {
 
   it('an account matched by login but not by id', async () => {
     vi.mocked(deps.installation).mockResolvedValue(installation({}, 78))
-    await expect(mintForLocation(ask(), deps)).rejects.toMatchObject({ statusCode: 409 })
-    vi.mocked(deps.installation).mockResolvedValue(installation({}, null))
     await expect(mintForLocation(ask(), deps)).rejects.toMatchObject({ statusCode: 409 })
     expect(deps.request).not.toHaveBeenCalled()
   })

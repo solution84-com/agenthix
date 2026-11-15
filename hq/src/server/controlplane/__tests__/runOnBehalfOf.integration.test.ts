@@ -93,9 +93,9 @@ describe('originOfRun', () => {
     expect(origin.onBehalfOfUserId).toBe(dana.id)
   })
 
-  it("a person's connection: on behalf of its person, through the connection (adr-0090)", async () => {
+  it("a person's connection: on behalf of its person (adr-0090)", async () => {
     const origin = await originOfRun(connectionCaller({ userId: dana.id, connectionId: 'conn-3' }), project.id, 'create_task')
-    expect(origin).toEqual({ onBehalfOfUserId: dana.id, queuer: { kind: 'person', userId: dana.id, connectionId: 'conn-3' }, connectionId: 'conn-3' })
+    expect(origin).toEqual({ onBehalfOfUserId: dana.id, queuer: { kind: 'person', userId: dana.id } })
   })
 
   it('refuses a connection whose person cannot reach the project', async () => {

@@ -15,7 +15,7 @@ export type ConversationQueueStateValue = 'WAITING' | 'TAKEN' | 'CANCELLED'
 export type InferenceTurnStateValue = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
 export type OperationKindValue = 'WORKER' | 'TASK' | 'TOOL'
 export type OperationStateValue =
-  | 'WAITING_FOR_APPROVAL' | 'SCHEDULED' | 'ACCEPTED' | 'QUEUED' | 'RUNNING' | 'UNCERTAIN'
+  | 'WAITING_FOR_APPROVAL' | 'ACCEPTED' | 'QUEUED' | 'RUNNING' | 'UNCERTAIN'
   | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'DETACHED'
 
 /** A page of the thread, newest first. */

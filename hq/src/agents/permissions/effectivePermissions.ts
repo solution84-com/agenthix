@@ -7,7 +7,9 @@
  * Pure: the capability mint (capabilityService.ts) and the dispatch payload (runContext.ts) both resolve a run's
  * permissions through `resolveEffectivePermissions`, so the two cannot disagree.
  */
-import { APPROVALS, type Approval, type BashPatternPermission, type ToolPermission, type ToolPermissionState } from '@agenthix/core'
+import {
+  APPROVALS, type Approval, type BashPatternPermission, type CapabilityEffectivePermissions, type ToolPermission, type ToolPermissionState,
+} from '@agenthix/core'
 import { coerceBashPatternPermissions, coerceToolPermissions, mergeWithAlwaysInjected } from '../toolPermissions'
 import { EVERY_TOOL, catalogueTool } from './toolCatalogue'
 import { RUNTIME_TOOLS } from '../../shared/runtimeTools'
@@ -135,5 +137,22 @@ export function resolveEffectivePermissions(org: OrganisationPermissions, narrow
     approval,
     allowedTools: mergeTools(tools, narrowing.allowedTools ?? []),
     allowedBashPatterns: mergePatterns(patterns, narrowing.allowedBashPatterns ?? []),
+  }
+}
+
+/**
+ * Permissions shaped as a capability carries them, a run's or a turn's: a bypassed one lists no tools, and Never is
+ * listed apart, since it binds even then. `tools` is the tool list after any narrowing the caller applies; `alsoNever`
+ * adds tools withheld whatever the list says.
+ */
+export function capabilityPermissions(
+  effective: EffectivePermissions, tools: ToolPermission[] = effective.allowedTools, alsoNever: readonly string[] = [],
+): CapabilityEffectivePermissions {
+  const bypassed = effective.approval === 'bypassed'
+  return {
+    bypassed,
+    allowedTools: bypassed ? [] : tools,
+    allowedBashPatterns: effective.allowedBashPatterns,
+    neverTools: [...new Set([...tools.filter(p => p.state === 'never').map(p => p.name), ...alsoNever])],
   }
 }

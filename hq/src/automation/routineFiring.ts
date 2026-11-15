@@ -85,7 +85,7 @@ export async function fire(routine: Routine, trigger: FiringTrigger, now: Date):
   const personId = trigger.kind === 'person' ? trigger.userId : routine.onBehalfOfUserId
   const base = {
     routineId: routine.id, dueAt: trigger.kind === 'schedule' ? trigger.dueAt : null,
-    startedByUserId: trigger.kind === 'person' ? trigger.userId : null, onBehalfOfUserId: personId, agentId: routine.agentId,
+    startedByUserId: trigger.kind === 'person' ? trigger.userId : null, onBehalfOfUserId: personId,
   }
 
   if (trigger.kind === 'schedule' && !(await personMayWorkInProject(routine.projectId, personId))) {
@@ -130,7 +130,7 @@ export async function fire(routine: Routine, trigger: FiringTrigger, now: Date):
   return prisma.routineRun.findUniqueOrThrow({ where: { id: run.id } })
 }
 
-type Base = Pick<RoutineRun, 'routineId' | 'dueAt' | 'startedByUserId' | 'onBehalfOfUserId' | 'agentId'>
+type Base = Pick<RoutineRun, 'routineId' | 'dueAt' | 'startedByUserId' | 'onBehalfOfUserId'>
 
 function record(base: Base, state: 'FAILED' | 'SKIPPED', reason: string): Promise<RoutineRun> {
   return prisma.routineRun.create({ data: { ...base, state, reason, endedAt: new Date() } })

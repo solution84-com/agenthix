@@ -103,7 +103,7 @@ export function createMemoryService(deps: MemoryServiceDeps = {}): MemoryService
             await tx.memoryItem.update({ where: { id: nearest.row.id }, data: { archived: true } })
             const freeHere = into.scopeKey === target.scopeKey ? key : await keyFreeIn(tx, into.scopeKey, key)
             const created = await tx.memoryItem.create({
-              data: { ...into, key: freeHere, ...fields, ...saved, supersedesId: nearest.row.id },
+              data: { ...into, key: freeHere, ...fields, ...saved },
             })
             return { status: 'superseded' as const, key: freeHere, itemId: created.id }
           }
@@ -213,7 +213,7 @@ export function createMemoryService(deps: MemoryServiceDeps = {}): MemoryService
       prisma.memoryOutcome.createMany({
         data: outcomes.map(o => ({
           itemId: o.itemId, kind: o.kind, similarity: o.similarity ?? null, weighted: o.weighted ?? false,
-          conversationId: o.conversationId ?? null, turnId: o.turnId ?? null, runId: o.runId ?? null,
+          turnId: o.turnId ?? null,
         })),
       }),
       ...[...used].map(([id, n]) => prisma.memoryItem.updateMany({ where: { id }, data: { usedCount: { increment: n } } })),

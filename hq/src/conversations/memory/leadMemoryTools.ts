@@ -108,8 +108,7 @@ export function createLeadMemoryTools(deps: LeadMemoryDeps): ConversationTool[] 
         if (none) return none
         const memory = await recallFor(deps.service, principal, request)
         await deps.service.recordOutcomes(memory.items.map(item => ({
-          itemId: item.itemId, kind: 'RECALLED' as const, similarity: item.similarity,
-          conversationId: capability.conversationId, turnId: capability.turnId,
+          itemId: item.itemId, kind: 'RECALLED' as const, similarity: item.similarity, turnId: capability.turnId,
         })))
         return done(capability, { items: memory.items.map(forTool), cut: memory.cut })
       } catch (err) {
@@ -152,7 +151,7 @@ export function createLeadMemoryTools(deps: LeadMemoryDeps): ConversationTool[] 
   async function recordCorrectionMiss(capability: TurnCapability, principal: MemoryPrincipal, text: string): Promise<void> {
     const [nearest, bar, rows] = await Promise.all([deps.nearest(principal, text), deps.probableBar(), deps.turnOutcomes(capability.turnId)])
     const miss = correctionMiss(nearest, bar, shownIn(rows), id => deps.probeScore(capability.turnId, id))
-    if (miss) await deps.service.recordOutcomes([{ ...miss, conversationId: capability.conversationId, turnId: capability.turnId }])
+    if (miss) await deps.service.recordOutcomes([{ ...miss, turnId: capability.turnId }])
   }
 
   const forget: ConversationTool = {
@@ -190,7 +189,7 @@ export function createLeadMemoryTools(deps: LeadMemoryDeps): ConversationTool[] 
         const principal = await deps.principalOf(capability, USED_MEMORY)
         const [usedIds, rows] = await Promise.all([deps.itemIdsByKey(principal, parsed.data.keys), deps.turnOutcomes(capability.turnId)])
         const outcomes = useOutcomes(shownIn(rows), usedIds, id => deps.probeScore(capability.turnId, id))
-        await deps.service.recordOutcomes(outcomes.map(o => ({ ...o, conversationId: capability.conversationId, turnId: capability.turnId })))
+        await deps.service.recordOutcomes(outcomes.map(o => ({ ...o, turnId: capability.turnId })))
         return done(capability, { noted: true })
       } catch (err) {
         return refused(USED_MEMORY, err)

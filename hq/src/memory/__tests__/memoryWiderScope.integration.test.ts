@@ -61,7 +61,7 @@ describe('a near-duplicate the person promoted @SC-2104', () => {
     expect(outcome).toMatchObject({ status: 'added', key: 'weekly-release' })
     expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: wide } })).toMatchObject({ body: release.body, archived: false })
     expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: (outcome as { itemId: string }).itemId } }))
-      .toMatchObject({ ...kernelInShop(), body: added, supersedesId: null })
+      .toMatchObject({ ...kernelInShop(), body: added })
   })
 
   it('is replaced where it holds by a Rule the person asked for, the old one archived', async () => {
@@ -70,7 +70,7 @@ describe('a near-duplicate the person promoted @SC-2104', () => {
     const outcome = await service.remember(inShop, { ...tablesAgain, kind: 'RULE', requested: true })
     expect(outcome).toMatchObject({ status: 'superseded', key: 'comparing-the-options' })
     const next = await prisma.memoryItem.findUniqueOrThrow({ where: { id: (outcome as { itemId: string }).itemId } })
-    expect(next).toMatchObject({ ...everywhere(), body, supersedesId: wide, writtenByAgentId: kernel, savedInPlaceType: 'project', savedInPlaceId: shop })
+    expect(next).toMatchObject({ ...everywhere(), body, writtenByAgentId: kernel, savedInPlaceType: 'project', savedInPlaceId: shop })
     expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: wide } })).toMatchObject({ archived: true })
     // Scout, elsewhere, follows the corrected rule.
     expect((await service.recallByKey({ personId: alice, agentId: scout, place: null }, ['comparing-the-options'])).map(i => i.body)).toEqual([body])
@@ -87,7 +87,7 @@ describe('a near-duplicate the person promoted @SC-2104', () => {
     const wide = await promoted(tables, 'RULE')
     const outcome = await service.remember(inShop, { ...tablesAgain, kind: 'RULE' })
     expect(outcome).toMatchObject({ status: 'added' })
-    expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: (outcome as { itemId: string }).itemId } })).toMatchObject({ ...kernelInShop(), supersedesId: null })
+    expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: (outcome as { itemId: string }).itemId } })).toMatchObject({ ...kernelInShop() })
     expect(await prisma.memoryItem.findUniqueOrThrow({ where: { id: wide } })).toMatchObject({ ...everywhere(), archived: false })
   })
 

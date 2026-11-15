@@ -60,7 +60,7 @@ describe('the activity query @SC-972', () => {
   it('lists live work, newest first, in the bar\'s words; ended work is in the thread as its card', async () => {
     const queued = await operation({ state: 'QUEUED' })
     const running = await operation({ state: 'RUNNING' })
-    const done = await operation({ state: 'COMPLETED', completedAt: new Date() })
+    const done = await operation({ state: 'COMPLETED' })
     const activity = await getConversationActivity({ conversationId }, ctx(person))
     expect(activity.outstanding).toBe(2)
     expect(activity.operations.map((o) => o.operationId)).toEqual([running.id, queued.id])

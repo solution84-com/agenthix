@@ -125,9 +125,9 @@ describe('moving @SC-1422', () => {
     expect(f.sites.text(WEB, 'processes/release.md')).toBeUndefined()
     expect(f.sites.calls.find(c => c.method === 'write')?.params).toMatchObject({ page: 'how-we-work/release.md', baseVersion: null, movedFrom: 'processes/release.md' })
     expect(f.sites.calls.find(c => c.method === 'delete')?.params).toMatchObject({ page: 'processes/release.md', movedTo: 'how-we-work/release.md' })
-    expect(f.records.map(r => ({ page: r.page, kind: r.kind, fromPage: r.fromPage }))).toEqual([
-      { page: 'how-we-work/release.md', kind: 'moved', fromPage: 'processes/release.md' },
-      { page: 'processes/release.md', kind: 'moved', fromPage: undefined },
+    expect(f.records.map(r => ({ page: r.page, kind: r.kind }))).toEqual([
+      { page: 'how-we-work/release.md', kind: 'moved' },
+      { page: 'processes/release.md', kind: 'moved' },
     ])
   })
 

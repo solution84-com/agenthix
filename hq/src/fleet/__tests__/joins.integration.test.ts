@@ -41,7 +41,7 @@ async function claimedAndAsked(hub: RelayHub) {
   const { joinId } = await openJoin({ lookup, expiresAt: inAnHour(), purpose })
   expect(await claimJoin(lookup)).toMatchObject({ ok: true, joinId })
   const fingerprint = await fingerprintOf(machine.identity)
-  expect(await recordJoinRequest(joinId, { fingerprint, identity: machine.identity, machineName: 'office-server', binding: 'b'.repeat(43) })).toBe(true)
+  expect(await recordJoinRequest(joinId, { fingerprint, identity: machine.identity, machineName: 'office-server' })).toBe(true)
   const socket = fakeSocket()
   hub.addJoining(joinId, socket.ws, peer => hub.addHost(peer, socket.ws))
   return { joinId, socket, fingerprint }

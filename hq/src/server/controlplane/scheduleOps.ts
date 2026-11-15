@@ -96,8 +96,8 @@ export async function requireMaySchedule(ctx: CallerContext, projectId: string, 
 export async function setterOf(ctx: CallerContext, projectId: string, tool = 'set_task_schedule'): Promise<ScheduleSetter> {
   const origin = await originOfRun(ctx, projectId, tool)
   if (ctx.kind === 'connection') {
-    return { kind: 'person', userId: origin.onBehalfOfUserId, connectionId: ctx.connection.connectionId }
+    return { kind: 'person', userId: origin.onBehalfOfUserId }
   }
   if (ctx.kind === 'turn') throw new ControlPlaneError('forbidden', `${tool} is not available in a conversation`)
-  return { kind: 'agent', agentId: ctx.claims.agentId, sessionId: ctx.claims.sessionId, userId: origin.onBehalfOfUserId }
+  return { kind: 'agent', agentId: ctx.claims.agentId, userId: origin.onBehalfOfUserId }
 }

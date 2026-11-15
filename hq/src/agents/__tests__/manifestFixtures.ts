@@ -38,7 +38,7 @@ export async function secondSite() {
   return prisma.executionSite.create({
     data: {
       siteId: `site-b-${Date.now().toString(36)}`, label: 'Second site', status: 'ONLINE',
-      credentialHash: 'e'.repeat(64), credentialPrefix: 'smc_test_second',
+      credentialHash: 'e'.repeat(64),
     },
   })
 }

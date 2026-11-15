@@ -27,9 +27,9 @@ import { resolveRunSkills, siteTakesRunSkills, type RunSkills } from '../assets/
 /** The site's name for the OpenCode runtime (site `runtime/types.ts`). */
 const OPENCODE_RUNTIME = 'opencode'
 
-/** The grant target a run's capability names: the site it goes to, its session, and who it runs for. */
-export function grantTargetOf(claims: Pick<CapabilityClaims, 'siteId' | 'sessionId' | 'runner'>): GrantTarget {
-  return { siteId: claims.siteId, sessionId: claims.sessionId, runner: claims.runner }
+/** The grant target a run's capability names: the site it goes to, and who it runs for. */
+export function grantTargetOf(claims: Pick<CapabilityClaims, 'siteId' | 'runner'>): GrantTarget {
+  return { siteId: claims.siteId, runner: claims.runner }
 }
 
 const NOT_GIVEN = "The run's model provider cannot be given to this run. An organisation admin can check it under Manage organisation › AI, under Your providers."

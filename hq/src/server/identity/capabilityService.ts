@@ -12,6 +12,7 @@ import type { LocationRef } from '@agenthix/core'
 import { resolveStorageSite } from '../../storage/storageSite'
 import * as store from '../../storage/workspaceStore'
 import { runBoundary, runPermissions, type OverrideBoundary } from '../../agents/overrides/agentOverrideService'
+import { capabilityPermissions } from '../../agents/permissions/effectivePermissions'
 import { isSpaceProject, taskRunOwner } from '../../projects/personalProject'
 import { resolveRunner } from './capabilityRunner'
 import { runSiteAndClaim } from '../../livePreviews/runs'
@@ -103,7 +104,6 @@ export async function resolveCapabilityClaims(args: {
   // workspace's list through even when approval is bypassed — and, since a
   // bypassed run lists every tool, a write tool the list leaves out always reaches it (SC-352).
   const effective = await runPermissions(agent, boundary)
-  const bypassed = effective.approval === 'bypassed'
   let toolPermissions = effective.allowedTools
   if (workspaceId) {
     // Placement-addressed (store.getWorkspace): the session's workspace need
@@ -123,10 +123,6 @@ export async function resolveCapabilityClaims(args: {
   const features = await runFeatures()
   // The claim its app tools are answered by, only while the live preview's flag is on.
   const livePreview = features.isOn('livePreview') ? previewClaim : null
-  const neverTools = [...new Set([
-    ...toolPermissions.filter(p => p.state === 'never').map(p => p.name),
-    ...features.withheldTools,
-  ])]
 
   // The role marks a chat in its person's own storage (ADR-0060, spec §6.3), the
   // one kind of run that acts as its person; memory and personal git access read
@@ -165,12 +161,7 @@ export async function resolveCapabilityClaims(args: {
     siteId,
     ...(livePreview ? { livePreview } : {}),
     ...(trustedPackageScopes.length ? { trustedPackageScopes } : {}),
-    permissions: {
-      bypassed,
-      allowedTools: bypassed ? [] : toolPermissions,
-      allowedBashPatterns: effective.allowedBashPatterns,
-      neverTools,
-    },
+    permissions: capabilityPermissions(effective, toolPermissions, features.withheldTools),
   }
 }
 

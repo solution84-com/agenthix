@@ -9,6 +9,7 @@
 import { prisma } from 'wasp/server'
 import { CAPABILITY_TTL_SECONDS, type CapabilityEffectivePermissions } from '@agenthix/core'
 import { runPermissions, type OverrideBoundary } from '../../agents/overrides/agentOverrideService'
+import { capabilityPermissions } from '../../agents/permissions/effectivePermissions'
 import { projectStanding } from '../../projects/membership'
 import { taskRunOwner } from '../../projects/personalProject'
 import { ControlPlaneError } from '../../server/controlplane/types'
@@ -67,15 +68,7 @@ export async function permissionsOf(agentId: string, boundary: OverrideBoundary)
     select: { id: true, approval: true, allowedTools: true, allowedBashPatterns: true },
   })
   if (!agent) throw new ControlPlaneError('not_found', "This conversation's agent no longer exists")
-  const effective = await runPermissions(agent, boundary)
-  // Shaped as a run's capability is: a bypassed turn lists no tools, and Never is listed apart, since it binds even then.
-  const bypassed = effective.approval === 'bypassed'
-  return {
-    bypassed,
-    allowedTools: bypassed ? [] : effective.allowedTools,
-    allowedBashPatterns: effective.allowedBashPatterns,
-    neverTools: effective.allowedTools.filter(p => p.state === 'never').map(p => p.name),
-  }
+  return capabilityPermissions(await runPermissions(agent, boundary))
 }
 
 export const mintTurnCapability: MintTurnCapability = async ({ conversation, turnId, agentId, actingUserId, trigger, continuationDepth }) => {

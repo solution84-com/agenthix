@@ -173,7 +173,7 @@ describe('GitHub App connection actions', () => {
     await prisma.gitHubApp.create({
       data: { appId: 1, slug: 'agenthix', privateKey: 'k' },
     })
-    await prisma.gitHubInstallation.create({ data: { installationId: 7, accountLogin: 'acme', accountType: 'Organization' } })
+    await prisma.gitHubInstallation.create({ data: { installationId: 7, accountLogin: 'acme', accountType: 'Organization', accountId: 7 } })
   }
 
   it.each([

@@ -52,6 +52,6 @@ export async function unregisterCloudSite(executionSiteId: string): Promise<{ re
   if (!site) throw new CloudSiteRefusal('not_found', 'No site Agenthix Cloud added has that id.')
   const removed = site.status !== 'REVOKED'
   if (removed) await revokeSite(site.siteId, { byCloud: true })
-  await prisma.executionSite.update({ where: { id: site.id }, data: { credentialHash: null, credentialPrefix: null } })
+  await prisma.executionSite.update({ where: { id: site.id }, data: { credentialHash: null } })
   return { removed }
 }

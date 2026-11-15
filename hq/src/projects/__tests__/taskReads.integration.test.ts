@@ -146,7 +146,7 @@ describe('uploadTaskAttachment @SC-042', () => {
     )
 
     const row = await prisma.taskAttachment.findUniqueOrThrow({ where: { id: res.attachmentId } })
-    expect(row).toMatchObject({ fileName: 'notes v2.bin', mimeType: 'application/octet-stream', fileSizeBytes: 5, label: 'draft' })
+    expect(row).toMatchObject({ fileName: 'notes v2.bin', fileSizeBytes: 5, label: 'draft' })
     expect(res.path).toBe(`/files/task/${task.id}/${row.uuid}/notes%20v2.bin`)
     expect(res).not.toHaveProperty('url')
     expect(await fs.readFile(path.join(root, 'tasks', task.id, row.uuid, 'notes v2.bin'), 'utf8')).toBe('hello')

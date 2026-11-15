@@ -15,18 +15,18 @@ import { prisma } from 'wasp/server'
 import { parseCapabilityOnBehalfOf, type CapabilityClaims } from '@agenthix/core'
 import { ControlPlaneError, type CallerContext } from './types'
 import {
-  originByAgentRun, originByConnection, originByPerson, personMayWorkInProject, personQueuer, type Queuer, type TaskOrigin,
+  originByAgentRun, originByPerson, personMayWorkInProject, personQueuer, type Queuer, type TaskOrigin,
 } from '../../projects/taskOnBehalfOf'
 import type { TaskActor } from '../../projects/taskActivity'
 
 export async function originOfRun(ctx: CallerContext, projectId: string, what: string): Promise<TaskOrigin> {
-  // A connection is its person acting (adr-0090): the task is on their behalf, through it.
+  // A connection is its person acting (adr-0090): the task is on their behalf.
   if (ctx.kind === 'connection') {
-    const { userId, connectionId } = ctx.connection
+    const { userId } = ctx.connection
     if (!(await personMayWorkInProject(projectId, userId))) {
       throw new ControlPlaneError('forbidden', `${what}: this connection's person cannot work in this project`)
     }
-    return originByConnection(userId, connectionId)
+    return originByPerson(userId)
   }
   // A turn asks for the person whose message it answers, as that person would on the board.
   if (ctx.kind === 'turn') {
@@ -85,7 +85,7 @@ async function taskPerson(taskId: string): Promise<string | null> {
 /** Who is queueing a task through this call: the run's agent, a connection's person through it, or a turn's person. */
 export function callerQueuer(ctx: CallerContext): Queuer {
   if (ctx.kind === 'connection') {
-    return { kind: 'person', userId: ctx.connection.userId, connectionId: ctx.connection.connectionId }
+    return personQueuer(ctx.connection.userId)
   }
   if (ctx.kind === 'turn') {
     if (!ctx.turn.actingUserId) throw new ControlPlaneError('forbidden', 'This turn acts for no one, so it may only read')

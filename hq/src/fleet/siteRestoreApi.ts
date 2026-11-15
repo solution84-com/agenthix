@@ -50,7 +50,7 @@ async function commit(p: { executionSiteId: string; expectedHash: string; newHas
     await tx.executionSite.update({
       where: { id: p.executionSiteId },
       data: {
-        credentialHash: p.newHash, credentialPrefix: null, relayHostId: p.hostId, label: p.label,
+        credentialHash: p.newHash, relayHostId: p.hostId, label: p.label,
         // The old machine's copy is refused from now on, and told why (`replacedSiteAt`).
         replacedCredentialHash: p.expectedHash, replacedAt: new Date(),
       },

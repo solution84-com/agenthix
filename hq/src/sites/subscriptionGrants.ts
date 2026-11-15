@@ -59,8 +59,8 @@ export const SUBSCRIPTION_GRANT_TTL_MS = 7 * 24 * 60 * 60 * 1000
  */
 export const REFRESHED_EXPIRY_CEILING_MS = 7 * 24 * 60 * 60 * 1000
 
-/** Where a run handed a subscription goes: the site, its session, and who it runs for. */
-export type GrantTarget = { siteId: string; sessionId: string; runner: CapabilityRunner }
+/** Where a run handed a subscription goes: the site, and who it runs for. */
+export type GrantTarget = { siteId: string; runner: CapabilityRunner }
 
 /** The stored sign-in a subscription document came from. */
 export type StoredLogin = { providerId: string; signedInAt: Date }
@@ -102,7 +102,6 @@ export async function grantSubscription(
       providerId: login.providerId,
       signedInAt: login.signedInAt,
       siteId: target.siteId,
-      sessionId: target.sessionId,
       runnerKind: target.runner.kind,
       runnerId: runnerId(target.runner),
       expiresAt: new Date(now.getTime() + SUBSCRIPTION_GRANT_TTL_MS),

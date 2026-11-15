@@ -28,8 +28,8 @@ describe('generateMobileAuthToken @SC-094', () => {
   it("issues a token for the caller, stores only its SHA-256, and clears the caller's expired tokens", async () => {
     const { user } = await userWithAuth()
     const other = await createUser()
-    const stale = await prisma.mobileAuthToken.create({ data: { userId: user.id, expiresAt: new Date(Date.now() - 1000) } })
-    const othersStale = await prisma.mobileAuthToken.create({ data: { userId: other.id, expiresAt: new Date(Date.now() - 1000) } })
+    const stale = await prisma.mobileAuthToken.create({ data: { userId: user.id, token: sha256('stale'), expiresAt: new Date(Date.now() - 1000) } })
+    const othersStale = await prisma.mobileAuthToken.create({ data: { userId: other.id, token: sha256('others-stale'), expiresAt: new Date(Date.now() - 1000) } })
 
     const { token } = await generateMobileAuthToken(undefined as any, ctx(user))
 
