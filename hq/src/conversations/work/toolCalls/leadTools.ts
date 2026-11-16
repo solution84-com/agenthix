@@ -15,11 +15,11 @@ import { Logger } from '../../../server/utils/logger'
 import { answerRequest, NOTE_MAX_CHARS } from './answer'
 import { stopOperation } from './stop'
 import { operationTitle, readBackFirst, spokenInput } from '../../voice/readBack'
+import { ANSWER_APPROVAL, CANCEL_OPERATION } from '../../tools/toolNames'
 
 const logger = new Logger('ConversationToolCalls')
 
-export const ANSWER_APPROVAL = 'answer_approval'
-export const CANCEL_OPERATION = 'cancel_operation'
+export { ANSWER_APPROVAL, CANCEL_OPERATION }
 
 function actsForAPerson(capability: TurnCapability): capability is TurnCapability & { actingUserId: string } {
   return !!capability.actingUserId && capability.trigger !== 'REPORT' && capability.expiresAt > Date.now()

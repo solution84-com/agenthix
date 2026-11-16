@@ -10,9 +10,8 @@ import {
 } from '@agenthix/core'
 import type { LeadToolCall, LeadToolDefinition, OfferedTool } from '../contract'
 import { searchTools, type SearchOptions, type ToolEntry } from '../../tools/search'
-import { ANSWER_APPROVAL, CANCEL_OPERATION } from '../work/toolCalls/leadTools'
+import { ANSWER_APPROVAL, CANCEL_OPERATION, OFFER_LIVE_PREVIEW_TOOL } from './toolNames'
 import { KEEP_LISTENING } from '../lead/voiceLogic'
-import { OFFER_LIVE_PREVIEW_TOOL } from '../../livePreviews/offer'
 
 /**
  * Offered only while they apply, and then shown: an approval waits, work runs, the person listens, a live preview

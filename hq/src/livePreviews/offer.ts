@@ -16,8 +16,9 @@ import { placeWorkspaces, type PlaceWorkspace } from '../branches/leadWorkspaces
 import { livePreviewsHaveAnAddress } from '../relays'
 import { taskIdFor } from '../server/controlplane/taskKey'
 import { livePreviewFeatureOn } from './flag'
+import { OFFER_LIVE_PREVIEW_TOOL } from '../conversations/tools/toolNames'
 
-export const OFFER_LIVE_PREVIEW_TOOL = 'offer_live_preview'
+export { OFFER_LIVE_PREVIEW_TOOL }
 /** The card's target kind: a code workspace by id; `params` names the branch (`branchId`, `branch`), none for `main`. */
 export const LIVE_PREVIEW_OFFER_TARGET = 'livePreview'
 
