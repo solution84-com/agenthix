@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ResolveRequest } from '@agenthix/core'
+import { defaultModelOf } from '@agenthix/core'
+import { modelsReachedBy } from '../modelKeys'
 import { decide, type Layers, type RouteProvider, type Snapshot } from '../decide'
 
 const anthropic: RouteProvider = { id: 'p-ant', name: 'Anthropic', vendor: 'anthropic', credentialKind: 'api_key', state: 'works', ownerUserId: null }
@@ -239,5 +241,34 @@ describe('decide: hearing, Inworld by default on its one key', () => {
   it('has nothing to hear with when neither works', () => {
     const answer = decide(req({ purpose: 'stt' }), snap({ providers: [anthropic, { ...assembly, state: 'unreachable' }, { ...inworld, state: 'key_refused' }], org: NONE }))
     expect(answer).toMatchObject({ ok: false, problem: { code: 'no_provider' } })
+  })
+})
+
+describe('decide: the last resort takes a provider\'s recommended model, never the first listed', () => {
+  const recommended = (vendor: 'openrouter' | 'anthropic') => defaultModelOf(vendor, modelsReachedBy(vendor)).model
+  const none = { org: NONE }
+
+  it('on OpenRouter alone, with no default set, takes its recommended model', () => {
+    const r = ok(decide(req(), snap({ providers: [openrouter], ...none })))
+    expect(r.model).toEqual({ providerId: 'p-or', model: recommended('openrouter') })
+    expect(r.model.model).not.toBe(modelsReachedBy('openrouter')[0]?.model)
+  })
+
+  it('takes the first provider with a usable recommended model, in provider order', () => {
+    const r = ok(decide(req(), snap({ providers: [anthropic, openrouter], ...none })))
+    expect(r.model).toEqual({ providerId: 'p-ant', model: recommended('anthropic') })
+  })
+
+  it('skips a provider whose recommended model a list rules out', () => {
+    const lists = [{ mode: 'every' as const, entries: [{ effect: 'never' as const, pattern: `${recommended('anthropic')}` }, { effect: 'never' as const, pattern: `anthropic/${recommended('anthropic')}` }] }]
+    const r = ok(decide(req(), snap({ providers: [anthropic, openrouter], lists, ...none })))
+    expect(r.model.providerId).toBe('p-or')
+    expect(r.model.model).toBe(recommended('openrouter'))
+  })
+
+  it('takes the catalogue\'s first usable model only when no provider has a usable recommended one', () => {
+    const lists = [{ mode: 'only_these' as const, entries: [{ effect: 'allow' as const, pattern: 'aion-labs/*' }] }]
+    const r = ok(decide(req(), snap({ providers: [openrouter], lists, ...none })))
+    expect(r.model.model).toMatch(/^aion-labs\//)
   })
 })

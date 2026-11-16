@@ -138,6 +138,6 @@ calls asks once. [cloud-connection.md](cloud-connection.md#the-ai-contract) has 
 
 - **Only the provider store writes a key, and only `credentialOf` reads one.** No read, log or answer carries a key.
 - **A site keeps no provider table and no key at rest.** What it needs arrives with the run and is held for the run.
-- **A choice made for a call is never switched silently.** A default falls through, and says so once.
+- **A choice made for a call is never switched silently.** A default falls through, and says so once. The last resort for a model call is the first provider's recommended model that may run (ADR-0184), never merely the first model listed.
 - **A call is counted once.** The call id is made on the organisation's side and a retry reuses it.
 - **Nothing is deleted from the ledger.**
