@@ -1,0 +1,15 @@
+# Text a push to this public repository must not add. One per line: <regex><TAB><why>, a Perl-compatible regular
+# expression (a leading (?i) makes it ignore case). The maintainers keep a private list in the same format; see
+# .githooks/pre-push. Every pattern here is public, so it names nothing private: it describes a kind of text.
+
+# References to records kept outside this repository
+\bplanning#[0-9]+	a reference to an issue in a private repository: describe the work instead
+\b[bp]dr-[0-9]{4}\b	a decision record kept outside this repository: describe the decision instead
+
+# Legal self-assessment: write the question and who answers it instead
+(?i)\bmay not be permitted by\b	legal self-assessment
+(?i)\b(appears?|seems?) to (breach|violate|infringe)\b	legal self-assessment
+(?i)\brisks? (breaching|violating|infringing)\b	legal self-assessment
+
+# Pricing: plans of the business are never written here
+[$€£][0-9]+(\.[0-9]+)?( ?[–-] ?[$€£]?[0-9]+(\.[0-9]+)?)? ?(/|per |a ) ?(mo|month|year|yr|seat|user)\b	a price: plans of the business are never written here

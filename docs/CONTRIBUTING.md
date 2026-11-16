@@ -45,6 +45,10 @@ hq/scripts/install.sh                      # hq, Wasp's own packages and the cod
 Wasp generates, which a fresh clone does not have yet, so hq is installed with its script rather than by hand: a plain
 `npm install` in hq before that code exists drops them from the lockfile.
 
+The hooks refuse a commit message that credits an AI assistant as an author, and a push that would publish a draft
+design, planning, or text the [writing-in-public](../.agents/skills/writing-in-public/SKILL.md) rules forbid, such as a
+reference to a private issue (the patterns are in `.githooks/public-text-patterns`); `git push --no-verify` overrides.
+
 Then start the site and HQ, each in its own terminal:
 
 ```sh

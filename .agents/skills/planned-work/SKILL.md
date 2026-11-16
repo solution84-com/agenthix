@@ -69,6 +69,12 @@ installation, instead of walking all of it themselves.
   `main` without waiting for it, after the unit's regression (`testing-a-change`); when a run on such a push fails, the
   fix is the next push. That is the only way a commit with failing checks reaches `main`.
 - A change that also needs another repository updated is a separate commit there; there is no cross-repository commit.
+- **A push checks the text it adds.** `.githooks/pre-push` refuses a push whose added lines or commit messages match
+  `.githooks/public-text-patterns` or, on a maintainer's clone, the maintainers' private pattern list. Symlink that
+  list into each clone once, from the main checkout (its worktrees share it):
+  `ln -s <the maintainers' private pattern list> .git/info/private-patterns`. It is never committed; a clone without
+  it checks the public patterns only. A refused push is fixed by rewording the commit; `--no-verify` is for a false
+  positive, and the pattern is then made more precise where the list is kept.
 
 ## Working with agents
 
