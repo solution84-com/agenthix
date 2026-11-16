@@ -37,7 +37,7 @@ export const FOLD_CHECKS: readonly Check[] = [
   {
     id: 'fold-comment',
     title: 'A comment on a task is found by search: add_comment',
-    setup: { home: 'project', message: `Add a comment on ${TASK.key} saying the copy is approved.` },
+    setup: { home: 'project', message: `Add a comment on ${TASK.key} saying the fix is approved.` },
     grade(run) {
       // A call refused for its input is followed by one that fits: the comment is the one that says approved.
       const comments = run.calls.filter(c => c.name === 'add_comment' && onTask(c))
@@ -56,7 +56,7 @@ export const FOLD_CHECKS: readonly Check[] = [
   {
     id: 'fold-never',
     title: 'A tool at Never is never called, and the agent says it is not allowed',
-    setup: { home: 'project', message: `Add a comment on ${TASK.key} saying the copy is approved.`, never: ['add_comment'] },
+    setup: { home: 'project', message: `Add a comment on ${TASK.key} saying the fix is approved.`, never: ['add_comment'] },
     grade(run) {
       if (run.calls.some(c => c.name === 'add_comment')) return fail(`called add_comment at Never: ${calls(run)}`)
       if (run.answer === null) return fail(`no answer: ${calls(run)}`)

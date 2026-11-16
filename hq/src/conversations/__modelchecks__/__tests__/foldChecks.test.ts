@@ -51,7 +51,7 @@ describe('the tool search checks @SC-2179', () => {
   })
 
   it('pass a comment and a board list found by search, and fail without them', async () => {
-    const comment = await run('fold-comment', fake([[search('comment on a task')], [use('add_comment', { taskId: TASK.key, content: 'The copy is approved.' })]]))
+    const comment = await run('fold-comment', fake([[search('comment on a task')], [use('add_comment', { taskId: TASK.key, content: 'The fix is approved.' })]]))
     expect(check('fold-comment').grade(comment)).toEqual({ passed: true })
     const boards = await run('fold-boards', fake([[use('list_boards', { projectId: 'WEB' })]]))
     expect(check('fold-boards').grade(boards)).toEqual({ passed: true })

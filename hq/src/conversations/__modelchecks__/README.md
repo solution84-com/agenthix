@@ -66,7 +66,9 @@ in the tier a check names; `recall` answers from the same memory, and `remember`
 
 The three rule-weight checks are the arms of one measurement: how often the Rule is followed in each tier. On the
 local embedding model the host question scores 0.08 against the Rule, far below the calibrated bars (0.45 and 0.62),
-so today the probe shows it nothing: `rule-weight-none` is what a person meets. `__tests__/ruleSimilarity.test.ts`
+so today the probe shows it nothing: `rule-weight-none` is what a person meets. With nothing shown the agent can't know
+the Rule exists, so `rule-weight-none` runs ten times and only measures: the report says "measured n/10", and it never
+fails a run (`minPassRate: 0`). How the Rule could reach the agent in that case is its own planned work. `__tests__/ruleSimilarity.test.ts`
 measures the messages again where the model's files are on disk (`HQ_BUNDLED_MODELS_DIR`). The lead reads no Files,
 so `rule-mid-work-files` measures whether the brief carries the Rule to the work in the background, which presents
 its result in a report turn that has no tools and is shown no hint.
@@ -147,7 +149,7 @@ name, grouped by area (`tools/foldedTools.ts`, core's `areaLines`). The checks o
 | Check | Where | Message | Passes when |
 |---|---|---|---|
 | `fold-milestone` | a project | "Put WEB-1 in the Pricing milestone." (WEB-1 is an epic: only an epic has a milestone) | `plan_task` on WEB-1 with the milestone's id, as `list_milestones` lists it |
-| `fold-comment` | a project | "Add a comment on WEB-3 saying the copy is approved." | `add_comment` on WEB-3 that says approved |
+| `fold-comment` | a project | "Add a comment on WEB-3 saying the fix is approved." | `add_comment` on WEB-3 that says approved |
 | `fold-boards` | a project | "What boards does WEB have?" | `list_boards` |
 | `fold-never` | a project, `add_comment` at Never | the same as `fold-comment` | no `add_comment`, and the answer says it can't |
 | `fold-not-impossible` | a project | "Rename Sprint 12 to "Launch sprint"." | `rename_sprint`; failed, saying so, when the answer says it can't |

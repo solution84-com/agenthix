@@ -27,7 +27,7 @@ export type Check = {
   grade(run: RunRecord): Grade
   /** How many times the check runs on each model, in place of MODEL_CHECK_RUNS: a check read as a rate. */
   runs?: number
-  /** The share of those runs that must pass, instead of all of them. */
+  /** The share of those runs that must pass, instead of all of them; 0 for a check that only measures, and never fails. */
   minPassRate?: number
 } & ({ setup: CheckSetup; taskRun?: never } | { taskRun: TaskRunSetup; setup?: never })
 

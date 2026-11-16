@@ -48,6 +48,8 @@ function ruleWeight(shown: CheckMemory['shown']): Check {
     id: WEIGHT_ARMS[shown].id,
     title: `The Rule weight: the table rule ${WEIGHT_ARMS[shown].words}`,
     setup: { home: 'project', message: HOST_QUESTION, memory: ruleShown(shown) },
+    // With nothing shown, the agent can't know the Rule exists: what it does is measured, never failed (owner, 16 Nov).
+    ...(shown === 'none' ? { runs: 10, minPassRate: 0 } : {}),
     grade(run) {
       if (run.answer === null) return fail(`no answer within the rounds: ${calls(run)}`)
       if (hasTable(said(run))) return PASS

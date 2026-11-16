@@ -14,7 +14,7 @@ import { runTaskRunCheck } from '../taskRun/run'
 import { runCheck } from '../run'
 import { runModelChecks } from '../runner'
 import { SKIP_LINE, checkAccess, checkAsked } from '../env'
-import { summaryTable } from '../report'
+import { allPassed, summaryTable, type Outcome } from '../report'
 import { PROJECT, RELEASE_PAGE, WORKSPACES } from '../world'
 import { answer } from '../script'
 import { capabilityOf } from '../setup'
@@ -234,5 +234,17 @@ describe('the task-run checks', () => {
     const sent = JSON.stringify(opened.prompts[0])
     expect(sent).toContain('Your branch has no live preview open.')
     expect(sent).toContain('do not start the app or open a live preview for this')
+  })
+})
+
+describe('a check that only measures (minPassRate 0)', () => {
+  it('is reported as measured, with its rate, and never fails the run', () => {
+    const o = (passed: boolean): Outcome => ({
+      model: 'small', check: 'rule-weight-none', run: 1, kind: 'lead', need: 0,
+      grade: passed ? { passed: true } : { passed: false, why: 'no table' },
+    })
+    const outcomes = [o(true), o(false), o(false)]
+    expect(summaryTable(outcomes, ['rule-weight-none'], ['small'])).toBe('| Check | small |\n|---|---|\n| rule-weight-none | measured 1/3 |')
+    expect(allPassed(outcomes)).toBe(true)
   })
 })

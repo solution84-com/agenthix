@@ -38,7 +38,9 @@ export function summaryTable(outcomes: readonly Outcome[], checks: readonly stri
   const cell = (model: string, check: string) => {
     const runs = runsOf(outcomes, model, check)
     const passed = runs.filter(o => o.grade.passed).length
-    return runs.length === 0 ? 'not run' : `${metBy(runs) ? 'passes' : 'fails'} ${passed}/${runs.length}`
+    if (runs.length === 0) return 'not run'
+    if (runs[0]?.need === 0) return `measured ${passed}/${runs.length}`
+    return `${metBy(runs) ? 'passes' : 'fails'} ${passed}/${runs.length}`
   }
   const rows = [
     `| Check | ${models.join(' | ')} |`,
