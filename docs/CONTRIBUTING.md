@@ -95,6 +95,12 @@ own `AGENTS.md`. The architecture is explained, for someone new to it, in
    `fix(site): a run that times out says so`. It lands on `main` as one commit — the title is its message, the
    description its body, and you its author — so your branch's own commits can be as many and as rough as you
    like.
+5. **If your change breaks something an installation relies on** — it removes a core export, an `agenthix` command
+   or option, a `host.env` setting or a name an installation creates, moves a protocol's major or a stored format's
+   number, or has a migration that drops or narrows a column — mark the title `type(area)!: what changed` and end the
+   description with a footer saying what an installation must do: `BREAKING CHANGE: <what to do>`. A release finds
+   every such break and refuses one that no marked commit explains; the footer's words open its release notes
+   ([versioning](architecture/versioning.md#breaking-changes)).
 
 ## The changelog
 

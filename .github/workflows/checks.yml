@@ -40,7 +40,7 @@ jobs:
           node-version-file: .nvmrc
       - name: The selector's own tests
         # Plain Node, no install: the secure-page check needs TypeScript, and its own job installs and tests it.
-        run: node --test scripts/__tests__/affected.test.mjs scripts/__tests__/checks-verdict.test.mjs scripts/__tests__/image-keys.test.mjs scripts/__tests__/free-disk.test.mjs scripts/__tests__/image-parts.test.mjs scripts/__tests__/tools-stage.test.mjs scripts/robots/__tests__/robots.test.mjs scripts/cla/__tests__/agreement.test.mjs scripts/cla/__tests__/check.test.mjs
+        run: node --test scripts/__tests__/affected.test.mjs scripts/__tests__/checks-verdict.test.mjs scripts/__tests__/image-keys.test.mjs scripts/__tests__/free-disk.test.mjs scripts/__tests__/image-parts.test.mjs scripts/__tests__/tools-stage.test.mjs scripts/__tests__/migration-narrowing.test.mjs scripts/robots/__tests__/robots.test.mjs scripts/cla/__tests__/agreement.test.mjs scripts/cla/__tests__/check.test.mjs
       - name: Has this tree already passed?
         id: proof
         if: github.event_name == 'push'

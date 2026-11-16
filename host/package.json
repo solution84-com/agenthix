@@ -9,7 +9,8 @@
     "check:bundles": "node scripts/check-bundles.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:container": "vitest run -c vitest.container.config.ts"
+    "test:container": "vitest run -c vitest.container.config.ts",
+    "snapshot:update": "SURFACE_SNAPSHOT_UPDATE=1 vitest run src/__tests__/surfaceSnapshot.test.ts"
   },
   "devDependencies": {
     "@agenthix/core": "file:../core",

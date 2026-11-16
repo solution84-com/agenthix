@@ -16,7 +16,9 @@ name: Release
 # 1. The commit is the tip of the branch the run is on, and a real run is on release/v<major.minor.patch>. The
 #    version is a release version and not yet tagged; no released flag outlives its minor release
 #    (scripts/release/flags-overdue.mjs); the Sigstore trust root hq carries is fresh enough to ship
-#    (scripts/release/trust-root.mjs). A real run also needs the commit's Checks passed.
+#    (scripts/release/trust-root.mjs). Every break since the previous release is marked by a commit, and the version
+#    may carry it: a patch, or a version on the previous release's line that is not an alpha, may not
+#    (scripts/release/breaks.mjs; docs/architecture/versioning.md). A real run also needs the commit's Checks passed.
 # 2. The guide's screenshots are captured for that commit (guide-screenshots.yml). Its set, guide-release-set, is the
 #    one the pin step reads and the tag takes: the pin commit changes only the guide's pages, so nothing captures again.
 # 3. They are pinned to the tag (hq/scripts/guide/pin-screenshots.mjs). When that changes the pages, the change is
@@ -103,6 +105,9 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The break scan reads the history and the tags since the previous release.
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
@@ -145,6 +150,14 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
+      # Publish release makes the same scan at the tag, and opens the release notes with what it finds.
+      - name: Every break since the previous release is marked, and the version may carry it
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          node scripts/release/breaks.mjs --version "$VERSION" > "$RUNNER_TEMP/breaks.txt"
+          cat "$RUNNER_TEMP/breaks.txt"
+          { echo '### Breaking changes'; echo; cat "$RUNNER_TEMP/breaks.txt"; } >> "$GITHUB_STEP_SUMMARY"
       # A released flag lives for one minor release (adr-0172); Publish release makes the same check.
       - name: No released flag outlives its minor release
         env:

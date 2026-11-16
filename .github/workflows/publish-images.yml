@@ -306,8 +306,9 @@ jobs:
 
   release-page:
     # The release's page on GitHub, once everything is published: a pre-release for an -alpha, -beta or -rc tag, with
-    # notes GitHub writes from the commits since the last release, and the release record. A page made by hand first
-    # is left as it is, and the record is attached to it.
+    # notes GitHub writes from the commits since the last release, opened by the breaking changes since the previous
+    # release and what to do about each (scripts/release/breaks.mjs), and the release record. A page made by hand
+    # first is left as it is, and the record is attached to it.
     name: GitHub release page and record
     needs: [release, publish, core]
     runs-on: ubuntu-latest
@@ -316,6 +317,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The breaking changes are read from the history and the tags since the previous release.
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
@@ -347,6 +351,11 @@ jobs:
           test "$(jq '.parts | length' "$RUNNER_TEMP/release.json")" = "$(jq length <<<"$PROMOTE")" \
             || { echo "::error::The release record does not hold every published part."; exit 1; }
           { echo '### Release record'; echo; echo '```json'; cat "$RUNNER_TEMP/release.json"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      # Release's first stage made the same scan and refused what it may not carry; at the tag it gives the notes.
+      - name: The breaking changes, and what to do
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: node scripts/release/breaks.mjs --version "$VERSION" --notes "$RUNNER_TEMP/breaks.md"
       - name: Make the release page
         env:
           GH_TOKEN: ${{ github.token }}
@@ -366,4 +375,7 @@ jobs:
           fi
           prerelease=()
           [[ "$TAG" == *-* ]] && prerelease=(--prerelease)
-          gh release create "$TAG" "${files[@]}" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --generate-notes "${prerelease[@]}"
+          # The breaking changes, when there are any, go before the notes GitHub writes.
+          notes=()
+          [ -s "$RUNNER_TEMP/breaks.md" ] && notes=(--notes "$(cat "$RUNNER_TEMP/breaks.md")")
+          gh release create "$TAG" "${files[@]}" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --generate-notes "${notes[@]}" "${prerelease[@]}"

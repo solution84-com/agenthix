@@ -53,7 +53,9 @@ installation, instead of walking all of it themselves.
   the context.
 - **A contributor's pull request is squash-merged**: one commit on `main`, its message the pull request's title
   (`type(area): what changed`) and description, its author the contributor. Edit the title before merging if it does
-  not read that way.
+  not read that way. A breaking commit is `type(area)!: what changed` with a `BREAKING CHANGE: <what an installation
+  must do>` footer, kept through any regroup: Release refuses a break no marked commit explains, and the footer opens
+  the release notes ([versioning.md](../../../docs/architecture/versioning.md#breaking-changes)).
 - **Taking over a contribution:** every commit built on a contributor's work carries a `Co-authored-by:` line for them,
   and the merge names their pull request. Anything copied in from elsewhere is listed with its licence in
   `LICENSING.md`.

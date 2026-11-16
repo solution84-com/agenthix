@@ -58,6 +58,9 @@ One run goes at a time. Each stage is a job; the first that fails stops the run,
    the commit is the branch's tip and *Checks* passed for it; the version is new; no
    flag released in an earlier minor release is still listed ([feature flags](../../../docs/architecture/feature-flags.md));
    the Sigstore trust root hq carries is no older than 300 days (`npm run sigstore:refresh` in `hq/`, committed first).
+   **No unmarked or misplaced break:** every breaking change since the previous tag (`scripts/release/breaks.mjs`) is a
+   commit marked `type(area)!` with a `BREAKING CHANGE:` footer saying what an installation must do, and the version
+   moves the line (a minor under `0.x`, a major from `1.0.0`); the release notes open with them.
 2. **The guide's screenshots are captured** for that commit.
 3. **They are pinned to the tag** (`npm run guide:pin`, [the guide's README](../../../docs/guide/README.md#releasing-the-screenshots)).
    When that changes the pages, the workflow commits the edit (`docs(guide): pin the screenshots to v<version>`) and
