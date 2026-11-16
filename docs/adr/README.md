@@ -328,3 +328,4 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0190](adr-0190-a-release-is-started-by-one-workflow.md) | A Release Is Started by One Workflow | Accepted |
 | [ADR-0191](adr-0191-dependencies-are-updated-by-our-own-step-as-part-of-releasing.md) | Dependencies Are Updated by Our Own Step, as Part of Releasing | Superseded by adr-0192 |
 | [ADR-0192](adr-0192-dependencies-are-updated-locally-once-a-month-and-every-security-alert-is-decided.md) | Dependencies Are Updated Locally Once a Month, and Every Security Alert Is Decided | Accepted |
+| [ADR-0193](adr-0193-an-agent-is-shown-its-must-have-tools-and-finds-the-rest-by-search.md) | An Agent Is Shown Its Must-Have Tools and Finds the Rest by Search | Accepted |
