@@ -10,6 +10,7 @@ import { DockerRemoval } from './removal'
 import { CONTAINER_FORMAT, parseContainerInspect, type MachineContainer } from './machineContainers'
 import { mountArg } from './mountArg'
 import { publishArgs, readPublishProbe } from './publishProbe'
+import { dockerSystem, probeLandlock, type DockerSystem } from './landlockProbe'
 
 export type RunResult = { code: number; stdout: string; stderr: string }
 
@@ -126,6 +127,16 @@ export class Docker {
       this.images.set(hostContainer, image)
     }
     return readPublishProbe(await this.run(publishArgs(image, port, bind), { timeoutMs: 60_000 }))
+  }
+
+  /** The kernel's Landlock ABI, from a container of the agent image (`landlockProbe.ts`); null when unread. */
+  landlockAbi(image: string, name: string): Promise<number | null> {
+    return probeLandlock(this.run, image, name)
+  }
+
+  /** The system and kernel Docker runs containers on; null when Docker does not say. */
+  system(): Promise<DockerSystem | null> {
+    return dockerSystem(this.run)
   }
 
   async composeLogs(project: string, file: string, tail: number, service?: string, since?: string): Promise<string> {

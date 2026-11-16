@@ -9,6 +9,7 @@ import { parseKeyWords } from '../keys'
 import { readManifest } from '../parts'
 import { holderFrom, openBackup } from '../seal'
 import { ADDRESS, CODE, LOCATION, lostSite, until, type LostSite } from './lostSite'
+import { KERNEL_STEP } from '../../install/landlock'
 
 let t: LostSite
 let old: LostSite['old']
@@ -84,7 +85,7 @@ describe('restoring a lost site onto a new machine @SC-834', () => {
     expect(fresh.backups.databases.get('agenthix_site')?.toString()).toBe('the site rows')
     expect(JSON.parse(fs.readFileSync(fresh.ctx.state.path('site', 'data', 'restored.json'), 'utf8'))).toEqual({ night: (asked as { result: { backup: { night: string } } }).result.backup.night, takenAt: claim.takenAt })
     expect(progress.map(p => (p.event === 'step' ? p.step : null)).filter(Boolean)).toEqual([
-      'Reaching HQ at https://hq.acme.example', 'Checking the key', 'Asking HQ whether office-server can come back here', 'Checking the images are signed', "Starting the site's database",
+      KERNEL_STEP, 'Reaching HQ at https://hq.acme.example', 'Checking the key', 'Asking HQ whether office-server can come back here', 'Checking the images are signed', "Starting the site's database",
       "Restoring the site's database", "Restoring the site's workspaces", "Renewing the site's credential at HQ", 'Starting the site new-server',
     ])
   })

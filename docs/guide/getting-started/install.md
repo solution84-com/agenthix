@@ -17,6 +17,10 @@ Agenthix's release, for Intel and ARM machines alike. Nothing is built on your m
 
 ### What you need
 
+- **On Linux, kernel 6.12 or newer**
+  That is Debian 13, Ubuntu 24.04 with its newer kernel (`linux-generic-hwe-24.04`), or Debian 12 with the kernel
+  from its backports. Agenthix needs it to keep each agent's commands contained, and won't install without it.
+- **On a Mac or Windows, a current Docker Desktop**
 - **Docker with Compose v2.** Docker is the tool that runs each part of Agenthix in its own *container*, a packaged
   program kept apart from the rest of the machine; Compose v2 is its part that runs several containers together, the
   `docker compose` command.
@@ -64,6 +68,10 @@ Installing from source means getting a copy of Agenthix's code and building it o
 
 ### What you need
 
+- **On Linux, kernel 6.12 or newer**
+  That is Debian 13, Ubuntu 24.04 with its newer kernel (`linux-generic-hwe-24.04`), or Debian 12 with the kernel
+  from its backports. Agenthix needs it to keep each agent's commands contained, and won't install without it.
+- **On a Mac or Windows, a current Docker Desktop**
 - **Docker with Compose v2.** Docker is the tool that runs each part of Agenthix in its own *container*, a packaged
   program kept apart from the rest of the machine; Compose v2 is its part that runs several containers together, the
   `docker compose` command. Nothing else is installed on the machine: every part is built and run inside Docker.

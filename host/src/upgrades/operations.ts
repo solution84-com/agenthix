@@ -20,6 +20,7 @@ import { upgrade, type UpgradeOutcome } from './upgrade'
 import { IMAGE_TAG } from './builtUpgrade'
 import { DEVELOPMENT } from '../images/ownVersion'
 import type { Progress } from '../sockets/lineServer'
+import { refuseBeforeHostMoves } from '../install/landlock'
 import { compare, newest } from './versions'
 
 export type UpgradesMachineRequest =
@@ -141,7 +142,10 @@ registerScheduledChange('upgrade', {
   // A version that needs the host service moved first can be scheduled while the launcher can move it.
   check: (ctx, r) => { checkUpgrade(ctx, r.target, r.version, { hostBehindOk: launcherOn(ctx) }) },
   run: async (ctx, r, waiting) => {
-    if (hostServiceBehind(ctx, r.version)) await moveHostServiceFirst(ctx, r.version)
+    if (hostServiceBehind(ctx, r.version)) {
+      await refuseBeforeHostMoves(ctx)
+      await moveHostServiceFirst(ctx, r.version)
+    }
     const outcome = await upgrade(ctx, r.target, r.version, () => {}, { onBusy: waiting })
     if (outcome.rolledBack) throw new Error(outcome.reason)
   },

@@ -69,6 +69,17 @@ agenthix-host .` — runs images built on the machine instead, and says their si
 image on an Apple-silicon Mac needs Docker Desktop's Rosetta setting on, since its Wasp stage is fixed to Intel
 (`hq/docker/Dockerfile`).
 
+**On Linux, kernel 6.12 or newer, for agents.** Every command an agent runs goes through the agent image's launcher,
+which contains it with the kernel's Landlock; keeping a command from signalling or tracing the harness needs Landlock 6,
+which Linux 6.12 has (core's `landlock` module). Below it a site runs no agent at all, so `agenthix install`,
+`agenthix console connect`, the site a Fleet Console starts, and every upgrade of hq or a site ask the kernel through
+the agent image of the version they would run — after its signature is checked and it is fetched, before anything is
+started, stopped or written — and refuse below 6, with the kernel found and the fix for the system Docker reports
+(`host/src/install/landlock.ts`): Ubuntu 24.04's newer kernel (`linux-generic-hwe-24.04`), Debian 12's from
+bookworm-backports, otherwise a kernel of Linux 6.12 or newer such as Debian 13's. On Docker Desktop the kernel is its
+virtual machine's, and the fix is to update Docker Desktop. The site's own check before each agent run
+(`site/src/agents/runtime/landlockCheck.ts`) stays as the last line of defence.
+
 ## Releases and the images they publish
 
 A version tag publishes the images: `v<major>.<minor>.<patch>` for a release, and `v<major>.<minor>.<patch>-alpha.<n>`
