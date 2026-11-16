@@ -4858,3 +4858,4 @@ As an organisation admin or a member, I want an agent to keep its most-used tool
 - AC-497e: the tools people connect their own clients to are all listed in full, and an agent's task editing has a short form for changing a task and one for planning it.
 - AC-497f: the checks that send an agent a real request pass on the low-cost baseline model, grading what it did and not how it reached the tool.
 - AC-497g: a background run does the same: its most-used tools in full, the rest found and used, with approvals and records under the tool's own name.
+- AC-497h: a background run's first message is only what was asked — the person's words, the brief or the routine's instructions — with nothing of the platform's beside it to contradict them.

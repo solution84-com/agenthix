@@ -49,7 +49,7 @@ describe("a routine run's dispatch", () => {
     expect(started).toEqual({ runId: 'run-9', sessionId: session.id, siteId: 'site-7' })
   })
 
-  it('asks the agent its instructions as written, and nothing else', () => {
+  it('asks the agent its instructions as written, and nothing else @SC-2183', () => {
     expect(routineRunInput('Check the links.')).toBe('Check the links.')
     expect(routineRunInput('  ')).toMatch(/No instructions were given/)
   })

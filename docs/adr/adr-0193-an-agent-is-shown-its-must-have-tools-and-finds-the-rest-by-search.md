@@ -60,3 +60,11 @@ endpoints) would make the list unbounded.
 
 - The unit that made it: `docs/work/2026-11-16-model-checks-baseline/` (spec and stock-take).
 - [versioning.md](../architecture/versioning.md): the change is an addition.
+
+## Notes
+
+- **2026-11-16 — implemented** by the unit that made it, for the platform's own tools, in a conversation and in a run:
+  must-haves (14 in a conversation, `open_board` among them), every folded platform tool named by area under plain
+  labels, `find_tools` and `use_tool` through the native call's path. Proved on the baseline model and through a real
+  `claude` process. The first request fell to about 7,600 tokens in a conversation and 7,350 in a run. Connected tools
+  (point 7) wait for the gateway.

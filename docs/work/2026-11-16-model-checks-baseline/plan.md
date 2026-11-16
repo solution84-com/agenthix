@@ -55,12 +55,12 @@ count.
 
 ### Phase 1 — The checks' harness
 
-- [x] 1.1 #263: the propose-skill check reads `MODEL_CHECK_ONLY` (df7296f3)
-- [x] 1.2 #145: the skills checks send the words a real run is told (moved to core) (91bf8cd5)
-- [x] 1.3 #92: `skill-use`, `skill-picked`, `skill-picked-read`, `skill-what-can-you-do`, `propose-skill` (91bf8cd5)
-- [ ] 1.4 A check that "remember that …" calls `remember`, run ten times for a rate
-- [ ] 1.5 The first request measured from the provider's own count, for a conversation and a run
-- [ ] 1.6 The checks grade a `use_tool` call as the tool it names
+- [x] 1.1 #263: the propose-skill check reads `MODEL_CHECK_ONLY` (fcece3b9)
+- [x] 1.2 #145: the skills checks send the words a real run is told (moved to core) (cc84c3cd)
+- [x] 1.3 #92: `skill-use`, `skill-picked`, `skill-picked-read`, `skill-what-can-you-do`, `propose-skill` (cc84c3cd)
+- [x] 1.4 A check that "remember that …" calls `remember`, run ten times for a rate
+- [x] 1.5 The first request measured from the provider's own count, for a conversation and a run
+- [x] 1.6 The checks grade a `use_tool` call as the tool it names
 
 ### Phase 2 — The before
 
@@ -70,44 +70,44 @@ count.
 
 ### Phase 3 — Every tool slimmed (spec §2)
 
-- [ ] 3.1 Repeated rules and pointers said once (stock-take §2)
-- [ ] 3.2 Lean `create_task` and `update_task` in a conversation; `plan_task` with the planning fields; the full
+- [x] 3.1 Repeated rules and pointers said once (stock-take §2)
+- [x] 3.2 Lean `create_task` and `update_task` in a conversation; `plan_task` with the planning fields; the full
       editor kept for runs and hq's MCP server
-- [ ] 3.3 The 7 deprecated fields removed
-- [ ] 3.4 Rules only when they apply: voice in a heard turn; folded history, `expand` and `messages` once folded
-- [ ] 3.5 `remember`: title and body required only; "I'll remember" tied to the call; memory rules near the top
-- [ ] 3.6 Each tool declares its `area`
-- [ ] 3.7 A task started now or at a time with no agent named goes to the agent being talked with
-- [ ] 3.8 The standing job removed from the built-in agents and their skills (leftover from the heartbeat)
+- [x] 3.3 The 7 deprecated fields removed
+- [x] 3.4 Rules only when they apply: voice in a heard turn; folded history, `expand` and `messages` once folded
+- [x] 3.5 `remember`: title and body required only; "I'll remember" tied to the call; memory rules near the top
+- [x] 3.6 Each tool declares its `area`
+- [x] 3.7 A task started now or at a time with no agent named goes to the agent being talked with
+- [x] 3.8 The standing job removed from the built-in agents and their skills (leftover from the heartbeat)
 
 ### Phase 4 — The tool search in a conversation (spec §3–§7)
 
-- [ ] 4.1 The tool index in hq: entries from the declarations, embedded with the built-in model, keyed by hash;
+- [x] 4.1 The tool index in hq: entries from the declarations, embedded with the built-in model, keyed by hash;
       scoring by meaning and words; the word match alone without the model; the permission filter
-- [ ] 4.2 `find_tools` and `use_tool` in the reply loop, through the per-tool path (Ask, Never, records under the
+- [x] 4.2 `find_tools` and `use_tool` in the reply loop, through the per-tool path (Ask, Never, records under the
       inner name); the folded tools no longer offered natively
-- [ ] 4.3 The area lines in the cached base prompt; the rule to search before saying something can't be done
-- [ ] 4.4 New checks: a folded tool found and used (a milestone, a comment, a board); never "I can't"; Never not found
+- [x] 4.3 The area lines in the cached base prompt; the rule to search before saying something can't be done
+- [x] 4.4 New checks: a folded tool found and used (a milestone, a comment, a board); never "I can't"; Never not found
 
 ### Phase 5 — The tool search in a run (spec §5)
 
-- [ ] 5.1 `find_tools` on hq's data path, answered from the index
-- [ ] 5.2 The site's MCP server: must-haves, `find_tools`, `use_tool` with the gate deciding on the inner name; the
+- [x] 5.1 `find_tools` on hq's data path, answered from the index
+- [x] 5.2 The site's MCP server: must-haves, `find_tools`, `use_tool` with the gate deciding on the inner name; the
       area lines in the run's prompt
-- [ ] 5.3 New checks: a run finds and uses a folded tool (a routine, a workflow); the container tests of the site's
+- [x] 5.3 New checks: a run finds and uses a folded tool (a routine, a workflow); the container tests of the site's
       server
 
 ### Phase 6 — The after
 
-- [ ] 6.1 Each failure diagnosed and fixed for the baseline, re-run three of three; anything not fixed raised as its
+- [x] 6.1 Each failure diagnosed and fixed for the baseline, re-run three of three; anything not fixed raised as its
       own issue
-- [ ] 6.2 The closing sweep: every check three of three; `propose-skill` three of three on a second occasion; the
+- [x] 6.2 The closing sweep: every check three of three; `propose-skill` three of three on a second occasion; the
       remember rate; the first request measured against the target
-- [ ] 6.3 The full regression
+- [x] 6.3 The full regression
 
 ### Phase 7 — The record
 
-- [ ] 7.1 The model checks' README; the architecture of how an agent is offered tools; the guide where it says what
+- [x] 7.1 The model checks' README; the architecture of how an agent is offered tools; the guide where it says what
       agents can do; QA scenarios, tagged
 
 ## Decision records
@@ -126,5 +126,36 @@ count.
 | 4–5 | The area lines name every folded platform tool (no descriptions), not only its area, under plain labels | The first run with the search: the baseline rarely searched for a tool it couldn't see named; names cost ~140 tokens (owner, 16 Nov) |
 | 4 | `open_board` is a must-have (14 in a conversation) | Folded, "let's go through the board" never reached it in 6 runs over two wordings |
 | 6 | Several checks were wrong, not the model: a milestone set on a non-epic, a sprint on the real date, `ls` graded as work, a stand-in shell that printed nothing | Read from the traces of the failed runs (lane D) |
+| 6 | A second pass on the baseline: a search that finds nothing sends the agent back to the named tools; "my space" read as the person's own space; `requested` only when asked; three more grades corrected (`remember-that` takes the project's page, `code-not-in-drafts` takes the project's own task, a memory with no kind is a fact) | Lane D2's ten-run diagnosis; `remember-that` by the owner: a project's fact belongs in its Knowledge |
+| 6 | A run's user message is only the request — a person's ask, a background brief, a routine's instructions — with "Execute your assigned task." only when nobody asked | The owner's walk of the run prompts: the stacked lines contradicted the person's words ("do it now" beside "don't do that one now") |
+| 6 | `get_task_details` gives the task's own reference (`tasks/KEY`) | The task-link check: the agent copies a reference it is handed and missed one it had to build |
+| 6 | The task prompt's sections moved from the site to core, so the task-run checks send the real prompt | The checks sent a cut-down prompt, which hid the real one's pull |
+| 6 | `rule-weight-none` only measures (ten runs, never failing) | The owner: with nothing shown the agent can't know the rule exists; finding rules in real use is planned work of its own |
+| 6 | The web search checks' misses are left to their own unit | The owner: a reply should search the web itself, not hand every search to background work, planned as work of its own |
+| 6.2 | Not every check passed three of three in one run: the closing run had three single misses at rates near nine in ten | The baseline varies; accepted by the owner (16 Nov), each recorded in the closing note |
 
 ## Closing note
+
+**2026-11-16.** Accepted by the owner, with the three single misses below, and closed on the branch.
+
+- **The first request:** 7,608 tokens for a conversation's reply (from about 21,000) and 7,349 for a background run
+  (from about 18,700), both under the targets of about 10,000 and about 8,000. It no longer grows with the number of
+  tools: the folded ones are named by area and found with `find_tools`.
+- **The closing sweep on the baseline:**
+  - the lead's checks: 49 of 52 pass three of three, and `rule-weight-none` measured 5 of 10;
+  - the skills checks: 4 of 5, with `propose-skill` three of three on an earlier occasion;
+  - three single misses, at their rates across every closing run: `board-open` 8 of 9, `taskrun-no-preview-not-asked`
+    11 of 12, `propose-skill` 8 of 9. The owner accepted them as the baseline's variance.
+- **Closing regression:** 49 steps; 48 pass. hq's integration suite had 5 failures, all tests that still cut a
+  background brief from behind the opening this unit removed. They were corrected, and the suite was run again:
+  4,239 passed, 7 skipped, none failed.
+- **Open items, deferred as issues:**
+  - #297: the Claude container tests share one set-up helper.
+  - Planned work, outside this repository: the prompts said once and shorter; a Rule that memory only hints at,
+    found in real use; a conversation's reply that searches the web itself.
+
+  None blocks a release.
+- **Closed by this unit:** #92, #93, #144, #145, #166 and #263, once pushed.
+- **QA:** US-497 and its criteria; SC-2171 to SC-2183 written and tagged; SC-977 and SC-1548 corrected. No QA audit
+  ran; these entries wait for the audit before `0.1.0`.
+- **Records:** ADR-0193 notes that it is implemented. bdr-0018, ADR-0136 and `versioning.md` still hold.
