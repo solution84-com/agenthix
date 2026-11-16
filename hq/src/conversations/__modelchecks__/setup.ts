@@ -4,13 +4,14 @@
  * Only what a turn reads from the database is supplied here: the place's name, the conversation's places, and the
  * three tools whose offer or description reads it.
  */
-import { CAPABILITY_TTL_SECONDS, type FeatureFlag } from '@agenthix/core'
+import { CAPABILITY_TTL_SECONDS, type FeatureFlag, type FoldedName, type ToolArea } from '@agenthix/core'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { capabilityPermissions, resolveEffectivePermissions } from '../../agents/permissions/effectivePermissions'
-import type { ConversationTool, LeadMessage, LeadToolDefinition, PromptPart, TurnCapability } from '../contract'
+import type { ConversationTool, LeadMessage, LeadToolDefinition, OfferedTool, PromptPart, TurnCapability } from '../contract'
 import { contextFrom, placeLabelOf } from '../coordinator/context'
 import { clockNote, withClock } from '../coordinator/clock'
-import { leadToolDefinitions } from '../tools/toolAdapter'
+import { leadToolOffer } from '../tools/toolAdapter'
+import { fold, foldedAreas } from '../tools/foldedTools'
 import { conversationTools } from '../work/registry'
 import { describeStartWork } from '../work/workers/startWork'
 import { personalBoundary } from '../work/boundaries'
@@ -24,7 +25,7 @@ import { OFFER_LIVE_PREVIEW_TOOL } from '../../livePreviews/offer'
 import { KEEP_LISTENING } from '../coordinator/keepListening'
 import { memoryTurnBlock } from '../memory/turnBlock'
 import type { RecalledItem } from '../../memory/contract'
-import { AGENT_ID, AGENT_NAME, PERSON_ID, PROJECT, PROJECT_PLACE, TASK, WORKSPACES, YOUR_SPACE_PLACE, inProject, type Home } from './world'
+import { AGENT_ID, AGENT_NAME, CHECK_NOW, PERSON_ID, PROJECT, PROJECT_PLACE, TASK, WORKSPACES, YOUR_SPACE_PLACE, inProject, type Home } from './world'
 
 /** One message of what was said before, then the person's message the turn answers. */
 export interface Said { role: 'person' | 'agent'; text: string }
@@ -48,6 +49,10 @@ export interface CheckSetup {
   memory?: CheckMemory
   /** What the turn is told of web search in the background; told nothing when none, as a turn whose model can't run. */
   webSearch?: BackgroundSearch
+  /** Tools the agent may never use, beyond the built-in agent's defaults. */
+  never?: readonly string[]
+  /** The task (TASK) is done, as what was said before says; it is done in its own thread whatever this says. */
+  taskDone?: true
 }
 
 const CONVERSATION_ID = 'conversation-check'
@@ -82,7 +87,8 @@ function memoryBlockOf(memory: CheckMemory | undefined): string | null {
   }, true)
 }
 
-export function contextOf(setup: CheckSetup, now = new Date()): { system: PromptPart[]; messages: LeadMessage[] } {
+/** `foldedTools`: the turn's folded tools, which the instructions name (toolOfferOf). */
+export function contextOf(setup: CheckSetup, now = CHECK_NOW, foldedTools: readonly FoldedName[] = []): { system: PromptPart[]; messages: LeadMessage[] } {
   const history = historyOf(setup)
   const input = history[history.length - 1]!
   const context = contextFrom({
@@ -93,6 +99,7 @@ export function contextOf(setup: CheckSetup, now = new Date()): { system: Prompt
       agentInstructions: null,
       orgInstructions: null,
       featuresOn: setup.features ?? [],
+      foldedTools,
     },
     segments: [],
     history,
@@ -108,7 +115,7 @@ export function contextOf(setup: CheckSetup, now = new Date()): { system: Prompt
 }
 
 /** The authority of a turn answering the person, with the built-in agent's default tool permissions. */
-export function capabilityOf(home: Home): TurnCapability {
+export function capabilityOf(home: Home, never: readonly string[] = []): TurnCapability {
   const effective = resolveEffectivePermissions({ approval: 'deferred', allowedTools: null, allowedBashPatterns: null }, null)
   return {
     conversationId: CONVERSATION_ID,
@@ -121,7 +128,7 @@ export function capabilityOf(home: Home): TurnCapability {
     readerUserId: PERSON_ID,
     trigger: 'MESSAGE',
     role: 'MEMBER',
-    permissions: capabilityPermissions(effective),
+    permissions: capabilityPermissions(effective, effective.allowedTools, never),
     expiresAt: Date.now() + CAPABILITY_TTL_SECONDS * 1000,
   }
 }
@@ -164,5 +171,13 @@ function scriptedOffer(tool: ConversationTool, home: Home, features: readonly Fe
 }
 
 export async function toolsOf(capability: TurnCapability, home: Home, features: readonly FeatureFlag[] = []): Promise<LeadToolDefinition[]> {
-  return leadToolDefinitions(capability, conversationTools().map(t => scriptedOffer(t, home, features)))
+  return (await toolOfferOf(capability, home, features)).shown
+}
+
+/** What a turn in this world is shown, what it finds by search, and the areas of those (tools/foldedTools.ts). */
+export async function toolOfferOf(capability: TurnCapability, home: Home, features: readonly FeatureFlag[] = []): Promise<{
+  shown: LeadToolDefinition[]; folded: OfferedTool[]; areas: ToolArea[]
+}> {
+  const { shown, folded } = fold(await leadToolOffer(capability, conversationTools().map(t => scriptedOffer(t, home, features))))
+  return { shown, folded, areas: foldedAreas(folded) }
 }

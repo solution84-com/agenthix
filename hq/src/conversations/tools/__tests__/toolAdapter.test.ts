@@ -10,7 +10,8 @@ import { RESULT_CAP_CHARS, RESULT_TOO_LARGE } from '../../../shared/conversation
 import { ControlPlaneError } from '../../../server/controlplane/types'
 import type { MailboxSink, OperationEnd, ToolCallOutcome, TurnCapability } from '../../contract'
 import type { AskInput } from '../../work/toolCalls/ask'
-import { createToolAdapter } from '../toolAdapter'
+import { createToolAdapter, leadToolOffer } from '../toolAdapter'
+import { conversationTools } from '../../work/registry'
 import { idempotencyKey } from '../turnTools'
 import type { AdmitToolCall, ToolCallSettlement, ToolOperationRows } from '../operationRows'
 import { turnCapability } from '../../../server/controlplane/__tests__/turnFixtures'
@@ -81,6 +82,8 @@ let ask: ReturnType<typeof vi.fn<(input: AskInput) => Promise<ToolCallOutcome>>>
 let settle: ReturnType<typeof vi.fn<(id: string, end: OperationEnd) => Promise<boolean>>>
 let adapter: ReturnType<typeof createToolAdapter>
 const capability = turnCapability()
+/** Every tool the turn may use, shown or found by search. */
+const offerOf = (c: TurnCapability) => leadToolOffer(c, conversationTools())
 
 function options(waitLimitMs = 50, signal = new AbortController().signal) {
   return { waitLimitMs, signal, mailbox }
@@ -300,7 +303,7 @@ describe('a call that only reads, which may run beside others in its step (#28) 
 
 describe('the tools the lead is given @SC-958', () => {
   it("are the quick tools the agent may use in the place, without the ones that start work or the data path's", async () => {
-    const names = (await adapter.toolsFor(capability)).map(t => t.name)
+    const names = (await offerOf(capability)).map(t => t.name)
     expect(names).toEqual(expect.arrayContaining(['list_tasks', 'get_task_details', 'create_task', 'add_comment']))
     for (const absent of ['set_task_schedule', 'create_routine', 'update_routine', 'remember', 'forget', 'recall', 'start_app', 'tick_subtask', 'set_result']) {
       expect(names).not.toContain(absent)
@@ -316,7 +319,7 @@ describe('the tools the lead is given @SC-958', () => {
 
   it('leave out what the agent may never use, and offer what it may use only by asking with a reason to give', async () => {
     const limited = turnCapability({ permissions: { bypassed: false, allowedTools: [{ name: 'list_tasks', state: 'always' }, { name: 'get_task_details', state: 'ask' }, { name: 'delete_task', state: 'never' }], allowedBashPatterns: [], neverTools: ['delete_task'] } })
-    const tools = await adapter.toolsFor(limited)
+    const tools = await offerOf(limited)
     const asking = tools.filter(t => t.description.includes("approval first"))
     expect(tools.filter(t => !asking.includes(t)).map(t => t.name)).toEqual(['list_tasks'])
     expect(asking.map(t => t.name)).toEqual(expect.arrayContaining(['get_task_details', 'run_task', 'create_task']))

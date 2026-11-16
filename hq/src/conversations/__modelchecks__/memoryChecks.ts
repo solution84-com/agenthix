@@ -12,7 +12,7 @@ import type { RecordedCall, RunRecord } from './run'
 import { recalledFrom } from './script'
 import type { CheckMemory } from './setup'
 import { itemKindOf, TOOL_KINDS } from '../../server/controlplane/memoryOps'
-import { TABLE_RULE } from './world'
+import { PROJECT_LEVEL, TABLE_RULE } from './world'
 
 const PASS: Grade = { passed: true }
 const fail = (why: string): Grade => ({ passed: false, why })
@@ -57,11 +57,12 @@ function ruleWeight(shown: CheckMemory['shown']): Check {
   }
 }
 
-/** The memory `remember` would save, as the real tool reads its arguments (leadMemoryTools.ts). */
+/** The memory `remember` would save, as the real tool reads its arguments (leadMemoryTools.ts): no kind is a fact. */
 function saved(c: RecordedCall): { kind: 'FACT' | 'RULE' | null; requested: boolean } {
   const a = argsOf(c)
   const kind = TOOL_KINDS.find(k => k === a.kind)
-  return { kind: kind ? itemKindOf(kind) : null, requested: a.requested === true || a.correction === true }
+  const known = a.kind === undefined || kind !== undefined
+  return { kind: known ? itemKindOf(kind) : null, requested: a.requested === true || a.correction === true }
 }
 
 const inWords = (s: ReturnType<typeof saved>) => `${s.kind ?? 'no kind'}${s.requested ? ', requested' : ''}`
@@ -81,20 +82,35 @@ function rememberedAs(id: string, title: string, message: string, kind: 'FACT' |
 }
 
 /**
- * "Remember that …" is a request to keep it, so `remember` is called in that reply, of any kind, with `requested` true.
- * One call of a model is a draw: the check runs ten times and is met at 9 of 10.
+ * "Remember that …" is a request to keep it, so it is kept in that reply: `remember` of any kind with `requested`
+ * true, or, since what is true of a place goes to its Knowledge and never to memory (memory and Your space spec,
+ * the lead's instructions), a change to one of the project's pages that says it. "Our release day" is the project's,
+ * and the project has a *Release process* page. One call of a model is a draw: the check runs ten times and is met
+ * at 9 of 10.
  */
 const REMEMBER_THAT: Check = {
   id: 'remember-that',
-  title: 'A "remember that" asked, called as remember: a rate',
+  title: 'A "remember that" asked, kept in memory or in the place\'s page: a rate',
   runs: 10,
   minPassRate: 0.9,
   setup: { home: 'project', message: 'Remember that our release day is Thursday.' },
   grade(run) {
     const saves = run.calls.filter(c => c.name === 'remember').map(saved)
-    if (saves.length === 0) return fail(`remember not called: ${calls(run)}`)
-    return saves.some(s => s.requested) ? PASS : fail('remember called without requested true')
+    if (saves.some(s => s.requested)) return PASS
+    if (saves.length > 0) return fail('remember called without requested true')
+    return keptInPlacePage(run) ? PASS : fail(`neither remembered nor written in the project's knowledge: ${calls(run)}`)
   },
+}
+
+/** An edit or a write of one of the project's own pages whose new words name Thursday. */
+function keptInPlacePage(run: RunRecord): boolean {
+  return run.calls.some(c => {
+    if (c.name !== 'edit_knowledge' && c.name !== 'write_knowledge') return false
+    const a = argsOf(c)
+    const page = typeof a.page === 'string' ? a.page : ''
+    const words = String(a.new_string ?? a.content ?? '')
+    return page.startsWith(`${PROJECT_LEVEL}:`) && /thursday/i.test(words)
+  })
 }
 
 /** The person asks for a comparison through work whose first step does not need the Rule. */

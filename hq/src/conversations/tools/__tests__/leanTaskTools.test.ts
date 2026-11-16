@@ -7,7 +7,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { z } from 'zod'
 import type { ToolCallOutcome, TurnCapability } from '../../contract'
 import type { AskInput } from '../../work/toolCalls/ask'
-import { createToolAdapter } from '../toolAdapter'
+import { createToolAdapter, leadToolOffer } from '../toolAdapter'
+import { conversationTools } from '../../work/registry'
 import type { ToolOperationRows } from '../operationRows'
 import { LEAN_UPDATE_FIELDS, PLAN_FIELDS, picked } from '../leanTaskTools'
 import { CONTROL_PLANE_TOOLS } from '../../../server/controlplane/toolSchemas'
@@ -35,6 +36,7 @@ let call: ReturnType<typeof vi.fn<(name: string, capability: TurnCapability, arg
 let ask: ReturnType<typeof vi.fn<(input: AskInput) => Promise<ToolCallOutcome>>>
 let adapter: ReturnType<typeof createToolAdapter>
 const options = () => ({ waitLimitMs: 50, signal: new AbortController().signal, mailbox: { operationSettled: () => {} } })
+const offerOf = (c: TurnCapability) => leadToolOffer(c, conversationTools())
 const keysOf = (input: z.ZodType) => Object.keys((z.toJSONSchema(input) as { properties: object }).properties).sort()
 
 beforeEach(() => {
@@ -44,7 +46,7 @@ beforeEach(() => {
   adapter = createToolAdapter({ rows, call, ask, settle: async () => true, logError: () => {} })
 })
 
-describe('the lean task editors', () => {
+describe('the lean task editors @SC-2177', () => {
   it('pick every field they name from the control plane\'s update_task', () => {
     const declared = Object.keys(CONTROL_PLANE_TOOLS.find(t => t.name === 'update_task')!.schema)
     for (const field of [...LEAN_UPDATE_FIELDS, ...PLAN_FIELDS]) expect(declared).toContain(field)
@@ -52,7 +54,7 @@ describe('the lean task editors', () => {
   })
 
   it('offer update_task with the fields a conversation changes, and plan_task with the planning ones', async () => {
-    const tools = await adapter.toolsFor(turnCapability())
+    const tools = await offerOf(turnCapability())
     expect(tools.filter(t => t.name === 'update_task')).toHaveLength(1)
     expect(keysOf(tools.find(t => t.name === 'update_task')!.input)).toEqual([...LEAN_UPDATE_FIELDS].sort())
     expect(keysOf(tools.find(t => t.name === 'plan_task')!.input)).toEqual([...PLAN_FIELDS].sort())
@@ -72,13 +74,13 @@ describe('the lean task editors', () => {
 
   it("take update_task's permission: at Ask both are offered with a reason and ask as update_task; at Never neither", async () => {
     const asking = turnCapability({ permissions: { bypassed: false, allowedTools: [{ name: 'update_task', state: 'ask' }], allowedBashPatterns: [], neverTools: [] } })
-    const tools = await adapter.toolsFor(asking)
+    const tools = await offerOf(asking)
     for (const name of ['update_task', 'plan_task']) expect(tools.find(t => t.name === name)!.description).toMatch(/approval first/)
     await adapter.call(asking, { id: 'c1', name: 'plan_task', input: { taskId: 't1', priority: 'low', reason: 'as asked' } }, options())
     expect(ask).toHaveBeenCalledExactlyOnceWith({ capability: asking, toolName: 'update_task', args: { taskId: 't1', priority: 'low' }, reason: 'as asked' })
 
     const never = turnCapability({ permissions: { bypassed: false, allowedTools: [{ name: 'update_task', state: 'never' }], allowedBashPatterns: [], neverTools: ['update_task'] } })
-    const names = (await adapter.toolsFor(never)).map(t => t.name)
+    const names = (await offerOf(never)).map(t => t.name)
     expect(names).not.toContain('update_task')
     expect(names).not.toContain('plan_task')
     expect((await adapter.call(never, { id: 'c2', name: 'plan_task', input: { taskId: 't1' } }, options())).status).toBe('refused')

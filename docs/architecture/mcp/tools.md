@@ -30,6 +30,10 @@ A few tools are answered by the site itself (`site/src/server/mcp/mcpServer.ts`,
 - **`stop_processes`**, which stops processes the calling conversation's earlier commands left running in its container — only that conversation's own;
 - **`web_search`**, offered to OpenCode only (Claude keeps its own search), which searches with the organisation's key so the key never reaches the container.
 
+**What an agent is shown of them is not all of them.** The site's MCP server offers an agent its must-have tools in full and
+the rest through `find_tools` and `use_tool`, answered by hq ([tool-search.md](../tools/tool-search.md)). hq's own MCP
+server, for people's own clients, lists every tool in full.
+
 The site therefore holds no authorization policy for platform data. Its MCP endpoint is a transport with a capability check on the front — which is what keeps hq the single source of truth for who may do what, and why an hq outage makes data tools fail rather than degrade.
 
 ## Why the surface is shaped this way

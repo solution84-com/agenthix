@@ -4,6 +4,7 @@ import { runSkillsChecks } from '../skillsRunner'
 import { runSkillsCheck } from '../skillsRun'
 import { SKILL_CHECKS } from '../skillChecks'
 import { skillFile, system, tools } from '../skillsWorld'
+import { taskRunFoldedTools } from '../../../../conversations/__modelchecks__/taskRun/setup'
 import { access, scripted } from './skillsFake'
 
 const check = (id: string) => SKILL_CHECKS.find(c => c.id === id)!
@@ -19,7 +20,8 @@ describe('the skills world', () => {
     expect(text).toContain(PLATFORM_TOOLS_INSTRUCTIONS)
     expect(text).toContain('<available_skills>')
     for (const name of ['platform-skill-creator', 'org-release-notes', 'person-code-review']) expect(text).toContain(`<name>${name}</name>`)
-    expect(tools().map(t => t.name)).toEqual(expect.arrayContaining(['skill', 'read_file', 'write_file', 'bash', 'propose_skill']))
+    expect(tools().map(t => t.name)).toEqual(expect.arrayContaining(['skill', 'read_file', 'write_file', 'bash', 'find_tools', 'use_tool']))
+    expect(taskRunFoldedTools().map(t => t.name)).toContain('propose_skill')
   })
 
   it('answers the skill tool with the skill, and refuses the one only a person picks', async () => {
@@ -70,7 +72,11 @@ describe('skill-what-can-you-do', () => {
   })
   it('fails naming fewer than two, or starting work', async () => {
     expect(await grade('skill-what-can-you-do', [[]], 'I can help with many things.')).toMatchObject(failed('named 0'))
-    expect(await grade('skill-what-can-you-do', [[{ name: 'bash', input: { command: 'ls' } }], []], 'org-release-notes and person-code-review')).toMatchObject(failed('started work'))
+    expect(await grade('skill-what-can-you-do', [[{ name: 'bash', input: { command: 'npm test' } }], []], 'org-release-notes and person-code-review')).toMatchObject(failed('started work'))
+    expect(await grade('skill-what-can-you-do', [[{ name: 'bash', input: { command: 'ls > list.txt' } }], []], 'org-release-notes and person-code-review')).toMatchObject(failed('started work'))
+  })
+  it('passes a look around with the shell before the answer: reading is not work', async () => {
+    expect(await grade('skill-what-can-you-do', [[{ name: 'bash', input: { command: 'ls -la; echo ---; ls -R | head -50' } }], []], 'org-release-notes and person-code-review')).toEqual({ passed: true })
   })
 })
 

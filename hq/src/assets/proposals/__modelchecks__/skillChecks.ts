@@ -5,7 +5,7 @@
 import { asPlainText, pickedSkillInstruction, pickedSkillReadInstruction } from '@agenthix/core'
 import type { Grade } from '../../../conversations/__modelchecks__/checks'
 import type { RecordedCall, RunRecord } from '../../../conversations/__modelchecks__/run'
-import { ASK as PROPOSE_ASK, PROPOSE_SKILL_CHECK_ID, grade as gradePropose } from './proposeSkillCheck'
+import { ASK as PROPOSE_ASK, PROPOSE_SKILL_CHECK_ID, grade as gradePropose, writesInShell } from './proposeSkillCheck'
 import { READ_TOOL, SKILLS, SKILL_TOOL, WORK_TOOLS, skillFile } from './skillsWorld'
 
 export interface SkillCheck {
@@ -25,6 +25,12 @@ const argOf = (c: RecordedCall, key: string): string => {
 }
 const loads = (name: string) => (c: RecordedCall) => c.name === SKILL_TOOL && argOf(c, 'name') === name
 
+/** Commands that only look: a shell command made only of them, writing no file, is reading, not work. */
+const LOOKS = new Set(['ls', 'pwd', 'cat', 'head', 'tail', 'find', 'tree', 'grep', 'rg', 'wc', 'echo', 'cd', 'file', 'stat'])
+const looksOnly = (command: string): boolean =>
+  !writesInShell(command) && command.split(/\s*(?:&&|\|\||;|\||\n)\s*/).every(part => part.trim() === '' || LOOKS.has(part.trim().split(/\s+/)[0]!))
+const isWork = (c: RecordedCall): boolean => WORK_TOOLS.has(c.name) && !(c.name === 'bash' && looksOnly(argOf(c, 'command')))
+
 const RELEASE_NOTES = 'org-release-notes'
 const CODE_REVIEW = 'person-code-review'
 
@@ -32,13 +38,13 @@ const CODE_REVIEW = 'person-code-review'
 function loadedBeforeWork(run: RunRecord, name: string): Grade {
   const load = run.calls.findIndex(loads(name))
   if (load < 0) return fail(`never loaded ${name} with the skill tool: ${calls(run)}`)
-  const work = run.calls.findIndex(c => WORK_TOOLS.has(c.name))
+  const work = run.calls.findIndex(isWork)
   if (work >= 0 && work < load) return fail(`did work before loading ${name}: ${calls(run)}`)
   return PASS
 }
 
 function whatCanYouDo(run: RunRecord): Grade {
-  const work = run.calls.find(c => WORK_TOOLS.has(c.name))
+  const work = run.calls.find(isWork)
   if (work) return fail(`started work instead of answering (${work.name}): ${calls(run)}`)
   const said = (run.answer ?? run.texts.join(' ')).toLowerCase().replace(/-/g, ' ')
   // By its full name or the part after where it comes from, hyphens or spaces: "org-release-notes", "release notes".

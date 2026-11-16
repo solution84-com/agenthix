@@ -5,7 +5,7 @@
 import { PERSONAL_LEVEL } from '../../knowledge/reach'
 import { MESSAGES, levelFailureMessage, levelsInWords } from '../../knowledge/messages'
 import type { ToolCallOutcome, TurnCapability } from '../contract'
-import { createSuggestPlaceTool } from '../placesSuggest'
+import { createSuggestPlaceTool, namesOwnSpace } from '../placesSuggest'
 import type { Place } from '../places'
 import { turnToolAsks } from '../../server/controlplane/turnCaller'
 import { attachmentReference } from '../../shared/taskReferences'
@@ -13,7 +13,7 @@ import type { RecalledItem } from '../../memory/contract'
 import { keyFrom } from '../../memory/items'
 import { forTool } from '../../server/controlplane/memoryOps'
 import {
-  AGENT_ID, AGENT_NAME, CODE_WORKSPACE, CURRENT_SPRINT, NEXT_SPRINT, ORG, OTHER_TASK, PAGES, TASK_TYPE_COLUMNS, PERSON_ID, PERSONAL_PROJECT, PROJECT, PROJECT_LEVEL, SEARCH_HITS, TASK, YOUR_SPACE_PLACE, heldLevels, inProject, levelOf, type Home,
+  AGENT_ID, AGENT_NAME, CODE_WORKSPACE, WORKSPACES, CURRENT_SPRINT, EPIC, MILESTONE, NEXT_SPRINT, ORG, OTHER_TASK, PAGES, TASK_TYPE_COLUMNS, PERSON_ID, PERSONAL_PROJECT, PROJECT, PROJECT_LEVEL, SEARCH_HITS, TASK, YOUR_SPACE_PLACE, heldLevels, inProject, levelOf, type Home,
 } from './world'
 
 type Args = Record<string, unknown>
@@ -67,8 +67,8 @@ function suggestPlace(home: Home) {
   return createSuggestPlaceTool({
     conversation: async () => ({ personId: PERSON_ID, held: [own] }),
     async find(_personId, words) {
+      if (namesOwnSpace(words)) return { type: 'user', id: PERSON_ID }
       const lower = words.trim().replace(/:$/, '').toLowerCase()
-      if (lower === PERSONAL_LEVEL || lower === 'your space') return { type: 'user', id: PERSON_ID }
       const named = [PROJECT_LEVEL, PROJECT.key.toLowerCase(), PROJECT.name.toLowerCase()].includes(lower)
       return named ? { type: 'project', id: PROJECT.id } : null
     },
@@ -92,10 +92,17 @@ const AGENTS_ANSWER = { agents: [{ agentId: AGENT_ID, name: AGENT_NAME, handle: 
  * get_task_details for the world's one task, in the real tool's shape (taskOps.ts); any other task is not found. In its
  * thread it is done, as a task usually is when the person asks to try its work.
  */
-function taskDetails(args: Args, home: Home): unknown {
+function taskDetails(args: Args, home: Home, taskDone: boolean): unknown {
   const asked = str(args.taskId) ?? (home === 'task' ? TASK.id : undefined)
+  if (asked?.toUpperCase() === EPIC.key || asked === EPIC.id) {
+    return {
+      taskId: EPIC.id, taskKey: EPIC.key, title: EPIC.title, description: 'The pricing page, its copy and its sign-up.', priority: 'MEDIUM',
+      type: 'Epic', state: 'TODO', column: 'To do', columnId: 'epic-column-todo', executionState: 'NOT_STARTED', milestoneId: null,
+      projectId: PROJECT.id, comments: [], attachments: [], source: 'local',
+    }
+  }
   if (asked !== TASK.key && asked !== TASK.id) return { status: 'refused', reason: `Task ${asked ?? ''} not found` }
-  const done = home === 'task'
+  const done = home === 'task' || taskDone
   return {
     taskId: TASK.id, taskKey: TASK.key, title: TASK.title, description: 'The form fails on submit; the screenshot shows the error.',
     priority: 'HIGH', type: 'Task', state: done ? 'DONE' : 'IN_PROGRESS', column: done ? 'Done' : 'In progress',
@@ -127,10 +134,11 @@ const BOARDS_ANSWER = {
 /** list_tasks in the real tool's shape (taskListOp.ts): the world's two tasks, in the project's order. */
 const TASKS_ANSWER = {
   tasks: [
+    { taskId: EPIC.id, key: EPIC.key, title: EPIC.title, type: 'Epic', column: 'To do', columnId: 'epic-column-todo', state: 'TODO', executionState: 'NOT_STARTED', priority: 'MEDIUM', agent: null, sprintId: null, epicId: null },
     { taskId: TASK.id, key: TASK.key, title: TASK.title, type: 'Task', column: 'In progress', columnId: 'column-doing', state: 'IN_PROGRESS', executionState: 'NOT_STARTED', priority: 'HIGH', agent: { id: AGENT_ID, name: AGENT_NAME }, sprintId: null, epicId: null },
     { taskId: OTHER_TASK.id, key: OTHER_TASK.key, title: OTHER_TASK.title, type: 'Task', column: 'Backlog', columnId: 'column-backlog', state: 'BACKLOG', executionState: 'NOT_STARTED', priority: 'MEDIUM', agent: null, sprintId: null, epicId: null },
   ],
-  total: 2,
+  total: 3,
 }
 
 /**
@@ -146,7 +154,9 @@ export function recalledFrom(args: Args, memories: readonly RecalledItem[]): Rec
   return memories.filter(m => (!kind || m.kind === kind.toUpperCase()) && (tags.length === 0 || tags.some(t => m.tags.includes(t))))
 }
 
-function outcomeOf(name: string, args: Args, capability: TurnCapability, home: Home, memories: readonly RecalledItem[]): Promise<ToolCallOutcome> | ToolCallOutcome {
+function outcomeOf(
+  name: string, args: Args, capability: TurnCapability, home: Home, memories: readonly RecalledItem[], taskDone: boolean,
+): Promise<ToolCallOutcome> | ToolCallOutcome {
   const done = (result: unknown): ToolCallOutcome => ({ status: 'done', operationId: capability.turnId, result })
   switch (name) {
     case 'search_knowledge': return done(search(args, home))
@@ -161,9 +171,12 @@ function outcomeOf(name: string, args: Args, capability: TurnCapability, home: H
     case 'list_projects': return done(listProjects(home))
     case 'get_org': return done(ORG_ANSWER)
     case 'list_agents': return done(AGENTS_ANSWER)
-    case 'get_task_details': return done(taskDetails(args, home))
+    case 'get_task_details': return done(taskDetails(args, home, taskDone))
     case 'list_boards': return done(BOARDS_ANSWER)
     case 'list_tasks': return done(TASKS_ANSWER)
+    // In the real tools' shapes (planOps.ts, taskOps.ts).
+    case 'list_milestones': return done({ milestones: [{ milestoneId: MILESTONE.id, name: MILESTONE.name, date: MILESTONE.date, epics: [] }], source: 'local' })
+    case 'add_comment': return done({ success: true, commentId: 'comment-new', source: 'local' })
     case 'open_board': return done({ shown: true, board: 'Task state', columns: BOARDS_ANSWER.boards[0]!.columns, note: 'The person sees a card that opens the Task state board. Do not show it again; talk it through.' })
     // In the real tools' shapes (leadMemoryTools.ts): a new memory added, and what recall finds.
     case 'remember': {
@@ -176,7 +189,14 @@ function outcomeOf(name: string, args: Args, capability: TurnCapability, home: H
       offered: true,
       note: `The person sees a card with Live preview for ${str(args.task) ? `${str(args.task)}'s branch` : 'main'} in ${CODE_WORKSPACE.name}. Nothing runs until they choose it. Do not repeat the offer.`,
     })
-    case 'start_work':
+    case 'start_work': {
+      // As workspaceForBrief refuses a workspace the place does not have.
+      const workspace = str(args.workspace)
+      if (workspace && !WORKSPACES.some(w => w.id === workspace)) {
+        return { status: 'refused', reason: `there is no workspace with the id "${workspace}" in ${PROJECT.name}; pass the id of one listed for it in this tool's description` }
+      }
+      return { status: 'accepted', operationId: `operation-${name}` }
+    }
     case 'run_task':
     case 'create_task': return { status: 'accepted', operationId: `operation-${name}` }
     default:
@@ -186,9 +206,11 @@ function outcomeOf(name: string, args: Args, capability: TurnCapability, home: H
 }
 
 /** What the model reads of a call, as the turn tells it (turn.ts `forModel`). */
-export async function answer(name: string, input: unknown, capability: TurnCapability, home: Home, memories: readonly RecalledItem[] = []): Promise<unknown> {
+export async function answer(
+  name: string, input: unknown, capability: TurnCapability, home: Home, memories: readonly RecalledItem[] = [], taskDone = false,
+): Promise<unknown> {
   const args = (input && typeof input === 'object' ? input : {}) as Args
-  const outcome = await outcomeOf(name, args, capability, home, memories)
+  const outcome = await outcomeOf(name, args, capability, home, memories, taskDone)
   switch (outcome.status) {
     case 'done': return outcome.result
     case 'accepted': return { operationId: outcome.operationId, status: 'accepted' }

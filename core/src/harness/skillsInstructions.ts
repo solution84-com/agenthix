@@ -15,7 +15,8 @@ export const KNOWLEDGE_GUIDANCE =
 export const SKILLS_GUIDANCE =
   '## Skills\n\n' +
   "A skill's name starts with where it comes from (`platform-`, `org-`, `agent-`, `person-`, `workspace-N-`); the " +
-  'rest is its name. A person\'s `/code-review` is the skill ending in `code-review`.'
+  'rest is its name. A person\'s `/code-review` is the skill ending in `code-review`. Asked what you can do, name ' +
+  'the skills you have.'
 
 /**
  * Memory is held by hq and recalled by meaning (memory and knowledge spec): none of it arrives whole in the

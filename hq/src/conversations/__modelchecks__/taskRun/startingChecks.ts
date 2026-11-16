@@ -8,6 +8,7 @@
 import type { Check, Grade } from '../checks'
 import type { RecordedCall, RunRecord } from '../run'
 import { KERNEL, MORNING_ROUTINE, NEXT_TASK, SHOP_PROJECT, SHOP_TASK } from './world'
+import { FOLD_CHECKS } from './foldChecks'
 
 const PASS: Grade = { passed: true }
 const fail = (why: string): Grade => ({ passed: false, why })
@@ -86,4 +87,6 @@ export const STARTING_CHECKS: readonly Check[] = [
       return startedNothingUnasked(run, null) ?? PASS
     },
   },
+  // A tool the run is not shown, found and used (foldChecks.ts).
+  ...FOLD_CHECKS,
 ]

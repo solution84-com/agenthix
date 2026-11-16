@@ -239,6 +239,7 @@ sequenceDiagram
 | [sites/site_live_preview.md](sites/site_live_preview.md) | How a person sees the web app an agent is building, running in a live preview |
 | [tools/tool-control.md](tools/tool-control.md) | The gate, permission states, the command sandbox, tool names |
 | [tools/tool-manifest.md](tools/tool-manifest.md) | Approving tool calls that need a person's say-so |
+| [tools/tool-search.md](tools/tool-search.md) | How an agent is shown its must-have tools and finds the rest: `find_tools`, `use_tool`, the index |
 | [tools/claude-tools.md](tools/claude-tools.md), [tools/opencode-tools.md](tools/opencode-tools.md) | Each harness's own tools, and which are shown, hidden or replaced |
 | [mcp/tools.md](mcp/tools.md) | The platform tools an agent calls, and how they reach hq |
 | [logs-and-diagnostics.md](logs-and-diagnostics.md) | Where each service's log is, how an admin reads a site's, recent errors, health and the support bundle |

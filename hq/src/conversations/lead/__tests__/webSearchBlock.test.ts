@@ -69,7 +69,7 @@ describe("the turn's web search block (W1, W2) @SC-2158", () => {
   it("at Ask, carries it on too and says the person will be asked to approve the search", () => {
     const text = webSearchTurnBlock({ ...claude, permission: 'ask' })
     expect(text).toContain('Work you do in the background can search the web')
-    expect(text).toContain("say too that they'll be asked to approve the search")
+    expect(text).toContain("say in one line that you're looking it up and that they'll be asked to approve the search")
   })
 
   it("at Never, says the agent's tools don't allow it in core's words, starts no work, and never blames a key", () => {

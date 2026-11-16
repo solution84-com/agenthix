@@ -127,7 +127,7 @@ export const PLACE_TOOLS: ControlPlaneTool[] = [
       'its knowledge, or work started there. It shows them a card; only their click adds the place, and nothing ' +
       'reaches it until they do. Suggest only a place the person can reach.',
     schema: {
-      place: z.string().min(1).max(200).describe('The place to add: a project\'s name as its pages are named, e.g. shop'),
+      place: z.string().min(1).max(200).describe('The place to add: a project\'s name as its pages are named, e.g. shop; personal for the person\'s own space'),
       why: z.string().min(1).max(300).describe('Why it is needed, in one sentence the person reads on the card'),
     },
   },

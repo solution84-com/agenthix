@@ -1,9 +1,9 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-11-14
+updated: 2026-11-16
 verified: 2026-06-19
-next-us: US-497
+next-us: US-498
 ---
 
 # User Stories — `hq/`
@@ -4842,3 +4842,19 @@ As an organisation admin, or anyone who asks an agent to search, I want an agent
 - AC-495c: Fetch a page and Search the web start at Ask for every agent, so a person approves each use in a conversation; an agent whose tools were saved keeps what was saved.
 - AC-495d: a conversation's reply, which cannot search, carries a request on to background work when that can search and says when the person will be asked to approve it, or says why it cannot (the agent's tools, or no key), and never says it cannot reach the web.
 
+## Tools an agent finds (added 2026-11-16)
+
+Written at the close of the unit *model checks on the baseline, and a leaner context*, from the finished code.
+
+### US-497 — Have an agent use any tool it may, without carrying them all
+
+As an organisation admin or a member, I want an agent to keep its most-used tools in front of it and find the others when a request needs them, so that a low-cost model stays accurate, a first request stays small, and every permission I set still holds.
+
+**Acceptance criteria:**
+- AC-497a: a conversation's agent is shown its most-used tools and the names of the others, grouped by what they are for.
+- AC-497b: the agent finds a tool by what it wants to do, or by its name, and is told what the tool does and what it needs.
+- AC-497c: the agent can use a tool it found, and it runs as if it had been shown: the same checks, the same approval, the same record under the tool's own name; a call that cannot run says why and what to do.
+- AC-497d: an agent never finds a tool its permissions set to Never, and when nothing matches it says it cannot, rather than searching on.
+- AC-497e: the tools people connect their own clients to are all listed in full, and an agent's task editing has a short form for changing a task and one for planning it.
+- AC-497f: the checks that send an agent a real request pass on the low-cost baseline model, grading what it did and not how it reached the tool.
+- AC-497g: a background run does the same: its most-used tools in full, the rest found and used, with approvals and records under the tool's own name.

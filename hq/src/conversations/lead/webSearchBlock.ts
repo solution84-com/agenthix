@@ -64,11 +64,11 @@ export function webSearchTurnBlock(search: BackgroundSearch): string {
     `Work you do in the background can search the web: it runs ${how}. This reply cannot search. When the person asks`,
     'you to search the web or to find something current, carry it on in the background straight away, in this step:',
     "start work for it (in a task's thread, run the task), with the person's request word for word in the brief, and",
-    "say in one line that you're looking it up. Never say you can't reach the web or have no browsing tool, and never",
-    'send the person to another agent or ask them to search themselves.',
-    ...(search.permission === 'ask'
-      ? ["Your tools set Search the web to Ask: say too that they'll be asked to approve the search."]
-      : []),
+    search.permission === 'ask'
+      ? "say in one line that you're looking it up and that they'll be asked to approve the search, since your tools set Search the web to Ask."
+      : "say in one line that you're looking it up.",
+    "Never say you can't reach the web or have no browsing tool, and never send the person to another agent or ask",
+    'them to search themselves.',
   ].join('\n')
 }
 

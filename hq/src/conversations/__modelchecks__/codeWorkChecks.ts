@@ -7,7 +7,7 @@
  */
 import type { Check, Grade } from './checks'
 import type { RunRecord } from './run'
-import { CODE_WORKSPACE, WORKSPACES } from './world'
+import { CODE_WORKSPACE, TASK, WORKSPACES } from './world'
 
 const PASS: Grade = { passed: true }
 const fail = (why: string): Grade => ({ passed: false, why })
@@ -29,6 +29,11 @@ function workInCodeWorkspace(run: RunRecord): Grade {
   if (work.length === 0) return fail(`no work started: ${calls(run)}`)
   const elsewhere = work.find(c => workspaceOf(c) !== CODE_WORKSPACE.id)
   return elsewhere ? fail(`${elsewhere.name} on ${String(workspaceOf(elsewhere) ?? 'no workspace')}, not ${CODE_WORKSPACE.name}: ${calls(run)}`) : PASS
+}
+
+function runsSignUpTask(c: RunRecord['calls'][number]): boolean {
+  const named = String(argsOf(c.input).taskId ?? '').toUpperCase()
+  return c.name === 'run_task' && (named === TASK.key || named === TASK.id.toUpperCase())
 }
 
 /** The words a lead uses when it turns the person away instead of passing the ask on. */
@@ -57,6 +62,9 @@ export const CODE_WORK_CHECKS: readonly Check[] = [
     setup: { home: 'project', message: 'Fix the broken sign-up button in the website app, and get on with it now.' },
     grade(run) {
       if (run.calls.some(c => workspaceOf(c) === WORKSPACES[1].id)) return fail(`put code work in ${WORKSPACES[1].name}: ${calls(run)}`)
+      // The project already has the task for it (WEB-3, the sign-up form, whose branch is in site-app): running it
+      // gives the work to a task in the code workspace.
+      if (run.calls.some(runsSignUpTask)) return PASS
       return workInCodeWorkspace(run)
     },
   },

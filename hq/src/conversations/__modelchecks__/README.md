@@ -27,7 +27,7 @@ real tools' words. Nothing reaches a database, a site or a card.
 | `task-attachment` | a project | "Can you link me WEB-3 and its attachment?" | `get_task_details`, then `tasks/WEB-3` and the attachment's reference (`attachments/WEB-3/…`) written, and no web address |
 | `files-root` | a project | "I listed Files and got e2e-files/app.ts, … Which one is the readme? I want to click it." | `files/e2e-files/README.md` written, and no web address |
 | `code-in-workspace` | a project with a code workspace (*site-app*) and one without Git | "Add a login page to site-app, now please." | `start_work` naming *site-app* as its `workspace`, or `create_task` with its `workspaceId`; never work started without it |
-| `code-not-in-drafts` | the same | "Fix the broken sign-up button in the website app, and get on with it now." | the same, and never the workspace without Git |
+| `code-not-in-drafts` | the same | "Fix the broken sign-up button in the website app, and get on with it now." | the same, or `run_task` on WEB-3, the project's task for the sign-up form; never the workspace without Git |
 | `preview-task-branch` | a project, after the agent said WEB-3 is done on its branch in *site-app* | "Great, can I try the sign-up form running?" | `offer_live_preview` with *site-app*'s `workspaceId` and task `WEB-3`; no work started |
 | `preview-main` | a project | "Show me site-app running, I want to click around." | `offer_live_preview` with *site-app*'s `workspaceId` and no task |
 | `preview-not-asked` | a project | "What's our release process?" | no `offer_live_preview` |
@@ -36,7 +36,7 @@ real tools' words. Nothing reaches a database, a site or a card.
 | `workspace-start-app` | a conversation with its own branch in *site-app*, after the agent said the login page is committed | "Start the app so I can try the login page." | work started (`start_work`, a task, or a live preview offered); never saying the app can't be started |
 | `code-merge-asked` | a conversation with its own branch in *site-app*, after the agent said the login page is committed on its branch | "Looks good. Please merge your branch into main." | `start_work` with a brief that says to merge, on the first ask; never telling the person to merge it themselves |
 | `task-move-done` | a project | "WEB-3 is finished, please mark it as done." | `update_task` on WEB-3 with `state` DONE or a `columnId`; no work started |
-| `tasks-into-sprint` | a project | "Put WEB-3 and WEB-4 into the current sprint." | `change_tasks` or `update_task` naming the current sprint's id, as `list_boards` lists it, for both; no work started |
+| `tasks-into-sprint` | a project | "Put WEB-3 and WEB-4 into the current sprint." | `change_tasks`, `plan_task` or `update_task` naming the current sprint's id, as `list_boards` lists it, for both; no work started |
 | `board-open` | a project | "Let's go through the board together." | `open_board`; nothing changed, no work started |
 | `task-new-backlog` | a project | "Add a task to write the release notes. No rush, it can wait." | `create_task` for later, in Backlog; no work started |
 | `web-search-background` | a project, whose background work runs in Claude Code | "Search the web for the newest Node.js release." | `start_work` with a brief that carries the ask; never saying it can't reach the web or sending the person to another agent |
@@ -58,7 +58,7 @@ in the tier a check names; `recall` answers from the same memory, and `remember`
 | `rule-weight-hinted` | in the hint by title and key, as before the weight | the same | a table, or `recall` that finds the Rule |
 | `rule-weight-none` | held, not shown: where the local model scores this question (below) | the same | the same |
 | `remember-rule-asked` | none | "Always answer me in British English." | `remember` with kind `rule` (or a deprecated kind read as one) and `requested` |
-| `remember-that` | none | "Remember that our release day is Thursday." | `remember` called in that reply, any kind, with `requested`. Run ten times, whatever `MODEL_CHECK_RUNS` says, and met at 9 of 10: the summary says `passes 9/10` |
+| `remember-that` | none | "Remember that our release day is Thursday." | kept in that reply: `remember`, any kind, with `requested`, or, since what is true of a place goes to its Knowledge and never to memory, an edit or write of one of the project's pages that says Thursday. Run ten times, whatever `MODEL_CHECK_RUNS` says, and met at 9 of 10: the summary says `passes 9/10` |
 | `remember-fact-asked` | none | "Remember that my partner is called Sam." | `remember` with kind `fact` and `requested` |
 | `remember-fact-in-passing` | none, in Your space | "Can you plan a dinner for four this Saturday? I'm vegetarian, by the way." | nothing remembered, or a `fact` not `requested` |
 | `rule-mid-work` | in the hint | "Look at the hosting quotes in our Knowledge and tell me which one to take." | the reply that compares has a table, or `recall` found the Rule |
@@ -130,8 +130,27 @@ median over its runs, per model. A run whose call failed before the provider ans
 A model may call `use_tool` with `{ name, input }` to run a tool it was not shown (ADR-0193). Where a runner records a
 call (`run.ts`, `taskRun/run.ts`, `skillsRun.ts`), `use_tool` is recorded as a call of `name` with `input`, so every
 grade reads what the agent did and not the route; `find_tools` is recorded as itself. The script answers a `use_tool`
-as the named tool would, and `find_tools` with the offered tools whose name or description match the query words
-(`readCall.ts`).
+as the named tool would, or refuses it as a turn does when the name is not one the run may use, or with the tool's
+definition when its input doesn't fit. A tool called by its own name with input that doesn't fit is refused as a turn
+refuses it ("The arguments do not fit …"), so a malformed call is not graded as if it had run. `find_tools` is
+answered by the real tool index (`src/tools/search`) over the tools the run finds by search, in the shape a turn
+answers: each with its full description and input. A real run embeds with hq's built-in model, from
+`HQ_BUNDLED_MODELS_DIR` or hq's storage, in the lead's, the task-run and the skills checks alike; a run on a fake
+model searches by words alone (`readCall.ts`). A task run's and a skills run's shell (`shell.ts`) answers what a run
+uses to look around (`echo`, `pwd`, `ls`, `cat`, `grep`, git, chains, pipes and redirects) from the world's files, so a
+run never meets a shell that seems broken. The lead's checks are told it is a fixed time (`world.ts` `CHECK_NOW`),
+inside the current sprint, so a check reads the same on any day.
+
+A conversation's lead is shown its must-have tools, `find_tools` and `use_tool`; the instructions name the rest by
+name, grouped by area (`tools/foldedTools.ts`, core's `areaLines`). The checks of that:
+
+| Check | Where | Message | Passes when |
+|---|---|---|---|
+| `fold-milestone` | a project | "Put WEB-1 in the Pricing milestone." (WEB-1 is an epic: only an epic has a milestone) | `plan_task` on WEB-1 with the milestone's id, as `list_milestones` lists it |
+| `fold-comment` | a project | "Add a comment on WEB-3 saying the copy is approved." | `add_comment` on WEB-3 that says approved |
+| `fold-boards` | a project | "What boards does WEB have?" | `list_boards` |
+| `fold-never` | a project, `add_comment` at Never | the same as `fold-comment` | no `add_comment`, and the answer says it can't |
+| `fold-not-impossible` | a project | "Rename Sprint 12 to "Launch sprint"." | `rename_sprint`; failed, saying so, when the answer says it can't |
 
 ## Which models
 
@@ -173,8 +192,10 @@ MODEL_CHECK_MODELS=~anthropic/claude-sonnet-latest MODEL_CHECK_RUNS=1 npm run te
 
 Without the first three, every check is skipped with one line saying what to set, and no model is called.
 
-Each run prints one line per model, check and run (passed, or what it called instead), then a summary table. The same
-goes into a file under `hq/.model-checks/`, which is not committed. The command fails when any check fails on any
+Each run prints one line per model, check and run (passed, or what it called instead), then a summary table. Under
+a failed run's line it writes what the run did (`trace.ts`): each call with its input cut short, each `find_tools`
+query with the names it answered, and the final words. The same goes into a file under `hq/.model-checks/`, which is
+not committed. The command fails when any check fails on any
 model.
 
 The harness itself is tested in the unit suite (`__tests__/modelChecks.test.ts`) with a fake model.

@@ -281,7 +281,7 @@ export const FORWARDED_TOOLS: ForwardedTool[] = [
       kind: z.enum(['fact', 'rule']).optional().describe('"rule" or "fact" (the default)'),
       tags: z.array(z.string()).max(8).optional().describe('A few words to group it by'),
       key: z.string().max(64).optional().describe('The key of an item to replace'),
-      requested: z.boolean().optional().describe('true when the person asked you to remember it, or corrected you'),
+      requested: z.boolean().optional().describe('true only when the person asked you to remember it, or corrected you; not for something said in passing'),
     },
   },
   {

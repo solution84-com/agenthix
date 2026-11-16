@@ -6,6 +6,7 @@
  * cancelled `status` event is only recorded (`runFailed`/`runError`,
  * `runCancelled`) for the caller.
  */
+import { recordedToolCall } from './toolSearchCall'
 import type { ContextUse, JsonValue } from '@agenthix/core'
 import { siteStream } from './SiteStreamEmitter'
 import type { RunEvent } from './types'
@@ -102,16 +103,19 @@ export async function consumeRunEvents(
         })
         break
 
-      case 'tool_call':
+      case 'tool_call': {
         flushThinkingPhase()
-        streamed.toolCallMap.set(event.toolUseId, { toolName: event.toolName, toolInput: event.toolInput, at: new Date() })
+        // A use_tool call is recorded and shown as the tool it names (toolSearchCall.ts).
+        const { toolName, toolInput } = recordedToolCall(event.toolName, event.toolInput)
+        streamed.toolCallMap.set(event.toolUseId, { toolName, toolInput, at: new Date() })
         siteStream.stream({
           sessionId, runId, taskId, targetRoom: 'session',
           name: 'agentToolCall',
           // The harness parsed the call's input from the model's JSON.
-          data: { runId, toolUseId: event.toolUseId, toolName: event.toolName, toolInput: event.toolInput as JsonValue },
+          data: { runId, toolUseId: event.toolUseId, toolName, toolInput: toolInput as JsonValue },
         })
         break
+      }
 
       case 'tool_result': {
         const call = streamed.toolCallMap.get(event.toolUseId)

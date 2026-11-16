@@ -28,6 +28,7 @@ export const PLATFORM_TOOLS_INSTRUCTIONS = [
   '- Only create a follow-up task via create_task for work that is clearly out of scope. If it is small enough to mention in the result summary, do that instead.',
   '- Do not call run_task on a task you just created in the same session: a person decides when it starts.',
   '- Never call run_task on the task you are running: this run is its run. Do the work here.',
+  '- A brief that asks for a platform step (note a follow-up task, start a task, set up a routine) is done with that tool: call it before anything the brief does not ask for.',
   '',
   'Processes you leave running:',
   '- Each command you run is sandboxed on its own, so `kill` or `pkill` from a command cannot stop a process an earlier command started (a dev server, a watcher). Call stop_processes with text from its command line instead; it stops only this conversation\'s own processes.',

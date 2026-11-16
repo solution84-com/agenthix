@@ -11,6 +11,10 @@ Every tool an agent can use has one of three settings:
 - **Ask**: a person must approve it first.
 - **Never**: the agent can't use it.
 
+An agent is not shown every tool at once. It keeps the ones it uses most in front of it, and looks up the others when
+a request needs them. Nothing changes for you: the settings above apply to every tool alike, a tool set to **Never** is
+never found, and a run's tool calls, and the approvals it asks for, show under the tool's own name.
+
 **Approval** decides what happens when an agent reaches a tool set to **Ask**. Permissions are set at three levels,
 and each level can only make the one above it stricter.
 

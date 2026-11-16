@@ -47,14 +47,18 @@ describe('readCall', () => {
     expect(readCall('use_tool', { input: {} })).toEqual({ name: 'use_tool', input: { input: {} } })
   })
 
-  it('finds the offered tools whose words match, and none for words that match nothing', () => {
-    const offered = [{ name: 'remember', description: 'Keep something the person said' }, { name: 'list_tasks', description: 'List the tasks' }]
-    expect(findToolsAnswer({ query: 'keep a memory' }, offered)).toEqual({ tools: [{ name: 'remember', description: 'Keep something the person said' }] })
-    expect(findToolsAnswer({ query: 'zzz' }, offered)).toMatchObject({ tools: [] })
+  it('finds the tools whose words match, with their definitions, and none for words that match nothing', async () => {
+    const offered = [{ name: 'remember', description: 'Keep something the person said' }, { name: 'list_tasks', description: 'List the tasks', area: 'tasks' as const }]
+    expect(await findToolsAnswer({ query: 'keep something' }, offered)).toEqual({
+      tools: [{ name: 'remember', description: 'Keep something the person said', input: { type: 'object', properties: {} } }],
+    })
+    const none = await findToolsAnswer({ query: 'zzz' }, offered)
+    expect(none.tools).toEqual([])
+    expect(none.note).toMatch(/^No tool you may use matches that: .*named in your instructions/)
   })
 })
 
-describe('a use_tool call in a run', () => {
+describe('a use_tool call in a run @SC-2179', () => {
   it('grades as the tool it names in the lead, and answers as that tool would', async () => {
     const model = fake([[{ name: 'use_tool', input: { name: 'remember', input: remember } }], []])
     const run = await runCheck(model, anthropicAccess, lead('remember-that').setup)
@@ -68,7 +72,7 @@ describe('a use_tool call in a run', () => {
     const model = fake([[{ name: 'find_tools', input: { query: 'remember something' } }], []])
     const run = await runCheck(model, anthropicAccess, lead('remember-that').setup)
     expect(run.calls.map(c => c.name)).toEqual(['find_tools'])
-    expect(JSON.stringify((model.seen[1]!.messages.at(-1) as { result: unknown }).result)).toContain('remember')
+    expect(JSON.stringify((model.seen[1]!.messages.at(-1) as { result: unknown }).result)).toContain('named in your instructions')
     expect(lead('remember-that').grade(run)).toMatchObject({ passed: false })
   })
 
@@ -106,11 +110,14 @@ describe('remember-that', () => {
     expect(summaryTable(worse, result.checks, result.models)).toContain('| remember-that | fails 7/10 |')
   })
 
-  it('passes a remember with requested, fails one without it or none at all', async () => {
+  it('passes a remember with requested or the fact written in the project\'s page, fails a remember without it or nothing kept', async () => {
     const graded = async (rounds: Round[]) => lead('remember-that').grade(await runCheck(fake(rounds), anthropicAccess, lead('remember-that').setup))
     expect(await graded([[{ name: 'remember', input: { ...remember, kind: 'rule' } }], []])).toEqual({ passed: true })
     expect(await graded([[{ name: 'remember', input: { ...remember, requested: false } }], []])).toMatchObject({ passed: false })
-    expect(await graded([[]])).toMatchObject({ passed: false, why: expect.stringContaining('remember not called') })
+    const edit = { page: 'website-rebuild:processes/release-process.md', old_string: '## Cutting a release', new_string: '## Release day\nThursday.\n\n## Cutting a release' }
+    expect(await graded([[{ name: 'use_tool', input: { name: 'edit_knowledge', input: edit } }], []])).toEqual({ passed: true })
+    expect(await graded([[{ name: 'use_tool', input: { name: 'edit_knowledge', input: { ...edit, page: 'org:release.md' } } }], []])).toMatchObject({ passed: false })
+    expect(await graded([[]])).toMatchObject({ passed: false, why: expect.stringContaining('neither remembered nor written') })
   })
 })
 

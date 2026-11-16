@@ -27,7 +27,8 @@ If it is not a skill, say so to the person and suggest the right place. Stop her
 ## 2. Check it doesn't exist, and agree it with the person
 
 1. Look at the skills you already have. If one covers this, propose a change to it instead (step 4, with `edits`).
-2. Tell the person, in a short message: the skill's name, when it applies, its steps (5 to 10), what it produces,
+2. When the person asked you for the skill and said its steps, their ask is the yes: go on to step 3. Otherwise
+   tell the person, in a short message: the skill's name, when it applies, its steps (5 to 10), what it produces,
    and where you saw it done. Ask whether to propose it.
 3. Wait for their yes. If they change it, confirm the new version. If they say no, drop it and don't raise it again
    unless something new comes up.

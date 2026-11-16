@@ -3,7 +3,7 @@
  * conversation, whatever its role. They come first in the system prompt and do not change within a conversation,
  * so the provider caches them; the agent's own instructions, the place and the policy follow.
  */
-import { BRANDING, type FeatureFlag } from '@agenthix/core'
+import { BRANDING, areaLines, type FeatureFlag, type FoldedName } from '@agenthix/core'
 import { instructionsFor } from '../../features/instructionsFor'
 
 export interface LeadInstructionsInput {
@@ -14,19 +14,23 @@ export interface LeadInstructionsInput {
   placeLabel: string
   /** The flagged features on for the organisation; a feature's part is written only while it is on (adr-0172). */
   featuresOn?: readonly FeatureFlag[]
+  /** The tools the turn finds by search (ADR-0193), by name and area: named after the rules for tools, when there are any. */
+  foldedTools?: readonly FoldedName[]
 }
 
 /** What the lead is told of live previews, only while the live preview's flag is on. */
 const LIVE_PREVIEW_RULES = `- When the person asks to see, try or open the app of a code workspace, call offer_live_preview: with the task's key
   when the work they want to see was done on a task, without one to show main.
 - The app in a live preview is started, changed and reloaded by the work on its branch, which has the app tools
-  (start_app, reload_view); a reply of yours has none. When the person asks for that (start or run the app, change
-  what it shows, reload it): in a task's conversation, call run_task with their ask as the brief, even when the task
-  is done; anywhere else, start that work in the workspace's place, naming the workspace, as for any change. Never
-  say the app can't be started, or that the person must start it.
+  (start_app, reload_view); a reply of yours has none, and an offer starts no app. When the person asks for that
+  (start or run the app, even so they can try it; change what it shows; reload it): in a task's conversation, call
+  run_task with their ask as the brief, even when the task is done; anywhere else, start that work in the
+  workspace's place, naming the workspace, as for any change. Never say the app can't be started, or that the
+  person must start it.
 `
 
-export function leadBaseInstructions({ agentName, agentRole, placeLabel, featuresOn = [] }: LeadInstructionsInput): string {
+export function leadBaseInstructions({ agentName, agentRole, placeLabel, featuresOn = [], foldedTools = [] }: LeadInstructionsInput): string {
+  const areas = areaLines(foldedTools)
   const who = agentRole ? `${agentName}, ${agentRole}` : agentName
   const flagged = instructionsFor({ isOn: flag => featuresOn.includes(flag) }, [{ flag: 'livePreview', text: LIVE_PREVIEW_RULES }]).join('')
   return `You are ${who}, talking with a person in ${placeLabel}. This is a conversation, not a report.
@@ -80,7 +84,7 @@ ${flagged}- Keep the person's words, in replies and in briefs: "files" are a pla
 - Put into a brief what the work needs from what you recalled: in the background you start with the pinned items
   only, and cannot see the rest of this conversation.
 
-${BACKGROUND_WORK}
+${areas ? `${areas}\n\n` : ''}${BACKGROUND_WORK}
 
 When to ask:
 - Ask when the person's words leave open something that matters — which project, which task, whether to change

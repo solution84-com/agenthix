@@ -202,7 +202,7 @@ export const TASK_TOOL_DECLARATIONS: TaskToolDeclaration[] = [
   {
     name: 'open_board',
     area: 'planning',
-    description: 'Show a board to the person as a card in this conversation that opens it. It changes nothing.',
+    description: 'Show a board to the person as a card in this conversation that opens it, to go through it together. It changes nothing.',
     args: BOARD_REF,
   },
   {

@@ -13,12 +13,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
 import {
-  PLATFORM_TOOLS_INSTRUCTIONS, buildMemoryContent, openCodeSkillsContainerDir, openCodeSkillsSection,
+  buildMemoryContent, openCodeSkillsContainerDir, openCodeSkillsSection,
   type OpenCodeSkill,
 } from '@agenthix/core'
 import type { LeadToolDefinition, PromptPart } from '../../../conversations/contract'
-import { taskRunTools } from '../../../conversations/__modelchecks__/taskRun/setup'
+import { runPlatformInstructions, taskRunTools } from '../../../conversations/__modelchecks__/taskRun/setup'
 import { PROPOSE_SKILL_TOOL } from '../types'
+import { runShell } from '../../../conversations/__modelchecks__/shell'
 
 const CONVERSATION_ID = 'conv-skills-check'
 const SKILLS_DIR = openCodeSkillsContainerDir(CONVERSATION_ID)!
@@ -76,6 +77,9 @@ export const SKILLS: readonly WorldSkill[] = [
 
 export const skillFile = (name: string): string => `${SKILLS_DIR}/${name}/SKILL.md`
 
+/** What the run's shell sees: the staged skills, by their full path; the project's files folder is empty. */
+const shellFiles = (): Record<string, string> => Object.fromEntries(SKILLS.map(s => [skillFile(s.name), s.text]))
+
 export function skillNamed(name: string): WorldSkill | undefined {
   return SKILLS.find(s => s.name === name)
 }
@@ -93,7 +97,7 @@ export function system(): PromptPart[] {
       ].join('\n'),
     },
     { text: buildMemoryContent() },
-    { text: PLATFORM_TOOLS_INSTRUCTIONS },
+    { text: runPlatformInstructions() },
     { text: openCodeSkillsSection(listed()) },
   ]
 }
@@ -102,7 +106,7 @@ export const SKILL_TOOL = 'skill'
 export const READ_TOOL = 'read_file'
 export const WORK_TOOLS: ReadonlySet<string> = new Set(['write_file', 'edit_file', 'bash', PROPOSE_SKILL_TOOL])
 
-/** The harness's file and command tools and every platform tool (`propose_skill` among them), and the skill tool. */
+/** The harness's file and command tools, the platform tools a run is shown (`propose_skill` is found by search), and the skill tool. */
 export function tools(): LeadToolDefinition[] {
   const skill: LeadToolDefinition = {
     name: SKILL_TOOL, description: SKILL_TOOL_DESCRIPTION,
@@ -136,7 +140,7 @@ export function answer(name: string, input: Record<string, unknown>): unknown {
     }
     case 'write_file': return `File created successfully at: ${String(input.file_path)}`
     case 'edit_file': return { error: `File not found: ${String(input.file_path)}` }
-    case 'bash': return ''
+    case 'bash': return runShell(String(input.command ?? ''), { folder: PROJECT_DIR, files: shellFiles() })
     case PROPOSE_SKILL_TOOL:
       return {
         landed: 'proposal', name: input.name, proposal: 'p-1', reviewers: "the project's administrators", warnings: [],

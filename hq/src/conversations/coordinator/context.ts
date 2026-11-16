@@ -14,7 +14,7 @@
  * disk; the lead, in hq, does not read them.
  */
 import { prisma } from 'wasp/server'
-import { pickedSkillOf, sharedFilesOf, type FeatureFlag } from '@agenthix/core'
+import { pickedSkillOf, sharedFilesOf, type FeatureFlag, type FoldedName } from '@agenthix/core'
 import type { LeadMessage, PromptPart } from '../contract'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { MESSAGE_PAGE_SIZE } from '../../shared/conversations/protocol'
@@ -62,6 +62,8 @@ export interface Instructions {
   orgInstructions: string | null
   /** The flagged features on for the organisation, whose parts of the instructions are written (adr-0172). */
   featuresOn?: readonly FeatureFlag[]
+  /** The turn's folded tools by name and area (tools/foldedTools.ts), for the area lines. */
+  foldedTools?: readonly FoldedName[]
 }
 
 export function systemParts(i: Instructions): PromptPart[] {
@@ -386,13 +388,18 @@ async function adaptiveVoiceOf(userId: string): Promise<boolean> {
   return row?.adaptiveVoice ?? true
 }
 
-export async function assembleContext(conversation: TurnConversation, agentId: string, turn: ContextTurn): Promise<LeadContext> {
+export async function assembleContext(
+  conversation: TurnConversation,
+  agentId: string,
+  turn: ContextTurn,
+  foldedTools: readonly FoldedName[] = [],
+): Promise<LeadContext> {
   const [segments, history, awaiting] = await Promise.all([
     readSegments(conversation.id),
     readAll(conversation.id),
     awaitingCardIds(conversation.id),
   ])
-  const instructions = await instructionsFor(conversation, agentId)
+  const instructions = { ...(await instructionsFor(conversation, agentId)), foldedTools }
   // What memory the probe found goes with the turn's own message, after the cached prefix.
   // A report turn presents results and starts no work, so it is not told of web search.
   const [memory, places, webSearch] = await Promise.all([

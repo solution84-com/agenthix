@@ -17,6 +17,7 @@
  * assigned as soon as each value exists" contract processRun's own body had before
  * the split, now carried across a function boundary instead of within one scope.
  */
+import { withToolSearchTools } from './toolSearchCall'
 import { selectRuntime } from './selectRuntime'
 import { resolveAgentContext } from './agentUtils'
 import { Logger } from '../../server/utils/logger'
@@ -415,7 +416,7 @@ export async function assembleRunLaunch(
     mcpServers,
     bypassed,
     immediateApproval,
-    allowedTools: bypassed ? undefined : codeWork ? withAppTools(withCodeWorkTools(toolPermissions), options.features) : toolPermissions,
+    allowedTools: bypassed ? undefined : withToolSearchTools(codeWork ? withAppTools(withCodeWorkTools(toolPermissions), options.features) : toolPermissions),
     allowedBashPatterns: bashPermissions,
     neverTools,
     approvedManifest,

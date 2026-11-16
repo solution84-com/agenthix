@@ -17,6 +17,8 @@ export interface Outcome {
   need?: number
   /** The provider's own count of the run's first model call's input, when it gave one. */
   firstRequestTokens?: number
+  /** What a failed run did (trace.ts), written under its line in the report. */
+  trace?: string[]
 }
 
 const runsOf = (outcomes: readonly Outcome[], model: string, check: string) => outcomes.filter(o => o.model === model && o.check === check)
@@ -80,7 +82,7 @@ export function report(outcomes: readonly Outcome[], checks: readonly string[], 
   return [
     `# Model checks, ${at.toISOString()}`,
     '',
-    ...outcomes.map(outcomeLine),
+    ...outcomes.flatMap(o => [outcomeLine(o), ...(o.grade.passed ? [] : (o.trace ?? []).map(line => `    ${line}`))]),
     '',
     summaryTable(outcomes, checks, models),
     '',

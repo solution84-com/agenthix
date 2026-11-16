@@ -65,6 +65,7 @@ const CHECKS_WITH_IT_ON: readonly Check[] = [
         { role: 'agent', text: `${TASK.key} is done: the sign-up form is fixed on its branch in ${CODE_WORKSPACE.name}.` },
       ],
       message: 'Great, can I try the sign-up form running?',
+      taskDone: true,
     },
     grade: run => offered(run, TASK.key),
   },

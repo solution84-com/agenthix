@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { RESULT_CAP_CHARS, RESULT_TOO_LARGE } from '../../shared/conversations/protocol'
 import { CONTROL_PLANE_TOOLS, WORKFORCE_TOOLS, type ControlPlaneTool } from '../../server/controlplane/toolSchemas'
 import { isTurnTool, turnToolRefusal } from '../../server/controlplane/turnCaller'
-import type { LeadToolDefinition, TurnCapability } from '../contract'
+import type { OfferedTool, TurnCapability } from '../contract'
 
 const TURN_TOOLS: ReadonlyMap<string, ControlPlaneTool> = new Map(
   [...CONTROL_PLANE_TOOLS, ...WORKFORCE_TOOLS].filter(t => isTurnTool(t.name)).map(t => [t.name, t]),
@@ -20,10 +20,10 @@ export function turnTool(name: string): ControlPlaneTool | null {
 }
 
 /** The tools this capability may call now, as the lead is given them. */
-export function turnToolDefinitions(capability: TurnCapability, now = Date.now()): LeadToolDefinition[] {
+export function turnToolDefinitions(capability: TurnCapability, now = Date.now()): OfferedTool[] {
   return [...TURN_TOOLS.values()]
     .filter(t => turnToolRefusal(capability, t.name, now) === null)
-    .map(t => ({ name: t.name, description: t.description ?? describeByName(t.name), input: z.object(t.schema) }))
+    .map(t => ({ name: t.name, area: t.area, description: t.description ?? describeByName(t.name), input: z.object(t.schema) }))
 }
 
 /** A tool with no description of its own is described by its name: `list_tasks` → "List tasks." */

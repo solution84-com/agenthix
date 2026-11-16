@@ -17,17 +17,22 @@ import { z } from 'zod'
 import { callOperation } from '../../server/controlplane/operations'
 import { Logger } from '../../server/utils/logger'
 import { ControlPlaneError } from '../../server/controlplane/types'
-import { allowOnce, isReadTool, isTurnTool, turnToolAsks, turnToolRefusal, turnToolState } from '../../server/controlplane/turnCaller'
-import { CONTROL_PLANE_TOOLS, WORKFORCE_TOOLS } from '../../server/controlplane/toolSchemas'
-import type { ConversationTool, LeadToolCall, LeadToolDefinition, MailboxSink, OperationEnd, SettleOperation, ToolAdapter, ToolCallOutcome, TurnCapability } from '../contract'
-import { capResult, idempotencyKey, toolCallTitle, turnTool, turnToolDefinitions } from './turnTools'
+import { isReadTool, turnToolAsks, turnToolRefusal } from '../../server/controlplane/turnCaller'
+import type { LeadToolCall, MailboxSink, OperationEnd, SettleOperation, ToolAdapter, ToolCallOutcome, TurnCapability } from '../contract'
+import { capResult, idempotencyKey, toolCallTitle, turnTool } from './turnTools'
 import { commissioner, operationRows, type ToolCallSettlement, type ToolOperationRows } from './operationRows'
 import { conversationTool, conversationTools } from '../work/registry'
-import { ASK_NOTE, askFirst, withReason, type AskInput } from '../work/toolCalls/ask'
+import { askFirst, withReason, type AskInput } from '../work/toolCalls/ask'
 import { settleOperation } from '../coordinator/mailbox'
 import { withTaskId } from '../../server/controlplane/taskKey'
 import { actionWriter, type ActionWriter, type TaskFacts } from './actionLines'
-import { leanTool, leanToolsFor } from './leanTaskTools'
+import { leanTool } from './leanTaskTools'
+import { leadToolOffer, offerCache, ownToolAsks } from './leadOffer'
+import { FIND_TOOLS, USE_TOOL, inputRefusal, notAToolRefusal } from '@agenthix/core'
+import { entryOf, findTools, fold, foldedNames, unwrapUseTool } from './foldedTools'
+
+export { leadToolDefinitions, leadToolOffer } from './leadOffer'
+import type { SearchOptions } from '../../tools/search'
 
 export interface ToolAdapterDeps {
   rows: ToolOperationRows
@@ -40,6 +45,8 @@ export interface ToolAdapterDeps {
   actions?: ActionWriter
   /** Replaces a task given by its key, in a call's arguments, with its id; a key that names no task throws a refusal. */
   resolveTask?: <T>(args: T) => Promise<T>
+  /** How find_tools searches; hq's built-in model when absent. */
+  search?: SearchOptions
   /** Where a failure no person should read is reported. */
   logError: (message: string, err: unknown) => void
 }
@@ -65,27 +72,15 @@ function cutByPerson(signal: AbortSignal): boolean {
   return signal.aborted && (signal.reason === 'stop' || signal.reason === 'interrupt')
 }
 
-/** The control plane's tools a turn may ever call, for offering those at Ask. */
-const TURN_TOOL_SCHEMAS = [...CONTROL_PLANE_TOOLS, ...WORKFORCE_TOOLS].filter(t => isTurnTool(t.name))
-
-/** Whether the turn may call this conversation tool only by asking: at Ask, and offered once a person says yes. */
-async function ownToolAsks(tool: ConversationTool, capability: TurnCapability): Promise<boolean> {
-  return turnToolState(capability.permissions, tool.name) === 'ask' && (await tool.offered(allowOnce(capability, tool.name)))
-}
-
-function askDefinition(name: string, description: string, input: z.ZodType): LeadToolDefinition {
-  return { name, description: `${description}\n\n${ASK_NOTE}`, input: withReason(input) }
-}
-
-/** Splits the reason the card shows from the call's own arguments. */
 function reasonApart(data: unknown): { args: Record<string, unknown>; reason: string } {
   const { reason, ...args } = data as Record<string, unknown> & { reason: string }
   return { args, reason }
 }
 
+const problemsOf = (error: z.ZodError): string => error.issues.map(i => `${i.path.join('.') || 'input'}: ${i.message}`).join('; ')
+
 function argumentRefusal(name: string, error: z.ZodError): ToolCallOutcome {
-  const problems = error.issues.map(i => `${i.path.join('.') || 'input'}: ${i.message}`).join('; ')
-  return { status: 'refused', reason: `The arguments do not fit ${name}: ${problems}` }
+  return { status: 'refused', reason: `The arguments do not fit ${name}: ${problemsOf(error)}` }
 }
 
 /** Resolves 'ended' when the call ends first, 'detach' when the wait limit passes or the turn is stopped first. */
@@ -103,42 +98,6 @@ function waitFor(running: Promise<Ended>, waitLimitMs: number, signal: AbortSign
   })
 }
 
-/** A control-plane tool as the lead is offered it: in its lean versions where it has them (leanTaskTools.ts). */
-function leanOffers(defs: readonly LeadToolDefinition[], asks: boolean): LeadToolDefinition[] {
-  return defs.flatMap(d => {
-    const lean = leanToolsFor(d.name)
-    if (lean.length === 0) return [d]
-    return lean.map(l => (asks ? askDefinition(l.name, l.description, z.object(l.schema)) : { name: l.name, description: l.description, input: z.object(l.schema) }))
-  })
-}
-
-/**
- * The tools the lead is offered under this capability, `own` the conversation's own tools: what a turn's toolsFor
- * gives, and what the model checks (__modelchecks__) send, with the few whose description reads the database scripted.
- */
-export async function leadToolDefinitions(capability: TurnCapability, own: readonly ConversationTool[]): Promise<LeadToolDefinition[]> {
-  // A report turn speaks and starts no work: it is offered nothing.
-  if (capability.trigger === 'REPORT') return []
-  // A conversation's own version of a tool (run_task, create_task) replaces the control plane's for a turn.
-  const offers = await Promise.all(own.map(async t => {
-    if (await t.offered(capability)) return { tool: t, asks: false }
-    return (await ownToolAsks(t, capability)) ? { tool: t, asks: true } : null
-  }))
-  const offered = offers.filter((t): t is NonNullable<typeof t> => t !== null)
-  const ownNames = new Set(own.map(t => t.name))
-  const asking = TURN_TOOL_SCHEMAS
-    .filter(t => !ownNames.has(t.name) && turnToolAsks(capability, t.name))
-    .map(t => askDefinition(t.name, t.description ?? `${toolCallTitle(t.name)}.`, z.object(t.schema)))
-  return [
-    ...leanOffers(turnToolDefinitions(capability).filter(t => !ownNames.has(t.name)), false),
-    ...leanOffers(asking, true),
-    ...(await Promise.all(offered.map(async ({ tool, asks }) => {
-      const description = await tool.describe(capability)
-      return asks ? askDefinition(tool.name, description, tool.input) : { name: tool.name, description, input: tool.input }
-    }))),
-  ]
-}
-
 export function createToolAdapter(deps: ToolAdapterDeps): ToolAdapter {
   /** The line for a call that completed; a failure to write it never fails the call. */
   async function recordAction(capability: TurnCapability, call: LeadToolCall, result: unknown, removed: TaskFacts | null): Promise<void> {
@@ -149,19 +108,44 @@ export function createToolAdapter(deps: ToolAdapterDeps): ToolAdapter {
     }
   }
 
+  const offerOf = offerCache(capability => leadToolOffer(capability, conversationTools()))
+
   return {
     async toolsFor(capability) {
-      return leadToolDefinitions(capability, conversationTools())
+      return fold(await offerOf(capability)).shown
+    },
+
+    async foldedFor(capability) {
+      return foldedNames(fold(await offerOf(capability)).folded)
     },
 
     // Only the control plane's read tools are known to change nothing; a conversation's own tools may write.
-    readsOnly(capability, call) {
-      if (capability.trigger === 'REPORT' || conversationTool(call.name)) return false
+    readsOnly(capability, asked) {
+      if (capability.trigger === 'REPORT') return false
+      if (asked.name === FIND_TOOLS) return true
+      const call = unwrapUseTool(asked)
+      if (conversationTool(call.name)) return false
       return isReadTool(call.name) && turnToolRefusal(capability, call.name) === null
     },
 
-    async call(capability: TurnCapability, call: LeadToolCall, options: { waitLimitMs: number; signal: AbortSignal; mailbox: MailboxSink }): Promise<ToolCallOutcome> {
+    async call(capability: TurnCapability, asked: LeadToolCall, options: { waitLimitMs: number; signal: AbortSignal; mailbox: MailboxSink }): Promise<ToolCallOutcome> {
       if (capability.trigger === 'REPORT') return { status: 'refused', reason: 'This reply presents what came back and calls no tools' }
+      if (asked.name === FIND_TOOLS) {
+        const answer = await findTools(asked.input, fold(await offerOf(capability)).folded, deps.search)
+        return { status: 'done', operationId: capability.turnId, result: answer }
+      }
+      // A use_tool call runs the tool it names, through the path a native call takes, under that tool's name.
+      const call = unwrapUseTool(asked)
+      if (call.via) {
+        const offered = await offerOf(capability)
+        const named = offered.find(t => t.name === call.name)
+        if (call.name === FIND_TOOLS || call.name === USE_TOOL || !named) {
+          return { status: 'refused', reason: notAToolRefusal(call.name) }
+        }
+        // Input that doesn't fit is answered with the tool's definition, so the model can call again without a search.
+        const fits = named.input.safeParse(call.input ?? {})
+        if (!fits.success) return { status: 'refused', reason: inputRefusal(entryOf(named), problemsOf(fits.error)) }
+      }
       const own = conversationTool(call.name)
       if (own) {
         const asks = !(await own.offered(capability))

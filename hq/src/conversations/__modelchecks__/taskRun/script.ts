@@ -5,8 +5,9 @@
 import { COMMIT_RELOAD_NOTE, LIVE_PREVIEW_WORKFLOW_NAMES, isLivePreviewWorkflowName } from '@agenthix/core'
 import { livePreviewWorkflowRefusal } from '../../../workflows/livePreviewRefusal'
 import { OWN_TASK } from '../../../server/controlplane/runTaskWords'
-import { FILES, KERNEL, MORNING_ROUTINE, NEXT_TASK, SHOP_APP, SHOP_PROJECT, SHOP_TASK, WORKING_FOLDER } from './world'
+import { FILES, KERNEL, MAIN_PAGE_TEXT, PAGE, PAGE_TEXT, MORNING_ROUTINE, NEXT_TASK, SHOP_APP, SHOP_PROJECT, SHOP_TASK, WORKING_FOLDER } from './world'
 import type { TaskRunSetup } from './setup'
+import { runShell } from '../shell'
 
 type Args = Record<string, unknown>
 const str = (v: unknown): string => (typeof v === 'string' ? v : '')
@@ -23,9 +24,9 @@ export function startState(open: boolean): RunState {
   return { files: { ...FILES }, changed: new Set(), open }
 }
 
-/** A path as the agent gave it, relative to the working folder. */
+/** A path as the agent gave it: relative to the working folder when it is in it, else as given (main's files). */
 function relative(p: string): string {
-  return p.replace(WORKING_FOLDER, '').replace(/^\.?\/+/, '')
+  return p.startsWith(`${WORKING_FOLDER}/`) || !p.startsWith('/') ? p.replace(WORKING_FOLDER, '').replace(/^\.?\/+/, '') : p
 }
 
 const app = (state: 'running' | 'starting') => ({
@@ -53,31 +54,56 @@ function edit(args: Args, state: RunState, whole: boolean): unknown {
 
 const commitAll = (state: RunState) => { state.changed.clear() }
 
-/** The commands a run tends to use to look around, answered from the files; anything else prints nothing. */
+const BRANCH = 'add-free-delivery-over-50-banner-to-shop-s-home'
+const LAST_COMMIT = '8b1e4a0 Add the free delivery banner'
+
+/** Git in the run's branch: its commits, its status from the run's own edits, and a commit of them. */
+function git(args: string, state: RunState): string | null {
+  const [sub = ''] = args.split(/\s+/)
+  switch (sub) {
+    case 'commit': {
+      const had = state.changed.size
+      commitAll(state)
+      return had ? `[${BRANCH} 3c9e1d2] Update the banner` : 'nothing to commit, working tree clean'
+    }
+    case 'status':
+      return state.changed.size
+        ? `On branch ${BRANCH}\nChanges not staged for commit:\n${[...state.changed].map(f => `\tmodified:   ${f}`).join('\n')}`
+        : `On branch ${BRANCH}\nnothing to commit, working tree clean`
+    case 'log': return `${LAST_COMMIT}${/--all|--decorate/.test(args) ? ` (HEAD -> ${BRANCH})` : ''}\n1f0c3a7 Start the shop${/--all|--decorate/.test(args) ? ' (main)' : ''}`
+    case 'show':
+      if (/main:public\/index\.html/.test(args)) return MAIN_PAGE_TEXT
+      if (/:public\/index\.html/.test(args)) return PAGE_TEXT
+      return `commit 8b1e4a0\nAuthor: Kernel <kernel@agents.hq.invalid>\n\n    Add the free delivery banner\n\n public/index.html | 1 +\n 1 file changed, 1 insertion(+)`
+    case 'diff':
+      if (/\bmain\b/.test(args)) return ' public/index.html | 1 +\n 1 file changed, 1 insertion(+)'
+      return [...state.changed].map(f => `diff --git a/${f} b/${f}`).join('\n')
+    case 'ls-files': return Object.keys(state.files).filter(f => !f.startsWith('/')).sort().join('\n')
+    case 'branch': return `* ${BRANCH}\n  main`
+    case 'rev-parse':
+      if (/--abbrev-ref/.test(args)) return BRANCH
+      return /\bmain\b/.test(args) ? '1f0c3a7e9b2d4c6a8f0e1d3b5a7c9e2f4d6b8a0c' : '8b1e4a0c2d9f4e1a7b3c5d6e8f9a0b1c2d3e4f5a'
+    case 'add': return ''
+    default: return null
+  }
+}
+
 function bash(command: string, state: RunState): string {
-  if (/\bgit\s+commit\b/.test(command)) {
-    const had = state.changed.size
-    commitAll(state)
-    return had ? '[add-free-delivery 3c9e1d2] Update the banner' : 'nothing to commit, working tree clean'
-  }
-  if (/\bgit\s+status\b/.test(command)) {
-    return state.changed.size ? `Changes not staged for commit:\n${[...state.changed].map(f => `\tmodified:   ${f}`).join('\n')}` : 'nothing to commit, working tree clean'
-  }
-  if (/\bgit\s+log\b/.test(command)) return '8b1e4a0 Add the free delivery banner'
-  const cat = /\bcat\s+(\S+)/.exec(command)
-  if (cat) return state.files[relative(cat[1]!)] ?? `cat: ${cat[1]}: No such file or directory`
-  if (/^\s*(ls|find|tree)\b/.test(command)) return Object.keys(state.files).sort().join('\n')
-  return ''
+  return runShell(command, {
+    folder: WORKING_FOLDER, files: state.files, git: args => git(args, state),
+    // The shop serves its home page on its port, whatever the path, as server.js does.
+    fetch: url => (url.includes(`:${SHOP_APP.port}`) ? state.files[PAGE] ?? null : null),
+  })
 }
 
 export function answerTaskRun(name: string, input: unknown, setup: TaskRunSetup, state: RunState): unknown {
   const args = (input && typeof input === 'object' ? input : {}) as Args
   switch (name) {
     case 'read_file': return readFile(args, state)
-    case 'glob_files': return Object.keys(state.files).map(f => `${WORKING_FOLDER}/${f}`).join('\n')
+    case 'glob_files': return Object.keys(state.files).filter(f => !f.startsWith('/')).map(f => `${WORKING_FOLDER}/${f}`).join('\n')
     case 'grep_files': {
       const pattern = str(args.pattern).toLowerCase()
-      const hits = Object.entries(state.files).filter(([, text]) => text.toLowerCase().includes(pattern)).map(([f]) => `${WORKING_FOLDER}/${f}`)
+      const hits = Object.entries(state.files).filter(([f, text]) => !f.startsWith('/') && text.toLowerCase().includes(pattern)).map(([f]) => `${WORKING_FOLDER}/${f}`)
       return hits.length ? hits.join('\n') : 'No matches found.'
     }
     case 'write_file': return edit(args, state, true)

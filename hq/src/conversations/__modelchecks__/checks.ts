@@ -15,6 +15,7 @@ import { WEB_SEARCH_CHECKS } from './taskRun/webSearchChecks'
 import { LEAD_WEB_SEARCH_CHECKS } from './leadWebSearchChecks'
 import { TASK_TOOL_CHECKS } from './taskToolChecks'
 import { MEMORY_CHECKS } from './memoryChecks'
+import { FOLD_CHECKS } from './foldChecks'
 import type { TaskRunSetup } from './taskRun/setup'
 
 export type Grade = { passed: true } | { passed: false; why: string }
@@ -146,4 +147,5 @@ export const CHECKS: readonly Check[] = [
   ...LEAD_WEB_SEARCH_CHECKS,
   ...TASK_TOOL_CHECKS,
   ...MEMORY_CHECKS,
+  ...FOLD_CHECKS,
 ]
