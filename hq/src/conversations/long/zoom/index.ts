@@ -23,6 +23,9 @@ export const zoomTools: ConversationTool[] = createZoomTools({
       brief: openText(r.brief), summary: openText(r.summary),
     }))
   },
+  async folded(conversationId) {
+    return (await prisma.conversationSegment.count({ where: { conversationId } })) > 0
+  },
   async messagesIn(conversationId, firstSeq, lastSeq) {
     const rows = await prisma.conversationMessage.findMany({
       where: { conversationId, seq: { gte: firstSeq, lte: lastSeq } },

@@ -54,11 +54,8 @@ export function describeWorkspaces(places: readonly PlaceWithWorkspaces[]): stri
   if (lines.length === 0) return []
   return [
     '',
-    'Workspaces in these places. Pass a workspace\'s id as workspaceId to have the task work there:',
+    'Workspaces in these places (pass one\'s id as workspaceId):',
     ...lines,
-    'A task on a code workspace works on a branch of its own, and a person merges it into main. Make one when the ' +
-      'person asks for a task; for a change they ask of you, start work in the workspace (start_work) instead. Never ' +
-      'change a code workspace\'s files yourself, or from another place.',
   ]
 }
 
@@ -68,12 +65,8 @@ export function describeWorkerWorkspaces(places: readonly PlaceWithWorkspaces[])
   if (lines.length === 0) return []
   return [
     '',
-    'Workspaces in these places. For work that changes a workspace, or works in it, pass its id as `workspace`:',
+    'Workspaces in these places (pass one\'s id as `workspace`):',
     ...lines,
-    'Work in a code workspace is on this conversation\'s own branch there, made at its first run and kept for its ' +
-      'later ones, and a person merges it into main. A branch that is another conversation\'s or a task\'s is ' +
-      'changed only from its own chat: when the person asks to change one, say whose it is and that the ask goes ' +
-      'there. Never change a code workspace\'s files without naming it.',
   ]
 }
 

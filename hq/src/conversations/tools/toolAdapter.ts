@@ -27,6 +27,7 @@ import { ASK_NOTE, askFirst, withReason, type AskInput } from '../work/toolCalls
 import { settleOperation } from '../coordinator/mailbox'
 import { withTaskId } from '../../server/controlplane/taskKey'
 import { actionWriter, type ActionWriter, type TaskFacts } from './actionLines'
+import { leanTool, leanToolsFor } from './leanTaskTools'
 
 export interface ToolAdapterDeps {
   rows: ToolOperationRows
@@ -102,6 +103,15 @@ function waitFor(running: Promise<Ended>, waitLimitMs: number, signal: AbortSign
   })
 }
 
+/** A control-plane tool as the lead is offered it: in its lean versions where it has them (leanTaskTools.ts). */
+function leanOffers(defs: readonly LeadToolDefinition[], asks: boolean): LeadToolDefinition[] {
+  return defs.flatMap(d => {
+    const lean = leanToolsFor(d.name)
+    if (lean.length === 0) return [d]
+    return lean.map(l => (asks ? askDefinition(l.name, l.description, z.object(l.schema)) : { name: l.name, description: l.description, input: z.object(l.schema) }))
+  })
+}
+
 /**
  * The tools the lead is offered under this capability, `own` the conversation's own tools: what a turn's toolsFor
  * gives, and what the model checks (__modelchecks__) send, with the few whose description reads the database scripted.
@@ -120,8 +130,8 @@ export async function leadToolDefinitions(capability: TurnCapability, own: reado
     .filter(t => !ownNames.has(t.name) && turnToolAsks(capability, t.name))
     .map(t => askDefinition(t.name, t.description ?? `${toolCallTitle(t.name)}.`, z.object(t.schema)))
   return [
-    ...turnToolDefinitions(capability).filter(t => !ownNames.has(t.name)),
-    ...asking,
+    ...leanOffers(turnToolDefinitions(capability).filter(t => !ownNames.has(t.name)), false),
+    ...leanOffers(asking, true),
     ...(await Promise.all(offered.map(async ({ tool, asks }) => {
       const description = await tool.describe(capability)
       return asks ? askDefinition(tool.name, description, tool.input) : { name: tool.name, description, input: tool.input }
@@ -166,19 +176,23 @@ export function createToolAdapter(deps: ToolAdapterDeps): ToolAdapter {
         if (!parsed.success) return argumentRefusal(call.name, parsed.error)
         return deps.ask({ capability, toolName: call.name, ...reasonApart(parsed.data) })
       }
-      const tool = turnTool(call.name)
+      // A lean tool runs its control-plane tool, under that tool's name from here on: its permission, row and line.
+      const lean = leanTool(call.name)
+      const name = lean?.runs ?? call.name
+      const tool = turnTool(name)
       if (!tool) return { status: 'refused', reason: `${call.name} is not available in a conversation` }
-      if (turnToolAsks(capability, call.name)) {
+      const schema = lean?.schema ?? tool.schema
+      if (turnToolAsks(capability, name)) {
         if (options.signal.aborted) return { status: 'refused', reason: 'The reply was stopped before the call started' }
-        const parsed = withReason(z.object(tool.schema)).safeParse(call.input ?? {})
+        const parsed = withReason(z.object(schema)).safeParse(call.input ?? {})
         if (!parsed.success) return argumentRefusal(call.name, parsed.error)
-        return deps.ask({ capability, toolName: call.name, ...reasonApart(parsed.data) })
+        return deps.ask({ capability, toolName: name, ...reasonApart(parsed.data) })
       }
-      const refusal = turnToolRefusal(capability, call.name)
+      const refusal = turnToolRefusal(capability, name)
       if (refusal) return { status: 'refused', reason: refusal }
       if (!commissioner(capability)) return { status: 'refused', reason: 'This turn acts for no one' }
       if (options.signal.aborted) return { status: 'refused', reason: 'The reply was stopped before the call started' }
-      const typed = z.object(tool.schema).safeParse(call.input ?? {})
+      const typed = z.object(schema).safeParse(call.input ?? {})
       if (!typed.success) return argumentRefusal(call.name, typed.error)
       let parsed: typeof typed
       try {
@@ -190,31 +204,31 @@ export function createToolAdapter(deps: ToolAdapterDeps): ToolAdapter {
 
       const admitted = await deps.rows.admit({
         capability,
-        toolName: call.name,
-        idempotencyKey: idempotencyKey(call.name, parsed.data),
-        title: toolCallTitle(call.name),
+        toolName: name,
+        idempotencyKey: idempotencyKey(name, parsed.data),
+        title: toolCallTitle(name),
         args: parsed.data,
       })
       // The same call is already running: this is that one, and nothing starts again.
       if (admitted.alreadyRunning) return { status: 'accepted', operationId: admitted.operationId }
       const { operationId } = admitted
 
-      const removed = (await deps.actions?.before(call.name, parsed.data).catch(() => null)) ?? null
-      const running: Promise<Ended> = deps.call(call.name, capability, parsed.data).then(
+      const removed = (await deps.actions?.before(name, parsed.data).catch(() => null)) ?? null
+      const running: Promise<Ended> = deps.call(name, capability, parsed.data).then(
         result => ({ ok: true as const, result }),
         (err: unknown) => {
           if (err instanceof ControlPlaneError) return { ok: false as const, refusal: err.message }
-          deps.logError(`${call.name} failed in operation ${operationId}`, err)
+          deps.logError(`${name} failed in operation ${operationId}`, err)
           return { ok: false as const, failure: err }
         },
       )
 
       if ((await waitFor(running, options.waitLimitMs, options.signal)) === 'ended') {
         const ended = await running
-        const settlement = settlementOf(call.name, ended)
+        const settlement = settlementOf(name, ended)
         await deps.rows.settle(operationId, settlement)
         if (settlement.state === 'COMPLETED') {
-          await recordAction(capability, call, ended.ok ? ended.result : undefined, removed)
+          await recordAction(capability, { ...call, name }, ended.ok ? ended.result : undefined, removed)
           return { status: 'done', operationId, result: settlement.result }
         }
         return { status: 'refused', reason: settlement.error }
@@ -224,7 +238,7 @@ export function createToolAdapter(deps: ToolAdapterDeps): ToolAdapter {
       const noReport = cutByPerson(options.signal)
       // Settled once, from whatever state it is in now: a call stopped meanwhile has its result abandoned.
       void running
-        .then(ended => deps.settle(operationId, endOf(settlementOf(call.name, ended), noReport)))
+        .then(ended => deps.settle(operationId, endOf(settlementOf(name, ended), noReport)))
         .catch(err => deps.logError(`Could not record the end of operation ${operationId}`, err))
       return { status: 'accepted', operationId }
     },

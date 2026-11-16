@@ -174,10 +174,10 @@ describe("a routine's cron rule is read in its person's timezone", () => {
 
 describe('the tools agents see', () => {
   it("their words say times are read in the person's timezone unless one is named", () => {
-    expect(CONTROL_PLANE_TOOLS.find((t) => t.name === 'set_task_schedule')!.description).toMatch(/timezone of the person you are working for/)
     const describedAs = (tool: string, arg: string) => (CONTROL_PLANE_TOOLS.find((t) => t.name === tool)!.schema[arg] as { description?: string }).description
+    expect(describedAs('set_task_schedule', 'timezone')).toMatch(/Default: the person's you work for/)
     const createZone = describedAs('create_routine', 'timezone')
-    expect(createZone).toMatch(/Omit it for the timezone of the person you work for/)
+    expect(createZone).toMatch(/Default: the person's you work for/)
     const updateCron = describedAs('update_routine', 'cron')
     expect(updateCron).toMatch(/else the person's you work for, else the routine's own/)
   })

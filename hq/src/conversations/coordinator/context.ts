@@ -23,7 +23,7 @@ import { readAgentContent } from '../../packages/agentPackageService'
 import { readCurrentFiles } from '../../packages/packageStore'
 import { ORG_FILE } from '../../packages/orgPackageService'
 import { readMessages } from '../store/messages'
-import { cardTurnBlock, leadBaseInstructions, leadLongRules, leadMemoryRules, listeningTurnBlock, type ContinuationStep } from '../lead/instructions'
+import { cardTurnBlock, leadBaseInstructions, leadKnowledgeRules, leadLongRules, listeningTurnBlock, type ContinuationStep } from '../lead/instructions'
 import { voiceTurnBlock } from '../lead/voiceTurnBlock'
 import { ZOOM_RULES } from '../long/zoom/rules'
 import { memoryForTurn } from '../memory/turnMemory'
@@ -65,17 +65,20 @@ export interface Instructions {
 }
 
 export function systemParts(i: Instructions): PromptPart[] {
-  const parts: PromptPart[] = [{ text: `${leadBaseInstructions(i)}\n\n${leadMemoryRules()}\n\n${leadLongRules()}\n\n${ZOOM_RULES}` }]
+  const parts: PromptPart[] = [{ text: `${leadBaseInstructions(i)}\n\n${leadKnowledgeRules()}\n\n${leadLongRules()}` }]
   if (i.agentInstructions) parts.push({ text: `# Your instructions\n\n${i.agentInstructions}` })
   if (i.orgInstructions) parts.push({ text: `# Your organisation\n\n${i.orgInstructions}` })
   parts[parts.length - 1] = { ...parts[parts.length - 1]!, cacheAfter: true }
   return parts
 }
 
-/** The instructions, then the compaction block as a second part with its own breakpoint once there is one. */
+/**
+ * The instructions, then, once something is folded, the compaction block and how to read further into the past, as a
+ * second part with its own breakpoint: a conversation not yet folded carries neither.
+ */
 export function systemWithBlock(i: Instructions, segments: readonly OpenedSegment[]): PromptPart[] {
   const block = compactionBlock(segments)
-  return block ? [...systemParts(i), { text: block, cacheAfter: true }] : systemParts(i)
+  return block ? [...systemParts(i), { text: `${block}\n\n${ZOOM_RULES}`, cacheAfter: true }] : systemParts(i)
 }
 
 /** The people who spoke in a conversation, by id: named only where more than one did, so one person's alone read as before. */

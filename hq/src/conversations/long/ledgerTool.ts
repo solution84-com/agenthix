@@ -17,12 +17,7 @@ const input = z.object({
   done: z.string().min(1).optional().describe('The id of an entry that is now done (an obligation carried out), instead of a new entry'),
 })
 
-const DESCRIPTION = [
-  'Keep something in this conversation\'s ledger, which survives when older parts of the conversation are folded',
-  'into a summary. Record a decision when one is taken (with its reason), an obligation when you agree to do',
-  'something later ("create the task once the fix lands"), and what the person asks you to keep. Starting work and',
-  'approvals are recorded for you. Pass `done` with an entry\'s id when an obligation has been carried out.',
-].join('\n')
+const DESCRIPTION = "Add an entry to this conversation's ledger, which survives folding; or pass `done` with an entry's id once it is carried out."
 
 function usable(capability: TurnCapability): boolean {
   return capability.trigger !== 'REPORT' && capability.expiresAt > Date.now()
@@ -33,6 +28,7 @@ const done = (capability: TurnCapability, result: unknown): ToolCallOutcome => (
 export function createLedgerTool(ledger: Ledger = defaultLedger): ConversationTool {
   return {
     name: LEDGER_TOOL,
+    area: 'conversation',
     input,
     async offered(capability) {
       return usable(capability)

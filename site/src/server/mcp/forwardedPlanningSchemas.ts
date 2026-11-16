@@ -11,20 +11,23 @@ import type { ForwardedTool } from './forwardedToolSchemas'
 export const FORWARDED_PLANNING_TOOLS: ForwardedTool[] = [
   {
     name: 'list_milestones',
-    description: "A project's milestones — dated goals — each with the epics that belong to it.",
-    schema: { projectId: z.string().describe('The project') },
+    area: 'planning',
+    description: "A project's milestones (dated goals), each with its epics.",
+    schema: { projectId: z.string().describe("The project's key (e.g. WAL) or id") },
   },
   {
     name: 'create_milestone',
-    description: 'Add a milestone: a dated goal in a project that epics can belong to (set an epic\'s with update_task).',
+    area: 'planning',
+    description: 'Add a milestone: a dated goal of a project that epics belong to (set an epic\'s with update_task).',
     schema: {
-      projectId: z.string().describe('The project'),
+      projectId: z.string().describe("The project's key (e.g. WAL) or id"),
       name: z.string().describe('What it is, e.g. "Self-serve pricing live"'),
       date: z.string().describe('Its date, YYYY-MM-DD'),
     },
   },
   {
     name: 'update_milestone',
+    area: 'planning',
     description: "Rename a milestone or move its date.",
     schema: {
       milestoneId: z.string().describe('The milestone'),
@@ -34,6 +37,7 @@ export const FORWARDED_PLANNING_TOOLS: ForwardedTool[] = [
   },
   {
     name: 'delete_milestone',
+    area: 'planning',
     description: 'Delete a milestone. Its epics stay, belonging to no milestone.',
     schema: { milestoneId: z.string().describe('The milestone') },
   },

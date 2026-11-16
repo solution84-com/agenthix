@@ -4,7 +4,7 @@
  * is written against these types alone. Nothing outside src/conversations/model/ names a provider's SDK.
  */
 import type { z } from 'zod'
-import type { CapabilityEffectivePermissions, KnowledgeStepView } from '@agenthix/core'
+import type { CapabilityEffectivePermissions, KnowledgeStepView, ToolArea } from '@agenthix/core'
 import type { OrgRole } from '../server/identity/rolePolicy'
 import type { CallCosting } from '../billing/types'
 import type {
@@ -309,8 +309,13 @@ export interface OperationOwner {
  * a control-plane tool that becomes operation-returning in a conversation (run_task, create_task). Looked up
  * before the control plane's tools, by name. It creates and settles its own Operation rows.
  */
+/** What part of the work a tool belongs to (core's `ToolArea`): never sent to the model. */
+export type { ToolArea }
+
 export interface ConversationTool {
   name: string
+  /** Every tool the registry offers has one (work/registry.ts); optional only for the live preview's, given its area there. */
+  area?: ToolArea
   /** The tool's description for this turn: start_work lists the boundaries the person and the agent share. */
   describe(capability: TurnCapability): Promise<string>
   input: z.ZodType

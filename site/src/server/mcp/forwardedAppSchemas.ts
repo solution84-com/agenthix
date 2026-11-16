@@ -22,7 +22,7 @@ export const FORWARDED_APP_TOOLS: ForwardedTool[] = APP_TOOL_DECLARATIONS.map(d 
     ...Object.fromEntries(Object.entries(d.args).map(([k, a]) => [k, argSchema(a)])),
     runId: z.string().optional().describe('Filled in by the site with the run this is called from; leave it out'),
   }
-  return { name: d.name, description: d.description, schema, runIdFromCaller: true as const }
+  return { name: d.name, area: d.area, description: d.description, schema, runIdFromCaller: true as const }
 })
 
 export const APP_TOOL_NAME_SET: ReadonlySet<string> = new Set(FORWARDED_APP_TOOLS.map(t => t.name))

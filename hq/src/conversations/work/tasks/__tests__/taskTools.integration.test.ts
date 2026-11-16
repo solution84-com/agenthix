@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '../../../../test/db'
-import { createUserWithRole } from '../../../../test/factories'
+import { createAgent, createUserWithRole } from '../../../../test/factories'
 
 vi.mock('wasp/server', async () => {
   const { prisma } = await import('../../../../test/db')
@@ -157,12 +157,17 @@ describe('create_task in a turn @SC-969', () => {
     expect(runnerFake.startedTasks).toMatchObject([{ taskId: task.id, startedBy: 'person', personId: w.personId }])
   })
 
-  it('for later: names the column it was put in, and says when no agent is assigned', async () => {
-    const outcome = await createTask({ when: 'later', state: 'TODO' })
-    const note = (outcome as { result: { note: string } }).result.note
-    expect(note).toMatch(/the .+ column/)
-    expect(note).not.toContain('backlog')
-    expect(note).toContain('No agent is assigned')
+  it('for later with no agent named: in the backlog, with no agent, and says so', async () => {
+    const outcome = await createTask({ when: 'later' })
+    expect(outcome).toMatchObject({ status: 'done', result: { note: laterLine(undefined, false) } })
+    const created = (outcome as { result: { taskId: string } }).result.taskId
+    expect(await prisma.task.findUniqueOrThrow({ where: { id: created } })).toMatchObject({ state: 'BACKLOG', assignedAgentId: null })
+  })
+
+  it('takes no planning field: a column or state sent is dropped, and later stays in the backlog', async () => {
+    const outcome = await createTask({ assignedAgentId: w.agentId, when: 'later', state: 'TODO' })
+    const created = (outcome as { result: { taskId: string } }).result.taskId
+    expect(await prisma.task.findUniqueOrThrow({ where: { id: created } })).toMatchObject({ state: 'BACKLOG' })
   })
 
   it('for later: creates the task in the backlog, unqueued, with no operation to follow, and says so', async () => {
@@ -203,9 +208,25 @@ describe('create_task in a turn @SC-969', () => {
     expect(await prisma.task.count({ where: { title: 'Write the release notes' } })).toBe(0)
   })
 
-  it('refuses work for now with no agent to do it', async () => {
-    expect(await createTask({ when: 'now' })).toMatchObject({ status: 'refused', reason: expect.stringMatching(/assignedAgentId/) })
-    expect(await prisma.task.count({ where: { title: 'Write the release notes' } })).toBe(0)
+  it('for now with no agent named: done by the agent the person is talking with (spec decision 7)', async () => {
+    const outcome = await createTask({ when: 'now' })
+    expect(outcome.status).toBe('accepted')
+    const task = await prisma.task.findFirstOrThrow({ where: { title: 'Write the release notes' } })
+    expect(task).toMatchObject({ assignedAgentId: w.capability.agentId, runState: 'RUN_QUEUED' })
+  })
+
+  it('for a time with no agent named: done by the agent the person is talking with', async () => {
+    expect((await createTask({ when: '2099-01-05T09:00:00Z' })).status).toBe('accepted')
+    const task = await prisma.task.findFirstOrThrow({ where: { title: 'Write the release notes' } })
+    expect(task).toMatchObject({ assignedAgentId: w.capability.agentId })
+  })
+
+  it('for now with another agent named: done by that agent', async () => {
+    const other = await createAgent({ name: 'Reviewer' })
+    await prisma.projectAgent.create({ data: { projectId: w.projectId, agentId: other.id } })
+    expect((await createTask({ assignedAgentId: other.id, when: 'now' })).status).toBe('accepted')
+    const task = await prisma.task.findFirstOrThrow({ where: { title: 'Write the release notes' } })
+    expect(task.assignedAgentId).toBe(other.id)
   })
 
   it('takes the project by its key or its name as well as its id', async () => {

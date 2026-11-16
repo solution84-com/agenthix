@@ -31,7 +31,7 @@ export function compactionBlock(segments: readonly OpenedSegment[]): string | nu
   if (!latest) return null
   const parts = [
     '# Earlier in this conversation',
-    'The older part of this conversation was folded into segments; what follows stands in for it. The messages after it are verbatim.',
+    'The older part of this conversation was folded into segments, and what follows stands in for it: what was kept since the beginning, a brief of each older segment with its id and span, and the latest segment in full. Treat it as what was said; the messages after it are verbatim.',
   ]
   const head = ledgerHeadText(latest.ledgerHead)
   if (head) parts.push(`## Kept since the conversation began\n${head}`)

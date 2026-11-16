@@ -13,6 +13,7 @@
 import type { WorkflowToolArg } from '../workflows/agentTools.js'
 import type { AppStatus } from './apps.js'
 import type { ServiceStatus } from './services.js'
+import type { ToolArea } from '../harness/toolAreas.js'
 
 export const START_APP_TOOL = 'start_app'
 export const STOP_APP_TOOL = 'stop_app'
@@ -40,6 +41,7 @@ export type AppToolArg = WorkflowToolArg | { type: 'boolean'; description: strin
 
 export type AppToolDeclaration = {
   name: AppToolName
+  area: ToolArea
   description: string
   args: Record<string, AppToolArg>
   runIdFromCaller: true
@@ -53,14 +55,13 @@ const APP_NAME: WorkflowToolArg = {
 export const APP_TOOL_DECLARATIONS: readonly AppToolDeclaration[] = [
   {
     name: START_APP_TOOL,
+    area: 'apps',
     description:
-      'Start an app, such as a dev server, in this branch\'s live preview, so the person sees it running beside your ' +
-      'conversation. Give the folder it runs in, the command and the port it listens on; an app that listens only on ' +
-      'localhost works. If an app of the same name is running, it is stopped first, and its address stays the same. ' +
-      'Answers once the app is starting; call list_apps to see when it runs, or why it failed. Dependencies are not in ' +
-      'your working folder until you install them: install them first (npm install, for example). If this branch has ' +
-      'no live preview open, it opens one first, for the person you work for, so call it then only when they asked ' +
-      'to see, run or start the app; if opening is refused, it says why and starts nothing.',
+      'Start an app, such as a dev server, in this branch\'s live preview, so the person sees it beside your ' +
+      'conversation: its folder, command and port (localhost is fine). One of the same name is restarted at the same ' +
+      'address. Install its dependencies first. Answers once it is starting; list_apps shows when it runs, or why it ' +
+      'failed. With no live preview open it opens one for the person, so call it then only when they asked to see, ' +
+      'run or start the app.',
     args: {
       name: APP_NAME,
       folder: { type: 'string', maxLength: 1024, description: 'The folder inside your working folder the command runs in, such as web; empty for the working folder itself' },
@@ -71,34 +72,37 @@ export const APP_TOOL_DECLARATIONS: readonly AppToolDeclaration[] = [
   },
   {
     name: STOP_APP_TOOL,
+    area: 'apps',
     description: 'Stop an app you started with start_app. It stays listed, and start_app starts it again at the same address.',
     args: { name: APP_NAME },
     runIdFromCaller: true,
   },
   {
     name: LIST_APPS_TOOL,
+    area: 'apps',
     description:
-      'List the apps in this branch\'s live preview: each one\'s name, folder, command, port, whether it is running, ' +
-      'and the last lines it printed; and the services beside them, with any waiting for the person\'s yes.',
+      'List the apps in this branch\'s live preview (name, folder, command, port, whether it runs, its last lines) ' +
+      'and the services beside them, with any waiting for the person\'s yes.',
     args: {},
     runIdFromCaller: true,
   },
   {
     name: RELOAD_VIEW_TOOL,
+    area: 'apps',
     description:
-      'Reload the live preview the person sees, so they see your latest changes. Use it when they ask ("reload it", ' +
-      '"show me the changes"), and after you commit a change to what the app shows. It takes no arguments.',
+      'Reload the live preview the person sees: when they ask ("reload it", "show me the changes"), and after you ' +
+      'commit a change to what the app shows.',
     args: {},
     runIdFromCaller: true,
   },
   {
     name: SET_AUTO_RELOAD_TOOL,
+    area: 'apps',
     description:
-      'Switch automatic reloading of this branch\'s live preview. By default it reloads by itself each time a ' +
-      'commit reaches your branch. Call it with auto false when the person asks you to stop reloading; changes then wait ' +
-      'for them to press Reload. Call it with auto true when they ask you to go back to reloading.',
+      'Switch automatic reloading of the live preview, which by default reloads each time a commit reaches your ' +
+      'branch: auto false when the person asks you to stop (they then press Reload), true to go back.',
     args: {
-      auto: { type: 'boolean', description: 'true to reload the live preview whenever a commit reaches the branch; false to stop, and let the person reload it' },
+      auto: { type: 'boolean', description: 'true reloads on each commit; false leaves it to the person' },
     },
     runIdFromCaller: true,
   },

@@ -17,6 +17,7 @@ export { KEEP_LISTENING, KEEP_LISTENING_DESCRIPTION, NOT_HELD, canHold, holdReas
 export function createKeepListeningTool(deps: { featureOn(): Promise<boolean> }): ConversationTool {
   return {
     name: KEEP_LISTENING,
+    area: 'conversation',
     input: keepListeningInput,
     describe: async () => KEEP_LISTENING_DESCRIPTION,
     offered: async capability => capability.trigger !== 'REPORT' && (await deps.featureOn()),

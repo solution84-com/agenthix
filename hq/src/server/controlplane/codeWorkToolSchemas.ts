@@ -11,6 +11,7 @@ const RUN_ID = z.string().optional().describe('Filled in by the site with the ru
 
 export const COMMIT_TOOL_SCHEMA: ControlPlaneTool = {
   name: COMMIT_TOOL_DECLARATION.name,
+  area: COMMIT_TOOL_DECLARATION.area,
   description: COMMIT_TOOL_DECLARATION.description,
   schema: {
     message: z.string().trim().min(1).max(COMMIT_TOOL_DECLARATION.args.message.maxLength)
@@ -21,6 +22,7 @@ export const COMMIT_TOOL_SCHEMA: ControlPlaneTool = {
 
 export const MERGE_TOOL_SCHEMA: ControlPlaneTool = {
   name: MERGE_TOOL_DECLARATION.name,
+  area: MERGE_TOOL_DECLARATION.area,
   description: MERGE_TOOL_DECLARATION.description,
   schema: {
     summary: z.string().trim().max(MERGE_TOOL_DECLARATION.args.summary.maxLength).optional()
@@ -31,6 +33,7 @@ export const MERGE_TOOL_SCHEMA: ControlPlaneTool = {
 
 export const UPDATE_TOOL_SCHEMA: ControlPlaneTool = {
   name: UPDATE_TOOL_DECLARATION.name,
+  area: UPDATE_TOOL_DECLARATION.area,
   description: UPDATE_TOOL_DECLARATION.description,
   schema: { runId: RUN_ID },
 }

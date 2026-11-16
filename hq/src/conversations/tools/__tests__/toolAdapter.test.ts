@@ -310,7 +310,7 @@ describe('the tools the lead is given @SC-958', () => {
   it("offer run_task and create_task as the conversation's own, which start work as an operation", async () => {
     const tools = await adapter.toolsFor(capability)
     expect(tools.filter(t => t.name === 'run_task')).toHaveLength(1)
-    expect(tools.find(t => t.name === 'run_task')!.description).toMatch(/returns at once/)
+    expect(tools.find(t => t.name === 'run_task')!.description).toMatch(/do not wait for it/)
     expect(tools.find(t => t.name === 'create_task')!.input.safeParse({ title: 't', projectId: 'p', orgId: 'o' }).success).toBe(false)
   })
 
@@ -348,7 +348,7 @@ describe('the tools the lead is given @SC-958', () => {
 
   it('carry a description and a schema the call is checked against', async () => {
     const getTask = (await adapter.toolsFor(capability)).find(t => t.name === 'get_task_details')!
-    expect(getTask.description).toMatch(/^Get a task's details, its comments and its attachments\. Each attachment has a reference/)
+    expect(getTask.description).toMatch(/^A task with its comments and attachments\. Each attachment has a reference/)
     expect(getTask.input.safeParse({ taskId: 't1' }).success).toBe(true)
     expect(getTask.input.safeParse({}).success).toBe(false)
   })

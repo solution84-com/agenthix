@@ -43,6 +43,7 @@ const refused = (reason: string): ToolCallOutcome => ({ status: 'refused', reaso
 export function createSuggestPlaceTool(deps: SuggestPlaceDeps): ConversationTool {
   return {
     name: SUGGEST_PLACE_TOOL,
+    area: 'conversation',
     input,
     offered: async capability => offeredTo(capability),
     describe: async () => definition.description ?? '',

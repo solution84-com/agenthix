@@ -14,7 +14,7 @@ import { voiceTurnBlock } from '../voiceTurnBlock'
 const OPENING = /begin it with one short sentence saying you will look into what they asked/
 const JUDGING = /First judge whether they have finished their thought/
 const HOLD = /Not finished: call the keep_listening tool with a short reason, and write nothing else\./
-const OLD_RULES = /When the person is listening \(the conversation tells you so\)|:::encouragement/
+const OLD_RULES = /While the person is listening|:::encouragement/
 
 function m(seq: number, text: string, extra: Partial<ConversationMessageView> = {}): ConversationMessageView {
   return {
@@ -37,16 +37,18 @@ function context(input: { flag: boolean; spoken: boolean; listening?: ContextPar
 const turnText = (c: ReturnType<typeof contextFrom>) => (c.messages.at(-1) as { content: string }).content
 
 describe("the lead's base instructions", () => {
-  it('keep the voice rules and the encouragement rule while the flag is off, exactly as before', () => {
-    expect(base()).toMatch(OLD_RULES)
-    expect(base()).toContain('Reply with the line :::encouragement')
-    expect(base().endsWith('say that one sentence and wait.')).toBe(true)
+  it('carry no voice text, flag on or off: a typed turn pays for none of it', () => {
+    for (const featuresOn of [[], ['voiceBridge']] as FeatureFlag[][]) {
+      expect(base(featuresOn)).not.toMatch(OLD_RULES)
+      expect(base(featuresOn)).not.toMatch(/keep_listening|voice conversation/)
+    }
+    expect(base(['voiceBridge'])).toBe(base())
   })
 
-  it('carry no voice text while it is on', () => {
-    expect(base(['voiceBridge'])).not.toMatch(OLD_RULES)
-    expect(base(['voiceBridge'])).not.toMatch(/keep_listening|voice conversation/)
-    expect(base(['voiceBridge'])).toBe(base().slice(0, base().indexOf('\n\nWhen the person is listening')))
+  it('send the voice rules and the encouragement rule with a heard turn while the flag is off', () => {
+    const heard = turnText(context({ flag: false, spoken: true }))
+    expect(heard).toMatch(OLD_RULES)
+    expect(heard).toContain('Reply with the line :::encouragement')
   })
 })
 

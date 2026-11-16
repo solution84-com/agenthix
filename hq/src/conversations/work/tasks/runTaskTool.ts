@@ -28,27 +28,23 @@ export const RUN_TASK = 'run_task'
 export const BRIEF_MAX_CHARS = 8_000
 
 const input = z.object({
-  taskId: z.string().optional().describe("The task to run, by its key (e.g. WAL-2) or its id; in a task's conversation, leave it out to run this conversation's task"),
+  taskId: z.string().optional().describe("The task's key or id; in a task's conversation, leave it out for this conversation's task"),
   brief: z.string().max(BRIEF_MAX_CHARS).optional()
-    .describe("In a task's conversation: what the person asked for, in full, as the run's brief. The run starts from this brief alone."),
+    .describe("In a task's conversation: what the person asked for, in full. The run starts from this brief alone."),
   then: z.string().optional().describe(THEN_DESCRIPTION),
-  model: z.string().max(MODEL_CHOICE_MAX_CHARS).optional().describe("The model the person's own words name for this run, exactly as one of the values listed in this tool's description. Leave out unless they name one: the run then takes the task's own model, else this conversation's."),
+  model: z.string().max(MODEL_CHOICE_MAX_CHARS).optional().describe("Only when the person names a model: one of the values listed in this tool's description."),
 })
 
 export const RUN_TASK_DESCRIPTION =
-  'Start a new run of a task now, as the person you are talking to would press Run. It returns at once: the run ' +
-  'goes on in the background, starting when the task\'s agent is free, and its result comes back to this ' +
-  'conversation when it ends: do not wait for it. When you start it, say in one short line, in the first person ' +
-  'and in the same step as the call, what you are doing. The task needs an agent assigned to it.'
+  'Start a new run of a task now, as the person would press Run. It starts when the task\'s agent is free, and its ' +
+  'result comes back here: do not wait for it. The task needs an agent.'
 
 /** `livePreview`: whether the live preview's flag is on; off, the description says nothing of its app (adr-0172). */
 export function describeRunTask(capability: Pick<TurnCapability, 'home'>, livePreview = false): string {
   if (capability.home !== 'TASK') return RUN_TASK_DESCRIPTION
-  return 'Start work on this conversation\'s task: a new run of it, as the person you are talking to would press ' +
-    'Run, with what they asked for as `brief` — everything the run needs, since it starts from the brief ' +
-    'alone. Leave `taskId` out. It returns at once; the run goes on in the background and its result comes ' +
-    'back here when it ends: do not wait for it. When you start it, say in one short line, in the first person and ' +
-    'in the same step as the call, what you are doing. Use it for anything the task\'s own work does, whatever the ' +
+  return 'Start work on this conversation\'s task: a new run of it, with what the person asked for as `brief`. ' +
+    'Leave `taskId` out. Its result comes back here: do not wait for it. Use it for anything the task\'s own work ' +
+    'does, whatever the ' +
     (livePreview
       ? 'task\'s state, a done task too: changing its code, or starting, changing or reloading its app in the live ' +
         'preview, since its run works on the task\'s branch and has the app tools.'
@@ -97,6 +93,7 @@ async function taskWhere(taskId: string, userId: string) {
 
 export const runTaskTool: ConversationTool = {
   name: RUN_TASK,
+  area: 'tasks',
   input,
   async describe(capability) {
     const described = describeRunTask(capability, capability.home === 'TASK' && (await livePreviewFeatureOn()))

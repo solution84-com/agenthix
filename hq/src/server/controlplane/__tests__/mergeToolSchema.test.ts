@@ -28,7 +28,7 @@ describe("the agent's merge_into_main tool @SC-1681", () => {
   })
 
   it('says to ask at once when the person asked, directly or through a brief, and never otherwise', () => {
-    expect(MERGE_TOOL_DECLARATION.description).toMatch(/as soon as the person asks you to merge into main/)
+    expect(MERGE_TOOL_DECLARATION.description).toMatch(/Call it as soon as they ask/)
     expect(MERGE_TOOL_DECLARATION.description).toMatch(/passed on to you in a brief/)
     expect(MERGE_TOOL_DECLARATION.description).toMatch(/Never call it because the work looks finished and nobody asked/)
   })

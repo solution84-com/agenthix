@@ -88,6 +88,7 @@ describe('the zoom tools @SC-982', () => {
   const capability = { conversationId: 'c1', turnId: 't1', agentId: 'a1', expiresAt: Date.now() + 60_000, trigger: 'MESSAGE' } as TurnCapability
   const deps = (over: Partial<ZoomDeps> = {}): ZoomDeps => ({
     segments: async () => [seg(1), seg(2)],
+    folded: async () => true,
     messagesIn: async () => [msg(10, 'Hello')],
     roomTokens: async () => 150,
     offerNewConversation: vi.fn(async () => {}),
@@ -127,6 +128,15 @@ describe('the zoom tools @SC-982', () => {
     for (const name of ['expand', 'messages', 'offer_new_conversation']) expect(await tool(deps(), name).offered(report)).toBe(false)
     expect(await tool(deps(), 'offer_new_conversation').offered(continuation)).toBe(false)
     expect(await tool(deps(), 'expand').offered(capability)).toBe(true)
+  })
+
+  it('offers expand and messages only once something is folded, and not when that cannot be read', async () => {
+    for (const name of ['expand', 'messages']) {
+      expect(await tool(deps({ folded: async () => false }), name).offered(capability)).toBe(false)
+      expect(await tool(deps({ folded: async () => { throw new Error('no database') } }), name).offered(capability)).toBe(false)
+      expect(await tool(deps(), name).offered(capability)).toBe(true)
+    }
+    expect(await tool(deps({ folded: async () => false }), 'offer_new_conversation').offered(capability)).toBe(true)
   })
 
   it('the offer writes one line about the subject', async () => {

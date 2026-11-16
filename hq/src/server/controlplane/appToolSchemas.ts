@@ -19,7 +19,7 @@ function argSchema(arg: AppToolArg): ZodTypeAny {
 function toolSchema(d: AppToolDeclaration): ControlPlaneTool {
   const schema: Record<string, ZodTypeAny> = { runId: RUN_ID }
   for (const [name, arg] of Object.entries(d.args)) schema[name] = argSchema(arg)
-  return { name: d.name, description: d.description, schema }
+  return { name: d.name, area: d.area, description: d.description, schema }
 }
 
 export const APP_TOOL_SCHEMAS: ControlPlaneTool[] = APP_TOOL_DECLARATIONS.map(toolSchema)

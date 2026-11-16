@@ -4,7 +4,7 @@
  * FORWARDED_TOOLS. Each acts for the calling run, whose id the site fills in; no tool approves or switches.
  */
 import { z, type ZodRawShape, type ZodTypeAny } from 'zod'
-import { WORKFLOW_TOOL_DECLARATIONS, type WorkflowToolArg } from '@agenthix/core'
+import { WORKFLOW_TOOL_DECLARATIONS, type ToolArea, type WorkflowToolArg } from '@agenthix/core'
 import type { ForwardedTool } from './forwardedToolSchemas'
 
 function argSchema(arg: WorkflowToolArg): ZodTypeAny {
@@ -16,12 +16,12 @@ function argSchema(arg: WorkflowToolArg): ZodTypeAny {
 }
 
 /** A forwarded tool from a declaration in core's shape (the workflow tools, `propose_skill`). */
-export function forwardedFromDeclaration(d: { name: string; description: string; args: Record<string, WorkflowToolArg> }): ForwardedTool {
+export function forwardedFromDeclaration(d: { name: string; area: ToolArea; description: string; args: Record<string, WorkflowToolArg> }): ForwardedTool {
   const schema: ZodRawShape = {
     ...Object.fromEntries(Object.entries(d.args).map(([k, a]) => [k, argSchema(a)])),
     runId: z.string().optional().describe('Filled in by the site with the run this is called from; leave it out'),
   }
-  return { name: d.name, description: d.description, schema, runIdFromCaller: true as const }
+  return { name: d.name, area: d.area, description: d.description, schema, runIdFromCaller: true as const }
 }
 
 export const FORWARDED_WORKFLOW_TOOLS: ForwardedTool[] = WORKFLOW_TOOL_DECLARATIONS.map(forwardedFromDeclaration)

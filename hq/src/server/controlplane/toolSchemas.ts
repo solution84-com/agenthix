@@ -25,6 +25,7 @@
  * same class of issue otherwise.
  */
 import { z, type ZodRawShape } from 'zod'
+import type { ToolArea } from '@agenthix/core'
 import { CODE_WORK_TOOL_SCHEMAS } from './codeWorkToolSchemas'
 import { APP_TOOL_SCHEMAS } from './appToolSchemas'
 import { PLANNING_TOOLS } from './planningToolSchemas'
@@ -36,123 +37,133 @@ import { MEMORY_BODY_MAX_CHARS, MEMORY_MAX_TAGS, MEMORY_TITLE_MAX_CHARS } from '
 
 export interface ControlPlaneTool {
   name: string
+  /** What the tool is about, for the tool search; never sent to the model as part of the tool. */
+  area: ToolArea
   description?: string
   schema: ZodRawShape
 }
 
+const TASK_KEY = 'Its key (e.g. WAL-2) or id'
+
 export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   // ── Org ─────────────────────────────────────────────────────────────────
-  { name: 'get_org', schema: {} },
+  { name: 'get_org', area: 'organisation', schema: {} },
   {
     name: 'update_org',
+    area: 'organisation',
     schema: {
       name: z.string().optional(),
       vision: z.string().optional(),
       mission: z.string().optional(),
     },
   },
-  { name: 'list_agents', schema: {} },
+  { name: 'list_agents', area: 'organisation', description: 'List the organisation\'s agents, with their ids.', schema: {} },
   {
     name: 'list_teams',
+    area: 'organisation',
     schema: { includeDisabled: z.boolean().optional() },
   },
-  { name: 'list_projects', schema: {} },
+  { name: 'list_projects', area: 'organisation', schema: {} },
   {
     name: 'fetch_my_queued_tasks',
+    area: 'tasks',
     schema: { agentId: z.string().describe('The agent ID to fetch queued tasks for') },
   },
   {
     name: 'get_task_details',
+    area: 'tasks',
     description:
-      "Get a task's details, its comments and its attachments. Each attachment has a reference " +
-      '(attachments/WAL-2/notes.md): to show a person the file, write that reference in your reply, as it is.',
-    schema: { taskId: z.string().describe('The task to retrieve: its key (e.g. WAL-2) or its ID') },
+      'A task with its comments and attachments. Each attachment has a reference (attachments/WAL-2/notes.md) that ' +
+      'shows the file when written in a reply as it is.',
+    schema: { taskId: z.string().describe(TASK_KEY) },
   },
   {
     name: 'archive_task',
-    schema: { taskId: z.string().describe('The task to archive: its key (e.g. WAL-2) or its ID') },
+    area: 'tasks',
+    schema: { taskId: z.string().describe(TASK_KEY) },
   },
   {
     name: 'delete_task',
-    schema: { taskId: z.string().describe('The task to permanently delete: its key (e.g. WAL-2) or its ID') },
+    area: 'tasks',
+    schema: { taskId: z.string().describe(TASK_KEY) },
   },
   {
     name: 'tick_subtask',
+    area: 'tasks',
     schema: {
-      taskId: z.string().describe('The task containing the subtask: its key (e.g. WAL-2) or its ID'),
+      taskId: z.string().describe(TASK_KEY),
       subtaskTitle: z.string().describe('Exact title of the subtask to update'),
       done: z.boolean().describe('Whether the subtask is complete'),
     },
   },
   {
     name: 'set_task_schedule',
+    area: 'tasks',
     description:
-      'Set or clear the time a task starts, once: at that time it starts as if a person pressed Run, joining its ' +
-      'agent\'s line. Setting a time starts nothing now. Only when the person you are working for asked you to: ' +
-      'refused in a run no person started (a routine\'s scheduled run, a start time\'s, or one an agent started), ' +
-      'through a connection without its Start work permission, unless the project lets agents set schedules, and for ' +
-      'an epic, which is never run. For work that repeats, create a routine instead. Times are read in the timezone of ' +
-      'the person you are working for unless you name a `timezone`; the result says which was used.',
+      'Set or clear the one time a task starts: then it starts as if a person pressed Run, joining its agent\'s ' +
+      'line; nothing starts now. A project can let agents set schedules without being asked. Refused for an epic. ' +
+      'For work that repeats, use a routine.',
     schema: {
-      taskId: z.string().describe('The task to schedule: its key (e.g. WAL-2) or its ID'),
-      at: z.string().optional().describe(
-        'ISO 8601 time the task starts. With no offset (2026-10-05T09:00) it is the wall-clock time in `timezone`, which is the person you are working for\'s own timezone unless you name one; with an offset, that offset is used.',
-      ),
-      timezone: z.string().optional().describe('IANA timezone an offset-less `at` is read in, e.g. Australia/Sydney. Omit it to use the person you are working for\'s (UTC only if they have none).'),
-      clear: z.boolean().optional().describe('true removes the task\'s start time'),
+      taskId: z.string().describe(TASK_KEY),
+      at: z.string().optional().describe('ISO 8601 time it starts. Without an offset (2026-10-05T09:00) it is read in timezone'),
+      timezone: z.string().optional().describe('IANA timezone, e.g. Australia/Sydney. Default: the person\'s you work for, else UTC; the answer says which'),
+      clear: z.boolean().optional().describe('true removes its start time'),
     },
   },
   {
     name: 'attach_file',
+    area: 'tasks',
     description:
-      'Attach a file to a task. Answers with its reference (attachments/WAL-2/notes.md): to show a person the file, ' +
-      'write that reference in your reply, as it is.',
+      'Attach a file to a task. Answers with its reference (attachments/WAL-2/notes.md), which shows the file when ' +
+      'written in a reply as it is.',
     schema: {
-      agentId: z.string().optional().describe("Deprecated — no longer used"),
-      taskId: z.string().describe('The task to attach the file to: its key (e.g. WAL-2) or its ID'),
-      name: z.string().describe('Display name (e.g. "Auth Design Notes")'),
-      filename: z.string().describe('Filename to create (e.g. "auth-design.md")'),
-      content: z.string().describe('Full file content to write'),
-      label: z.string().optional().describe('Optional label for the attachment (e.g. "application", "draft-selections")'),
+      taskId: z.string().describe(TASK_KEY),
+      name: z.string().describe('Its display name, e.g. "Auth design notes"'),
+      filename: z.string().describe('Its file name, e.g. auth-design.md'),
+      content: z.string().describe('The file\'s full content'),
+      label: z.string().optional().describe('A label, e.g. draft'),
     },
   },
   {
     name: 'create_agent',
+    area: 'organisation',
     schema: {
-      name: z.string().describe('Display name for the agent'),
-      role: z.string().describe('The role this agent fulfills'),
-      responsibilities: z.string().describe('Description of agent responsibilities'),
-      handle: z.string().optional().describe('Unique handle (auto-generated if omitted)'),
-      createdBy: z.string().optional().describe('User or agent ID that created this agent'),
+      name: z.string().describe('Its display name'),
+      role: z.string().describe('Its role'),
+      responsibilities: z.string().describe('What it is responsible for'),
+      handle: z.string().optional().describe('A unique handle, made from the name when left out'),
+      createdBy: z.string().optional().describe('Who made it, by id'),
     },
   },
   {
     name: 'generate_agent_picture',
+    area: 'organisation',
     description:
-      "Make an agent's avatar or cover. Without a recipe it draws a fresh random one; with one — " +
-      '{ v: 1, kind, style, styleVersion, choices }, as an agent\'s picture recipe is stored — it checks it and draws ' +
-      'that. Answers with the new picture\'s url and the recipe it was drawn from.',
+      "Draw an agent's avatar or cover: a random one, or the recipe given ({ v: 1, kind, style, styleVersion, " +
+      'choices }, as a picture recipe is stored). Answers the picture\'s url and its recipe.',
     schema: {
-      agentId: z.string().describe('ID of the agent whose picture to make'),
-      imageType: z.enum(['avatar', 'cover']).describe('Which picture to make'),
-      recipe: z.record(z.string(), z.unknown()).optional().describe('The picture recipe to draw; leave it out for a random one'),
+      agentId: z.string().describe('The agent, by id'),
+      imageType: z.enum(['avatar', 'cover']).describe('Which picture'),
+      recipe: z.record(z.string(), z.unknown()).optional().describe('The recipe to draw; leave it out for a random one'),
     },
   },
   {
     name: 'create_team',
+    area: 'organisation',
     schema: {
-      name: z.string().describe('Team name'),
-      purpose: z.string().describe('Purpose or mission of the team'),
-      agentIds: z.array(z.string()).describe('List of agent IDs to include in this team'),
-      createdBy: z.string().optional().describe('Agent or user ID creating the team'),
+      name: z.string().describe('Its name'),
+      purpose: z.string().describe('Its purpose'),
+      agentIds: z.array(z.string()).describe('Its agents, by id'),
+      createdBy: z.string().optional().describe('Who made it, by id'),
     },
   },
   {
     name: 'create_project',
+    area: 'organisation',
     schema: {
-      name: z.string().describe('Project name'),
-      description: z.string().optional().describe('Project description'),
-      defaultAgentId: z.string().optional().describe('Default agent ID for tasks in this project'),
+      name: z.string().describe('Its name'),
+      description: z.string().optional().describe('What it is'),
+      defaultAgentId: z.string().optional().describe('The agent its tasks get by default, by id'),
       createdBy: z.string().optional(),
     },
   },
@@ -161,54 +172,55 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   ...TASK_TOOLS,
   {
     name: 'add_comment',
+    area: 'tasks',
+    description: 'Comment on a task, for the people and agents working on it.',
     schema: {
-      taskId: z.string().describe('The task to comment on: its key (e.g. WAL-2) or its ID'),
-      agentId: z.string().optional().describe('Not used: a comment is posted as the person who made the connection'),
-      runId: z.string().optional().describe('The run ID this comment belongs to (optional)'),
-      content: z.string().describe('Comment text — progress update or result summary'),
+      taskId: z.string().describe(TASK_KEY),
+      runId: z.string().optional().describe('The run it belongs to'),
+      content: z.string().describe('The comment'),
     },
   },
 
   // ── Run visibility (person-scoped execution spec §3, ADR-0077) ────────────
   {
     name: 'list_active_runs',
+    area: 'run',
     description:
-      'See what is running right now in your own boundary — the same project, or your own storage — ' +
-      'before starting work that might collide with it. Shows each run\'s agent, who or what started it, ' +
-      'where it is working, and since when. Never a run\'s content: no message text, no task/session title.',
+      'What is running now in your own boundary (this project, or your own storage), to check before starting work ' +
+      'that might collide: each run\'s agent, who started it, where and since when. Never what a run says.',
     schema: {},
   },
 
   // ── Product ─────────────────────────────────────────────────────────────
   {
     name: 'list_products',
-    description: 'List all products of the organisation, including name, slug, description, vision, and status.',
-    schema: {
-      agentId: z.string().optional().describe(
-        'Not used: every product is listed, whoever calls. Kept so older callers that pass it are not refused.'
-      ),
-    },
+    area: 'organisation',
+    description: 'The organisation\'s products, with their ids.',
+    schema: {},
   },
   {
     name: 'get_product',
-    description: 'Get full details of a product by ID, including its projects and members.',
-    schema: { productId: z.string().describe('ID of the product') },
+    area: 'organisation',
+    description: 'A product, with its projects and members.',
+    schema: { productId: z.string().describe('The product, by id') },
   },
   {
     name: 'create_product',
-    description: 'Create a new product. The slug must be unique and URL-safe (lowercase, hyphens).',
+    area: 'organisation',
+    description: 'Create a product. Its slug is unique: lowercase letters and hyphens.',
     schema: {
-      name:        z.string().describe('Display name'),
-      slug:        z.string().describe('Unique URL-safe identifier (lowercase, hyphens)'),
-      description: z.string().optional().describe('Short description'),
-      vision:      z.string().optional().describe('Product vision statement'),
+      name:        z.string().describe('Its name'),
+      slug:        z.string().describe('Its unique slug, e.g. web-shop'),
+      description: z.string().optional().describe('What it is'),
+      vision:      z.string().optional().describe('Its vision'),
     },
   },
   {
     name: 'update_product',
-    description: 'Update a product\'s name, slug, description, vision, or status.',
+    area: 'organisation',
+    description: 'Change a product\'s name, slug, description, vision or status.',
     schema: {
-      productId:   z.string().describe('ID of the product to update'),
+      productId:   z.string().describe('The product, by id'),
       name:        z.string().optional(),
       slug:        z.string().optional(),
       description: z.string().nullable().optional(),
@@ -218,12 +230,14 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
   },
   {
     name: 'delete_product',
-    description: 'Permanently delete a product. Projects are unlinked, not deleted. This cannot be undone.',
-    schema: { productId: z.string().describe('ID of the product to delete') },
+    area: 'organisation',
+    description: 'Delete a product for good. Its projects stay, in no product.',
+    schema: { productId: z.string().describe('The product, by id') },
   },
   {
     name: 'get_github_config',
-    description: 'Check whether the site GitHub App is registered. Returns { configured: true, slug } if set up, { configured: false } if not.',
+    area: 'organisation',
+    description: 'Whether the site\'s GitHub App is set up: { configured, slug }.',
     schema: {},
   },
 ]
@@ -235,12 +249,13 @@ export const CONTROL_PLANE_TOOLS: ControlPlaneTool[] = [
 // dataApi.ts validates against, so these still get boundary validation on
 // the HTTP path exactly like every other registry operation.
 export const WORKFORCE_TOOLS: ControlPlaneTool[] = [
-  { name: 'list_workforce_templates', schema: {} },
+  { name: 'list_workforce_templates', area: 'organisation', schema: {} },
   {
     name: 'propose_workforce_template',
+    area: 'organisation',
     schema: {
-      templateId: z.string().describe('Workforce template to propose: the id list_workforce_templates gives (e.g. "agenthix/dev-team")'),
-      reason: z.string().describe('Why you are proposing this template — shown to the user on the review page'),
+      templateId: z.string().describe('The template, by the id list_workforce_templates gives (e.g. "agenthix/dev-team")'),
+      reason: z.string().describe('Why, for the person who reviews it'),
     },
   },
 ]
@@ -258,10 +273,10 @@ export const WORKFORCE_TOOLS: ControlPlaneTool[] = [
 export const DATA_PATH_ONLY_TOOLS: ControlPlaneTool[] = [
   {
     name: 'set_result',
+    area: 'run',
     description:
-      'State the result of this run, at its end: what it achieved, in a few sentences a person can take in at a glance. ' +
-      'It is recorded on the run and, in a task, as the task\'s result; a later call replaces it. Comments are for ' +
-      'working with others, not for the result.',
+      'State what this run achieved, at its end, in a few sentences a person takes in at a glance. It is recorded on ' +
+      'the run and its task; a later call replaces it.',
     schema: {
       result: z.string().min(1).max(4000).describe('What this run achieved, in plain words'),
       runId: z.string().optional().describe('Filled in by the site with the run this is called from; leave it out'),
@@ -269,41 +284,36 @@ export const DATA_PATH_ONLY_TOOLS: ControlPlaneTool[] = [
   },
   {
     name: 'remember',
+    area: 'memory',
     description:
-      'Remember one thing you learned about the person you work for, so it can be recalled later by meaning. It is ' +
-      'kept for them, for you, and for the place you work in; only they can widen it. It must stand alone: a title ' +
-      'that names its subject and a body that makes sense months from now without this conversation — not a ' +
-      'document, at most 1500 characters. Kind "rule" is how the person wants things done ("always", "whenever", ' +
-      '"I prefer", "don\'t"), and its body says when it applies as well as what to do; anything else is a "fact". ' +
-      'Set requested when the person asked you to remember it or corrected you. What is true of a place belongs in ' +
-      'its Knowledge, not here. Writing to an existing key replaces that item; one very like an item already held ' +
-      'updates it instead of adding another.',
+      'Remember one thing about the person you work for, to be recalled later by meaning. It must stand alone: a ' +
+      'title naming its subject and a body that makes sense months from now, not a document. A "rule" is how they ' +
+      'want things done, and says when it applies; anything else is a "fact". What is true of a place belongs in its ' +
+      'Knowledge. Writing to a key, or an item very like one held, updates it.',
     schema: {
       title: z.string().min(1).max(MEMORY_TITLE_MAX_CHARS).describe('A short title naming the subject'),
       body: z.string().min(1).max(MEMORY_BODY_MAX_CHARS).describe('What you learned, readable on its own'),
-      kind: z.enum(['fact', 'rule', 'preference', 'decision', 'feedback', 'project'])
-        .describe('"rule" for how the person wants things done, "fact" for anything else; the other values are deprecated'),
+      kind: z.enum(['fact', 'rule']).optional().describe('"rule" or "fact" (the default)'),
       tags: z.array(z.string()).max(MEMORY_MAX_TAGS).optional().describe('A few words to group it by'),
-      key: z.string().max(64).optional().describe('The key of an item to replace; made from the title when left out'),
-      requested: z.boolean().optional().describe('True when the person asked you to remember this, or corrected you'),
-      scope: z.enum(['person', 'agent_person', 'agent_place']).optional().describe('Deprecated and ignored: memory is kept for the person, you and this place'),
+      key: z.string().max(64).optional().describe('The key of an item to replace'),
+      requested: z.boolean().optional().describe('true when the person asked you to remember it, or corrected you'),
     },
   },
   {
     name: 'forget',
+    area: 'memory',
     description: 'Forget one remembered item that is no longer true, by its key as recall shows it.',
     schema: {
       key: z.string().min(1).describe('The item\'s key'),
-      scope: z.enum(['person', 'agent_person', 'agent_place']).optional().describe('Deprecated and ignored'),
     },
   },
   {
     name: 'recall',
+    area: 'memory',
     description:
-      'Look up what has been remembered about the person you work for: by key, for one item you were told of; by ' +
-      'query — a few words of what you need — for the items nearest in meaning; or by kind and tags alone, for ' +
-      'every rule, or everything tagged with a word. Kind and tags also narrow a query. Each item comes with its ' +
-      'key and kind; what did not fit is named in cut.',
+      'Look up what is remembered about the person you work for: by key; by query, for the items nearest in meaning; ' +
+      'or by kind and tags alone, which also narrow a query. Each item comes with its key and kind; what did not fit ' +
+      'is named in cut.',
     schema: {
       key: z.string().min(1).optional().describe('One item\'s key'),
       query: z.string().min(1).max(500).optional().describe('What you are looking for, in a few words'),

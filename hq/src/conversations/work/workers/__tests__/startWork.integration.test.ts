@@ -45,7 +45,6 @@ describe('start_work is offered @SC-960', () => {
     const description = await tool.describe(w.capability)
     expect(description).toContain("- personal: the person's own space")
     expect(description).toContain(`- ${w.project.key}: the Shop project`)
-    expect(description).toMatch(/ask which/)
   })
 
   it("listing apart the projects the person works in that the agent isn't assigned to", async () => {

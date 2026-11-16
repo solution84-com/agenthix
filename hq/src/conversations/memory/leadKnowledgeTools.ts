@@ -60,6 +60,7 @@ export function createLeadKnowledgeTools(deps: LeadKnowledgeDeps): ConversationT
   }
   return KNOWLEDGE_TOOLS.map(({ name, description, schema }): ConversationTool => ({
     name,
+    area: 'knowledge',
     input: z.object(schema),
     offered: async capability => offeredTo(capability, name),
     describe: async () => description ?? '',

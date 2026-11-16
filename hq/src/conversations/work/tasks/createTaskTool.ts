@@ -39,27 +39,28 @@ export const NO_THEN_AT_A_TIME =
 
 export const CREATE_TASK = 'create_task'
 
-// create_task's own fields; whether it runs is what `when` says, so its `queue` is not offered here.
-// workspaceId is asked for on every call, null allowed, so a model decides it rather than leaving it out; a call
-// without it reads as null, and null as no workspace.
-const { workspaceId: _workspaceId, queue: _queue, ...fields } = CONTROL_PLANE_TOOLS.find(t => t.name === CREATE_TASK)!.schema
+// The lean create_task (lean agent context spec, §2): the fields a conversation sets, picked from the control plane's;
+// type, column, sprint and the other planning fields are plan_task's. Whether it runs is what `when` says, so `queue`
+// is not offered. workspaceId is asked for on every call, null allowed, so a model decides it rather than leaving it
+// out; a call without it reads as null, and null as no workspace.
+const { title, description, assignedAgentId } = CONTROL_PLANE_TOOLS.find(t => t.name === CREATE_TASK)!.schema
 const input = z.object({
-  ...fields,
-  projectId: z.string().describe("The project this task belongs to: its key (the letters before a task's number), its name, or its id"),
+  projectId: z.string().describe("The project: its key, name or id"),
+  title: title!,
+  description: description!,
+  assignedAgentId: assignedAgentId!,
   workspaceId: z.preprocess(v => v ?? null, z.string().nullable()).describe(
-    'The workspace the task works in: the workspaceId of a code workspace for work that changes its code, or null for work in the project\'s files',
+    'A code workspace\'s workspaceId for work that changes its code, or null for the project\'s files',
   ),
   when: z.string().describe(WHEN_DESCRIPTION),
-  timezone: z.string().optional().describe('IANA timezone an offset-less `when` time is read in; omit it for the person\'s own'),
+  timezone: z.string().optional().describe('IANA timezone an offset-less `when` is read in; omit for the person\'s own'),
   then: z.string().optional().describe(THEN_DESCRIPTION),
-  model: z.string().max(MODEL_CHOICE_MAX_CHARS).optional().describe("The model the person's own words name for this task, exactly as one of the values listed in this tool's description. Leave out unless they name one: the task then keeps this conversation's model."),
+  model: z.string().max(MODEL_CHOICE_MAX_CHARS).optional().describe("Only when the person names a model: one of the values listed in this tool's description."),
 })
 /** The fields this tool reads itself; the rest go to create_task as they came, validated by its own schema. */
 type Args = Record<string, unknown> & {
   title: string
   projectId: string
-  columnId?: string
-  state?: string
   assignedAgentId?: string
   when: string
   timezone?: string
@@ -69,12 +70,15 @@ type Args = Record<string, unknown> & {
 type Person = TurnCapability & { actingUserId: string }
 
 export const CREATE_TASK_DESCRIPTION =
-  'Create a task in a project, for now, for later, or for a time. For now, the work then goes on in the background ' +
-  'and its first run\'s result comes back to this conversation, so do not wait for it. When you start it, say in ' +
-  'one short line, in the first person and in the same step as the call, what you are doing: "I\'ve started WAL-5 ' +
-  'Tidy the backlog." For a time, setting it is the whole of it: its runs are the project\'s own, seen on its ' +
-  'board, and nothing comes back here. Say when it starts: "I\'ve set Morning check to start tomorrow at 9:00." ' +
-  'Later runs of the task are the project\'s own.'
+  'Create a task in a project. "now" starts it: its result comes back here, so do not wait for it. "later" leaves ' +
+  'it in the backlog. A time starts it then, and nothing comes back here: say when it starts. With no agent named, ' +
+  'you do it.'
+
+/** Who does a task: the agent named, else, for now or a time, the agent the person is talking with (spec decision 7). */
+export function agentFor(when: TaskWhen, named: string | undefined, talkingWith: string): string | undefined {
+  if (named) return named
+  return when.kind === 'later' ? undefined : talkingWith
+}
 
 /** The project's id, from its id, key or name as the lead passed it, or why the words name no one project. */
 export async function projectIdFor(personId: string, words: string): Promise<{ projectId: string } | { refusal: string }> {
@@ -101,17 +105,16 @@ async function startTimeOf(when: Extract<TaskWhen, { kind: 'at' }>, timezone: st
 type Created = { taskId: string; task: { state: string; column: string | null }; note?: string }
 
 /**
- * `placed`: where work asked for now goes when the lead names no column or state: To do, decided to be done. The task
- * keeps the model the person named, else this conversation's (taskModel.ts); a named one that may not run there is
- * refused before anything is created.
+ * `placed`: where work asked for now or at a time goes: To do, decided to be done. The task keeps the model the person
+ * named, else this conversation's (taskModel.ts); a named one that may not run there is refused before anything is
+ * created.
  */
 async function createIt(capability: Person, args: Args, placed?: { state: string }) {
   const { when: _w, timezone: _tz, then: _then, model: named, ...taskFields } = args
   const modelChoice = await modelForCreatedTask({
     named, conversationId: capability.conversationId, projectId: args.projectId, agentId: args.assignedAgentId, userId: capability.actingUserId,
   })
-  const placedBy = args.columnId !== undefined || args.state !== undefined
-  const created = await callOperation(CREATE_TASK, { kind: 'turn', turn: capability }, { ...taskFields, ...(!placedBy && placed ? placed : {}) }) as Created
+  const created = await callOperation(CREATE_TASK, { kind: 'turn', turn: capability }, { ...taskFields, ...(placed ?? {}) }) as Created
   if (modelChoice) await prisma.task.update({ where: { id: created.taskId }, data: { modelChoice } })
   return created
 }
@@ -143,16 +146,16 @@ export async function createTaskCall(capability: TurnCapability, raw: unknown): 
   if ('refusal' in project) return { status: 'refused', reason: project.refusal }
   // The shared schema is untyped (ZodRawShape); its own fields are checked by the parse above. No workspace is no field.
   const { workspaceId, ...rest } = parsed.data
-  const args = { ...rest, ...(workspaceId ? { workspaceId } : {}), projectId: project.projectId } as Args
+  const when = readWhen(rest.when)
+  const agent = agentFor(when, typeof rest.assignedAgentId === 'string' ? rest.assignedAgentId : undefined, capability.agentId)
+  const args = { ...rest, ...(workspaceId ? { workspaceId } : {}), ...(agent ? { assignedAgentId: agent } : {}), projectId: project.projectId } as Args
   const turn: Person = { ...capability, actingUserId: person }
-  const when = readWhen(args.when)
   const { then, ...asked } = args
   const key = idempotencyKey(CREATE_TASK, asked)
   const pending = await pendingWithKey(capability.conversationId, key)
   if (pending) return { status: 'accepted', operationId: pending }
 
   if (when.kind === 'later') return later(turn, args, key)
-  if (!args.assignedAgentId) return { status: 'refused', reason: 'Work to do now or at a time needs an agent to do it: name assignedAgentId' }
   await requireProjectEntitlement({ kind: 'turn', turn }, args.projectId, CREATE_TASK, 'work')
   const continuation = continuationFor(capability, then)
 
@@ -177,6 +180,7 @@ export async function createTaskCall(capability: TurnCapability, raw: unknown): 
 
 export const createTaskTool: ConversationTool = {
   name: CREATE_TASK,
+  area: 'tasks',
   input,
   async describe(capability) {
     // The places' workspaces, and which are code workspaces (live preview spec, part 2).

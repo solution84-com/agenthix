@@ -9,6 +9,7 @@
  * `On-behalf-of:` line.
  */
 import type { CommitId } from '../protocol/branchWork.js'
+import type { ToolArea } from '../harness/toolAreas.js'
 
 export const COMMIT_TOOL_NAME = 'commit'
 
@@ -22,6 +23,7 @@ export const COMMIT_RELOAD_NOTE =
 
 export type CommitToolDeclaration = {
   name: typeof COMMIT_TOOL_NAME
+  area: ToolArea
   description: string
   args: { message: { type: 'string'; description: string; maxLength: number } }
   runIdFromCaller: true
@@ -29,11 +31,10 @@ export type CommitToolDeclaration = {
 
 export const COMMIT_TOOL_DECLARATION: CommitToolDeclaration = {
   name: COMMIT_TOOL_NAME,
+  area: 'code',
   description:
     'Commit everything you changed in your working folder to your branch, with a message saying what changed and ' +
-    'why. The commit goes straight back to the workspace\'s repository, where the person sees it. Commit each time ' +
-    'a piece of the work is done and works. You can also use git yourself in your working folder; you never commit ' +
-    'to main: a person merges your branch into main.',
+    'why. It goes straight back to the workspace\'s repository, where the person sees it.',
   args: {
     message: {
       type: 'string',
