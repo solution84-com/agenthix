@@ -6,7 +6,7 @@ const npm = { moves: [{ module: 'site', name: 'zod', from: '4.1.0', to: '4.1.5' 
 const images = [{ module: 'hq', name: 'caddy', from: '2-alpine@eb4d35b7452d', to: '2-alpine@003a97808e78' }, { module: 'Node', name: 'Node.js', from: '24.14.1', to: '24.22.3' }]
 const actions = [{ module: 'actions', name: 'docker/login-action', from: 'v4.6.0', to: 'v4.8.0' }]
 
-test('the record holds the date, the month and what moved, by module @SC-2161', () => {
+test('the record holds the date, the month and what moved, by module @SC-2161 @SC-2166', () => {
   assert.deepEqual(taken('2026-12-01', '2026-12', npm, images, actions), {
     date: '2026-12-01',
     month: '2026-12',

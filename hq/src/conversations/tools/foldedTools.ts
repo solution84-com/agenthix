@@ -73,15 +73,27 @@ export async function findTools(input: unknown, folded: readonly OfferedTool[], 
 /** A call as it runs: a use_tool call is the call of the tool it names, marked as having come through use_tool. */
 export interface ReadToolCall extends LeadToolCall { via?: typeof USE_TOOL }
 
+/** The input as an object: one sent as an object, or as JSON text for one, as the site reads it; no input is none. */
+function recordOf(input: unknown): Record<string, unknown> | null {
+  if (input === undefined || input === null) return {}
+  let value = input
+  if (typeof input === 'string') {
+    try { value = JSON.parse(input) } catch { return null }
+  }
+  return value && typeof value === 'object' && !Array.isArray(value) ? { ...(value as Record<string, unknown>) } : null
+}
+
 /**
  * A use_tool call as the call of the tool it names; any other call as it is. A `reason` given beside `input`, rather
- * than in it, goes in it: the tool at Ask reads it there.
+ * than in it, goes in it: the tool at Ask reads it there. Input that is no object is kept as sent, so the tool's own
+ * check refuses it rather than the tool running on {}.
  */
 export function unwrapUseTool(call: LeadToolCall): ReadToolCall {
   if (call.name !== USE_TOOL || !call.input || typeof call.input !== 'object') return call
   const { name, input, reason } = call.input as { name?: unknown; input?: unknown; reason?: unknown }
   if (typeof name !== 'string' || name.trim() === '') return call
-  const inner = input && typeof input === 'object' && !Array.isArray(input) ? { ...(input as Record<string, unknown>) } : {}
+  const inner = recordOf(input)
+  if (!inner) return { id: call.id, name: name.trim(), input, via: USE_TOOL }
   if (typeof reason === 'string' && inner.reason === undefined) inner.reason = reason
   return { id: call.id, name: name.trim(), input: inner, via: USE_TOOL }
 }
