@@ -34,7 +34,7 @@ import type { WorkerArgs } from '../runReads'
 import { createStartWorkTool } from '../startWork'
 import { dispatchAccepted, pump } from '../queue'
 import { handleWorkerRunStatus } from '../runEvents'
-import { NEVER_ABORTED, briefOf, world, type World } from './workerFixtures'
+import { NEVER_ABORTED, world, type World } from './workerFixtures'
 
 let w: World
 const tool = createStartWorkTool({ moveOn: () => {} })
@@ -58,8 +58,7 @@ describe("one standing worker's briefs @SC-960", () => {
     const first = await brief('First')
     const second = await brief('Second')
     await pump(first.workerSessionId!)
-    expect(dispatch.dispatchedChatRuns.map(r => briefOf(r.inputText))).toEqual(['First'])
-    expect(dispatch.dispatchedChatRuns[0].inputText).toMatch(/^You are Developer, working in the background on something .+ asked you for in your conversation with\s+them, in the Shop project\./)
+    expect(dispatch.dispatchedChatRuns.map(r => r.inputText)).toEqual(['First'])
     expect(await prisma.operation.findUniqueOrThrow({ where: { id: first.id } })).toMatchObject({ state: 'RUNNING', siteId: 'site-1', runId: 'run-1' })
     expect(await state(second.id)).toBe('QUEUED')
 
@@ -68,7 +67,7 @@ describe("one standing worker's briefs @SC-960", () => {
 
     await handleWorkerRunStatus(frame('run-1', 'COMPLETED'), 'site-1', id => pump(id!))
     expect(await state(first.id)).toBe('COMPLETED')
-    expect(dispatch.dispatchedChatRuns.map(r => briefOf(r.inputText))).toEqual(['First', 'Second'])
+    expect(dispatch.dispatchedChatRuns.map(r => r.inputText)).toEqual(['First', 'Second'])
     expect(await prisma.operation.findUniqueOrThrow({ where: { id: second.id } })).toMatchObject({ state: 'RUNNING', runId: 'run-2' })
   })
 
@@ -77,7 +76,7 @@ describe("one standing worker's briefs @SC-960", () => {
     await pump(op.workerSessionId!)
     const [sessionId, input, agent, , opts] = dispatch.dispatchChatRun.mock.calls[0]
     expect(sessionId).toBe(op.workerSessionId)
-    expect(briefOf(input)).toBe('Check the README')
+    expect(input).toBe('Check the README')
     expect(agent.id).toBe(w.agent.id)
     expect(opts).toEqual({ hideUserMessage: false, senderId: w.person.id, choice: expect.objectContaining({ runtime: expect.any(String) }) })
   })
@@ -170,7 +169,7 @@ describe("two people's briefs to one boundary @SC-960", () => {
     const theirs = await prisma.operation.findUniqueOrThrow({ where: { id: (outcome as { operationId: string }).operationId } })
     await pump(mine.workerSessionId!)
     await pump(theirs.workerSessionId!)
-    const sent = dispatch.dispatchChatRun.mock.calls.map(([sessionId, input, , , opts]) => [sessionId, briefOf(input), opts?.senderId])
+    const sent = dispatch.dispatchChatRun.mock.calls.map(([sessionId, input, , , opts]) => [sessionId, input, opts?.senderId])
     expect(sent).toEqual([
       [mine.workerSessionId, 'Mine', w.person.id],
       [theirs.workerSessionId, 'Theirs', other.id],

@@ -27,10 +27,9 @@ export type RoutineRunStart = {
   startedBy: 'person' | 'schedule'
 }
 
-/** What the agent is asked: the routine's instructions, under its name. */
-export function routineRunInput(title: string, instructions: string): string {
-  const body = instructions.trim() || 'No instructions were given.'
-  return `This is a run of the routine "${title}". Do what its instructions say:\n\n${body}`
+/** What the agent is asked: the routine's instructions, as written. */
+export function routineRunInput(instructions: string): string {
+  return instructions.trim() || 'No instructions were given.'
 }
 
 export async function dispatchRoutineRun(s: RoutineRunStart): Promise<{ runId: string; sessionId: string; siteId: string }> {
@@ -58,7 +57,7 @@ export async function dispatchRoutineRun(s: RoutineRunStart): Promise<{ runId: s
   const siteId = await resolveSiteIdForSession(session)
   const { timeLimitMinutes } = await runLimitsFor(boundary)
   await prisma.routineRun.update({ where: { id: s.routineRunId }, data: { sessionId: session.id, siteId, timeLimitMinutes } })
-  const { runId } = await dispatchChatRun(session.id, routineRunInput(s.routine.title, s.routine.instructions), s.agent, null, {
+  const { runId } = await dispatchChatRun(session.id, routineRunInput(s.routine.instructions), s.agent, null, {
     senderId: s.personId,
     routine: { routineId: s.routine.id, startedBy: s.startedBy, pick },
   })

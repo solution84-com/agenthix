@@ -44,7 +44,7 @@ import { runBoundary } from './overrides/agentOverrideService'
 import { chooseBoundaryRun, chooseKeptSessionRun, type RunChoice } from './runModel'
 import { buildContext, grantTargetOf } from './runContext'
 import { runLimitsFor } from './runLimits/runLimitsService'
-import { askForTaskRun, withBrief } from '../conversations/taskThread/brief'
+import { askForTaskRun, taskRunInput } from '../conversations/taskThread/brief'
 import { conversationAskOfRun } from '../conversations/work/tasks/taskModel'
 import { fellBackLine, keepModelNote } from '../conversations/work/workers/workModel'
 import { personMayWorkInProject, OnBehalfOfLostAccessError } from '../projects/taskOnBehalfOf'
@@ -355,7 +355,7 @@ export async function dispatchTaskRun(
     capabilityJwt,
     session: toSeed(agentSession),
     // A run asked for in the task's thread carries the person's ask as its brief.
-    inputText: paused ? TASK_CONTINUE_MESSAGE : withBrief(TASK_INPUT_MESSAGE, ask?.brief ?? null),
+    inputText: paused ? TASK_CONTINUE_MESSAGE : taskRunInput(TASK_INPUT_MESSAGE, ask?.brief ?? null),
     ...(ask?.skill && !paused ? { skill: ask.skill } : {}),
     model: choice.model || agentSession.model || '',
     hideUserMessage: false,

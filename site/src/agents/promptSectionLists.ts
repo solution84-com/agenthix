@@ -9,7 +9,7 @@ import {
   buildNoAgendaSection,
   AGENDA_PREVIEW_PATH,
   buildTaskExecutionSection,
-} from './promptSectionText'
+} from '@agenthix/core'
 
 /** A preview has no place, so the place's `AGENTS.md` is described rather than shown. */
 const PLACE_PREVIEW =

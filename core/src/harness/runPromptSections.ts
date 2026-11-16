@@ -1,10 +1,12 @@
-import {
-  BRANDING,
-  buildMemoryContent,
-  localDateTimeText,
-  type AgentConfigPayload,
-  type TaskCommentForRun,
-} from '@agenthix/core'
+/**
+ * The sections of a run's system prompt, as the site's prompt builder joins them. In core so the model checks send a
+ * task run the same text a site does.
+ */
+import { BRANDING } from '../naming/branding.js'
+import { buildMemoryContent } from './skillsInstructions.js'
+import { localDateTimeText } from '../shared/timezone.js'
+import type { AgentConfigPayload } from '../protocol/runContext.js'
+import type { TaskCommentForRun } from '../protocol/sharedSessions.js'
 
 export type AgentLike = Pick<AgentConfigPayload, 'id' | 'name' | 'handle' | 'role'>
 
@@ -15,7 +17,6 @@ export function buildAgentIdentityContent(agent: AgentLike): string {
   return `# Agent Identity\n\nYou are **${agent.name}**, an autonomous agent in the ${BRANDING.displayName} platform.\n\n- **Agent ID:** \`${agent.id}\`${agent.role ? `\n- **Role:** ${agent.role}` : ''}`
 }
 
-export { buildMemoryContent }
 
 /** The place's `AGENTS.md`, inlined — every run in a project or a person's space reads it. */
 export function buildPlaceInstructionsSection(place: string | null | undefined): string | null {

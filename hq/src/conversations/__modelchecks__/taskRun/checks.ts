@@ -8,7 +8,7 @@ import { isLivePreviewWorkflowName } from '@agenthix/core'
 import { clashAskText } from '../../../branches/clashAsk'
 import type { Check, Grade } from '../checks'
 import type { RecordedCall, RunRecord } from '../run'
-import { RUNNING, SHOP_TASK } from './world'
+import { RUNNING, SHOP_TASK, WORKING_FOLDER } from './world'
 
 const PASS: Grade = { passed: true }
 const fail = (why: string): Grade => ({ passed: false, why })
@@ -23,6 +23,11 @@ const named = (c: RecordedCall): string => {
 }
 
 const EDITS = new Set(['edit_file', 'write_file'])
+/** An edit on the branch: a file in the working folder, or a path relative to it. Files outside it are not committed. */
+const onBranch = (c: RecordedCall): boolean => {
+  const p = String((c.input as { file_path?: unknown } | null)?.file_path ?? '')
+  return !p.startsWith('/') || p.startsWith(`${WORKING_FOLDER}/`)
+}
 const isCommit = (c: RecordedCall) => c.name === 'commit' ||
   (c.name === 'bash' && /\bgit\s+commit\b/.test(String((c.input as { command?: unknown } | null)?.command ?? '')))
 const at = (run: RunRecord, test: (c: RecordedCall) => boolean): number => run.calls.findIndex(test)
@@ -38,7 +43,7 @@ function keptOut(run: RunRecord): Grade | null {
 
 /** Changed the file, then committed it itself after its last change. */
 function committedItsWork(run: RunRecord): Grade | null {
-  const lastEdit = lastAt(run, c => EDITS.has(c.name))
+  const lastEdit = lastAt(run, c => EDITS.has(c.name) && onBranch(c))
   if (lastEdit < 0) return fail(`changed no file: ${calls(run)}`)
   const commit = lastAt(run, isCommit)
   if (commit < lastEdit) return fail(`did not commit after its last change: ${calls(run)}`)

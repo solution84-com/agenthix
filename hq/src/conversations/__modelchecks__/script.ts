@@ -96,7 +96,7 @@ function taskDetails(args: Args, home: Home, taskDone: boolean): unknown {
   const asked = str(args.taskId) ?? (home === 'task' ? TASK.id : undefined)
   if (asked?.toUpperCase() === EPIC.key || asked === EPIC.id) {
     return {
-      taskId: EPIC.id, taskKey: EPIC.key, title: EPIC.title, description: 'The pricing page, its copy and its sign-up.', priority: 'MEDIUM',
+      taskId: EPIC.id, taskKey: EPIC.key, reference: `tasks/${EPIC.key}`, title: EPIC.title, description: 'The pricing page, its copy and its sign-up.', priority: 'MEDIUM',
       type: 'Epic', state: 'TODO', column: 'To do', columnId: 'epic-column-todo', executionState: 'NOT_STARTED', milestoneId: null,
       projectId: PROJECT.id, comments: [], attachments: [], source: 'local',
     }
@@ -104,7 +104,7 @@ function taskDetails(args: Args, home: Home, taskDone: boolean): unknown {
   if (asked !== TASK.key && asked !== TASK.id) return { status: 'refused', reason: `Task ${asked ?? ''} not found` }
   const done = home === 'task' || taskDone
   return {
-    taskId: TASK.id, taskKey: TASK.key, title: TASK.title, description: 'The form fails on submit; the screenshot shows the error.',
+    taskId: TASK.id, taskKey: TASK.key, reference: `tasks/${TASK.key}`, title: TASK.title, description: 'The form fails on submit; the screenshot shows the error.',
     priority: 'HIGH', type: 'Task', state: done ? 'DONE' : 'IN_PROGRESS', column: done ? 'Done' : 'In progress',
     columnId: done ? 'column-done' : 'column-doing', executionState: done ? 'FINISHED' : 'NOT_STARTED', typeColumns: TASK_TYPE_COLUMNS,
     projectId: PROJECT.id, comments: [],

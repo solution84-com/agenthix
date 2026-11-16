@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildMemoryContent } from '../promptSectionText'
+import { buildMemoryContent } from '@agenthix/core'
 
 describe('the Memory section @SC-2106', () => {
   it('names the tools memory is reached by, and carries no item: memory is recalled, never sent whole', () => {

@@ -22,7 +22,7 @@
  * storage helpers ported in this same task).
  *
  * Split (plan 5b task 9, package prompt content): the agent identity/instructions
- * disk reads and the section-list methods moved out to promptSectionText.ts and
+ * disk reads and the section-list methods moved out to core (harness/runPromptSections.ts) and
  * promptSectionLists.ts to keep this file under the repo's 500-line convention.
  * The constructor now takes the run's package content directly (PromptContent)
  * instead of reading disk itself for instructions/ORG.md.
@@ -48,7 +48,7 @@ import {
   buildNewCommentsSection,
   buildTaskExecutionSection,
   buildPlaceInstructionsSection,
-} from './promptSectionText'
+} from '@agenthix/core'
 
 // ─── File helpers ─────────────────────────────────────────────────────────────
 

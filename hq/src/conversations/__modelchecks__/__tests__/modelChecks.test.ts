@@ -171,7 +171,9 @@ describe('the task-run checks', () => {
     await runTaskRunCheck(fake.adapter, anthropicAccess, taskCheck('taskrun-steer-app').taskRun)
     const sent = JSON.stringify(fake.prompts[0])
     expect(sent).toContain("Your branch's live preview is open now. Apps running in it: `shop`.")
-    expect(sent).toContain('A person asked for this in the task')
+    expect(sent).not.toContain('A person asked for this in the task')
+    expect(sent).not.toContain('Execute your assigned task')
+    expect(sent).toContain('## Execution')
     expect(sent).toContain('task management tools are available')
     expect(fake.toolNames[0]).toEqual(expect.arrayContaining(['list_apps', 'start_app', 'reload_view', 'commit', 'edit_file', 'set_result', 'find_tools', 'use_tool']))
     // The tools it is not shown are named by area beside the platform tools' instructions, and found by search.

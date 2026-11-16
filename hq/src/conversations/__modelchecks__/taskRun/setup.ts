@@ -1,19 +1,21 @@
 /**
  * What a task's run on a branch is sent (W12 of the live preview walk): the parts of its prompt shared with the site
- * (core's `codeWorkPromptText` and `PLATFORM_TOOLS_INSTRUCTIONS`), its first message as hq gives it (`withBrief`), and
+ * (core's `codeWorkPromptText` and `PLATFORM_TOOLS_INSTRUCTIONS`), its first message as hq gives it (`taskRunInput`), and
  * the platform tools a code-work run is offered, built from hq's own declarations, which the site forwards: its
- * must-haves in full, and the rest found with find_tools and called with use_tool (ADR-0193). The site's
- * identity and filesystem sections are the site's own, which hq cannot import: a short frame stands for them here.
+ * must-haves in full, and the rest found with find_tools and called with use_tool (ADR-0193). The task prompt's
+ * sections are core's, as the site joins them (`harness/runPromptSections.ts`); only its filesystem section, which
+ * reads the run's mounts, is a short stand-in here.
  */
 import { z, type ZodRawShape } from 'zod'
 import {
-  FIND_TOOLS_DECLARATION, NO_WEB_SEARCH_INSTRUCTIONS, PLATFORM_TOOLS_INSTRUCTIONS, RUN_MUST_HAVES, USE_TOOL_DECLARATION,
+  FIND_TOOLS_DECLARATION, NO_WEB_SEARCH_INSTRUCTIONS, buildAgentIdentityContent, buildBoardSection, buildMemoryContent,
+  buildNewCommentsSection, buildNoAgendaSection, buildTaskExecutionSection, buildTaskSection, PLATFORM_TOOLS_INSTRUCTIONS, RUN_MUST_HAVES, USE_TOOL_DECLARATION,
   WITHDRAWN_FROM_AGENTS, areaLines, codeWorkPromptText, webSearchWithheldInstructions, type RunOpenLivePreview, type WebSearchWithheld,
 } from '@agenthix/core'
 import type { LeadMessage, LeadToolDefinition, PromptPart } from '../../contract'
 import { ALL_CONTROL_PLANE_TOOLS, type ControlPlaneTool } from '../../../server/controlplane/toolSchemas'
-import { withBrief } from '../../taskThread/brief'
-import { SHOP_TASK, WORKING_FOLDER, codeWork } from './world'
+import { taskRunInput } from '../../taskThread/brief'
+import { KERNEL, ROADMAP, SHOP_TASK, WORKING_FOLDER, codeWork } from './world'
 
 export interface TaskRunSetup {
   /** The branch's live preview when the run starts; null when none is open. */
@@ -37,22 +39,22 @@ export interface TaskRunSetup {
 
 const FIRST_MESSAGE = 'Execute your assigned task.'
 
+const COLUMNS = '- Backlog\n- To do\n- In progress\n- Done'
+
+/** The task prompt as the site's `buildTaskPrompt` joins it, for an agent with no instructions of its own. */
 function frame(setup: TaskRunSetup): string {
-  const lines = [
-    'You are Kernel, an agent of this organisation, running one task.',
-    '',
-    '## Task',
-    '',
-    `Task ID: ${SHOP_TASK.id} (${SHOP_TASK.key})`,
-    `Title: ${SHOP_TASK.title}`,
-    `Description: ${SHOP_TASK.description}`,
+  const comments = (setup.newComments ?? []).map(c => ({ ...c, at: '2026-11-16T09:00:00.000Z' }))
+  const sections = [
+    buildAgentIdentityContent({ id: KERNEL.id, name: KERNEL.name, handle: KERNEL.handle, role: null }),
+    buildMemoryContent(),
+    buildNoAgendaSection(),
+    buildBoardSection('Shop board', COLUMNS),
+    buildTaskSection(SHOP_TASK.id, SHOP_TASK.title, SHOP_TASK.description),
+    ...(comments.length ? [buildNewCommentsSection(comments)] : []),
+    buildTaskExecutionSection(ROADMAP),
+    `## Filesystem\n\n- **Working directory (cwd):** \`${WORKING_FOLDER}\` — your working copy of your branch.`,
   ]
-  if (setup.newComments?.length) {
-    lines.push('', '## New comments', '', 'Written on this task since your last run on it. They may direct this run.', '')
-    for (const c of setup.newComments) lines.push(`${c.author}:`, c.text, '')
-  }
-  lines.push('', '## Filesystem', '', `- **Working directory (cwd):** \`${WORKING_FOLDER}\` — your working copy of your branch.`)
-  return lines.join('\n')
+  return sections.join('\n\n---\n\n')
 }
 
 /** The site's server instructions: the platform tools' rules, then what else the run can do (mcpServer.ts there). */
@@ -69,7 +71,7 @@ export function taskRunContext(setup: TaskRunSetup): { system: PromptPart[]; mes
       ...(setup.noWebSearchKey ? [{ text: NO_WEB_SEARCH_INSTRUCTIONS }] : []),
       ...(setup.webSearchWithheld ? [{ text: webSearchWithheldInstructions(setup.webSearchWithheld) }] : []),
     ],
-    messages: [{ role: 'user', content: withBrief(FIRST_MESSAGE, setup.brief ?? null) }],
+    messages: [{ role: 'user', content: taskRunInput(FIRST_MESSAGE, setup.brief ?? null) }],
   }
 }
 

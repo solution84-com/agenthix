@@ -36,12 +36,17 @@ describe('the starting and routine checks', () => {
     expect(c.grade(run(['list_workflows', {}])).passed).toBe(false)
   })
 
-  it('pass a follow-up left for later, and fail one started', () => {
+  it('pass the change made and the checkout follow-up left for later; fail one started, missing or with no change', () => {
     const c = check('taskrun-follow-up-not-started')
-    expect(c.grade(run(['create_task', { title: 'Banner on checkout', projectId: 'SHOP' }])).passed).toBe(true)
-    expect(c.grade(run(['create_task', { title: 'Banner on checkout', projectId: 'SHOP', queue: true }])).passed).toBe(false)
-    expect(c.grade(run(['create_task', { title: 'x' }], ['run_task', { taskId: 'SHOP-9' }])).passed).toBe(false)
-    expect(c.grade(run()).passed).toBe(false)
+    const edit: [string, Record<string, unknown>] = ['edit_file', { file_path: '/projects/shop/clones/7a1f/public/index.html', old_string: 'a', new_string: 'b' }]
+    const follow: [string, Record<string, unknown>] = ['create_task', { title: 'Banner on checkout', projectId: 'SHOP' }]
+    expect(c.grade(run(edit, follow)).passed).toBe(true)
+    expect(c.grade(run(['bash', { command: "sed -i 's/x/y/' public/index.html" }], follow)).passed).toBe(true)
+    expect(c.grade(run(edit, ['create_task', { title: 'Banner on checkout', projectId: 'SHOP', queue: true }])).passed).toBe(false)
+    expect(c.grade(run(edit, ['create_task', { title: 'Banner on checkout' }], ['run_task', { taskId: 'SHOP-9' }])).passed).toBe(false)
+    expect(c.grade(run(follow)).passed).toBe(false)
+    expect(c.grade(run(edit, ['create_task', { title: 'Something else' }])).passed).toBe(false)
+    expect(c.grade(run(edit)).passed).toBe(false)
   })
 
   it('pass SHOP-8 started with run_task, and fail the run\'s own task started', () => {

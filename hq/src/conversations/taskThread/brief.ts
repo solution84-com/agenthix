@@ -24,15 +24,10 @@ export async function askForTaskRun(taskId: string): Promise<{ brief: string; sk
   return { brief: openText(op.brief), skill }
 }
 
-const BRIEF_LEAD = "A person asked for this in the task's conversation. Do it now, in this run, even if the task is already " +
-  'done or in review: it is new work on the same task.'
-
 /**
- * The run's first message with the thread's brief after it. A person's ask is this run's work even on a task that is
- * done: without saying so, an agent that reads the task as complete only reports it.
+ * A task run's first message: the person's ask from the task's conversation when there is one, word for word and
+ * nothing beside it, so no line of ours can disagree with theirs; the standing message when nobody asked anything.
  */
-export function withBrief(inputText: string, brief: string | null): string {
-  if (!brief) return inputText
-  return `${inputText}\n\n${BRIEF_LEAD}\n\n${brief}`
+export function taskRunInput(standing: string, brief: string | null): string {
+  return brief?.trim() ? brief : standing
 }
-

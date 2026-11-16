@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import { runPausedReason } from '@agenthix/core'
 import { endedStateOf, runCardBody } from '../runCards'
-import { withBrief } from '../brief'
+import { taskRunInput } from '../brief'
 
 const frame = (over: Partial<Parameters<typeof endedStateOf>[0]>) => ({ status: 'COMPLETED', error: null, manifestPending: null, ...over }) as Parameters<typeof endedStateOf>[0]
 
@@ -40,14 +40,13 @@ describe("a run's end, as the thread's card @SC-977", () => {
 })
 
 describe("the run's first message @SC-977", () => {
-  it("carries the thread's brief after it, as this run's work whatever the task's state", () => {
-    expect(withBrief('Execute your assigned task.', 'Only the thumbnails')).toBe(
-      "Execute your assigned task.\n\nA person asked for this in the task's conversation. Do it now, in this run, even if " +
-      'the task is already done or in review: it is new work on the same task.\n\nOnly the thumbnails',
-    )
+  it("is the person's ask from the thread, word for word, with nothing beside it", () => {
+    expect(taskRunInput('Execute your assigned task.', "Make it bold, and note a follow-up for the checkout. Don't do that one now."))
+      .toBe("Make it bold, and note a follow-up for the checkout. Don't do that one now.")
   })
 
-  it('is unchanged with no brief', () => {
-    expect(withBrief('Execute your assigned task.', null)).toBe('Execute your assigned task.')
+  it('is the standing message when nobody asked anything', () => {
+    expect(taskRunInput('Execute your assigned task.', null)).toBe('Execute your assigned task.')
+    expect(taskRunInput('Execute your assigned task.', '  ')).toBe('Execute your assigned task.')
   })
 })

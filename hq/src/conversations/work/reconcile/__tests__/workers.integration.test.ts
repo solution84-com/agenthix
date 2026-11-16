@@ -29,7 +29,7 @@ import { mailbox, settleOperation } from '../../../coordinator/mailbox'
 import { appendMessage } from '../../../store/messages'
 import { createStartWorkTool } from '../../workers/startWork'
 import { pump } from '../../workers/queue'
-import { NEVER_ABORTED, briefOf, world, type World } from '../../workers/__tests__/workerFixtures'
+import { NEVER_ABORTED, world, type World } from '../../workers/__tests__/workerFixtures'
 import { reconcileWorkersOn, RUN_NOT_ON_SITE } from '../workers'
 import { reconcileSiteWork } from '..'
 import { onSiteReconciled, reconcileSite } from '../../../../agents/reconcileService'
@@ -77,7 +77,7 @@ describe('a running brief whose frames were lost @SC-966', () => {
 
     expect(await reload(op.id)).toMatchObject({ state: 'COMPLETED' })
     expect(vi.mocked(mailbox.operationEnded).mock.calls.filter(([id]) => id === op.id)).toHaveLength(1)
-    await vi.waitFor(() => expect(dispatch.dispatchedChatRuns.map(r => briefOf(r.inputText))).toEqual(['First', 'Second']))
+    await vi.waitFor(() => expect(dispatch.dispatchedChatRuns.map(r => r.inputText)).toEqual(['First', 'Second']))
     // The run is dispatched before its id is recorded on the operation: wait for the write, not only the call.
     await vi.waitFor(async () => expect((await reload(next.id)).runId).toBe(dispatch.dispatchedChatRuns[1].runId))
   })

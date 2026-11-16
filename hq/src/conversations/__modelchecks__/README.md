@@ -75,10 +75,10 @@ its result in a report turn that has no tools and is shown no hint.
 
 Five checks send a task's run, not the lead: the run of task *SHOP-7* on its branch of a shop app's code workspace
 (`taskRun/`). It gets the parts of its prompt the site builds from shared code (core's `codeWorkPromptText`, which says
-whether the branch's live preview is open and which apps run in it, and `PLATFORM_TOOLS_INSTRUCTIONS`), its first
-message as hq gives it (`withBrief`), and the platform tools a code-work run is offered, from hq's own declarations
-that the site forwards. The site's identity and filesystem sections are the site's own, which hq cannot import: a short
-frame stands in for them. The tools answer from `taskRun/script.ts`, with hq's real refusals for `run_workflow` and
+whether the branch's live preview is open and which apps run in it, `PLATFORM_TOOLS_INSTRUCTIONS`, and the task
+prompt's sections in `harness/runPromptSections.ts`, joined as the site joins them, with a short stand-in for the
+filesystem section only), its first message as hq gives it (`taskRunInput`: the person's ask alone when there is one),
+and the platform tools a code-work run is offered, from hq's own declarations that the site forwards. The tools answer from `taskRun/script.ts`, with hq's real refusals for `run_workflow` and
 `run_task`.
 
 | Check | The branch's live preview | The ask | Passes when |
@@ -88,7 +88,7 @@ frame stands in for them. The tools answer from `taskRun/script.ts`, with hq's r
 | `taskrun-clash-no-app` | none | HQ's clash request, as a comment | no `start_app`; no live-preview workflow, no `run_task` |
 | `taskrun-no-preview-not-asked` | none | a brief: change the banner's words | no `start_app`; the change committed by the run |
 | `taskrun-no-preview-asked` | none | a brief: start the shop so I can click through | `start_app` |
-| `taskrun-follow-up-not-started` | none | a brief: note a follow-up for the checkout page, for later | `create_task`; no `run_task`, no `queue: true`, no start time, no routine |
+| `taskrun-follow-up-not-started` | none | the person's ask from the task's conversation: make the banner text bold, and note a follow-up for the checkout page, not now | the page edited; `create_task` for the checkout page; no `run_task`, no `queue: true`, no start time, no routine |
 | `taskrun-start-asked` | none | a brief: the person asked to start SHOP-8 now | `run_task` on SHOP-8; never on SHOP-7 (its own task); no `create_task` |
 | `taskrun-routine-weekdays` | none | a brief: every weekday at 9:00, Kernel checks the banner | `create_routine` in SHOP with `cron` `0 9 * * 1-5`, Kernel's id and instructions naming the banner; no task made or started |
 | `taskrun-routine-off` | none | a brief: switch off the routine *Morning review* | `update_routine` on it with `enabled` false and nothing else; nothing started |
