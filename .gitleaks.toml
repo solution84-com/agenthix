@@ -1,17 +1,66 @@
-# gitleaks settings for this repository. The files allowed below hold fake secrets that tests need — a redactor's
-# inputs, a placeholder key, a self-signed certificate for a test host — never a real credential.
+# gitleaks settings for this repository. The files allowed below hold fake secrets that tests and the demo need — a
+# redactor's inputs, placeholder keys and machine credentials, canary values a test looks for, one-time-password
+# secrets that are base32 of sample text, a self-signed certificate for a test host, the demo's deterministic session
+# ids — never a real credential. Some are listed because an earlier commit holds them, though the file is gone now.
 [extend]
 useDefault = true
 
 [allowlist]
-description = "Test fixtures with fake secrets"
+description = "Test fixtures and demo data with fake secrets"
 paths = [
+  '''^console-web/src/__tests__/backupsPages\.test\.tsx$''',
+  '''^console-web/src/__tests__/exportDownload\.test\.tsx$''',
+  '''^console-web/src/__tests__/restoreNight\.test\.tsx$''',
+  '''^console-web/src/dev/BackupSamples\.tsx$''',
+  '''^console/src/__tests__/remoteControl\.test\.ts$''',
+  '''^console/src/__tests__/remoteKeys\.test\.ts$''',
+  '''^console/src/__tests__/restoreNight\.test\.ts$''',
+  '''^core/src/cloud/__tests__/connection\.test\.ts$''',
+  '''^core/src/host/__tests__/cloudOperations\.test\.ts$''',
   '''^core/src/logging/__tests__/redact\.test\.ts$''',
+  '''^core/src/protocol/__tests__/siteRegistration\.test\.ts$''',
+  '''^demo/seed/activity\.json$''',
+  '''^host/src/backups/__tests__/restoreNight\.test\.ts$''',
+  '''^host/src/cli/__tests__/console\.test\.ts$''',
+  '''^host/src/cli/__tests__/consoleRemove\.test\.ts$''',
+  '''^host/src/cli/__tests__/manager\.test\.ts$''',
+  '''^host/src/cli/__tests__/managerRemove\.test\.ts$''',
+  '''^host/src/cli/__tests__/moveReceive\.test\.ts$''',
+  '''^host/src/cli/__tests__/noMachines\.test\.ts$''',
+  '''^host/src/cloud/__tests__/enrol\.test\.ts$''',
+  '''^host/src/cloud/__tests__/hqOperations\.test\.ts$''',
+  '''^host/src/lifecycle/__tests__/uninstall\.test\.ts$''',
+  '''^host/src/link/__tests__/cloudController\.test\.ts$''',
+  '''^host/src/link/__tests__/connect\.test\.ts$''',
+  '''^host/src/link/__tests__/disconnect\.test\.ts$''',
+  '''^host/src/link/__tests__/envelopes\.test\.ts$''',
+  '''^host/src/link/__tests__/handover\.test\.ts$''',
+  '''^host/src/link/__tests__/leaving\.test\.ts$''',
+  '''^host/src/link/__tests__/link\.test\.ts$''',
+  '''^host/src/link/__tests__/seenFrom\.test\.ts$''',
+  '''^host/src/link/__tests__/siteAddressFollows\.test\.ts$''',
+  '''^host/src/link/__tests__/stopping\.test\.ts$''',
+  '''^host/src/personsMachine/__tests__/addComputer\.test\.ts$''',
+  '''^host/src/personsMachine/__tests__/allowed\.test\.ts$''',
+  '''^host/src/personsMachine/__tests__/followHq\.test\.ts$''',
+  '''^host/src/personsMachine/__tests__/owner\.test\.ts$''',
+  '''^host/src/personsMachine/__tests__/ownerHold\.test\.ts$''',
+  '''^host/src/protections/__tests__/publicAddress\.test\.ts$''',
+  '''^host/src/scheduled/__tests__/ends\.test\.ts$''',
+  '''^host/src/scheduled/__tests__/toConsole\.test\.ts$''',
+  '''^hq/src/conversations/model/requestShapes\.test\.ts$''',
   '''^hq/src/github/__tests__/githubApp\.integration\.test\.ts$''',
+  '''^hq/src/model-access/__tests__/webSearchKeyActions\.test\.ts$''',
+  '''^hq/src/model-access/__tests__/webSearchKeyCheck\.test\.ts$''',
   '''^hq/src/preview/__tests__/previewHost\.test\.ts$''',
+  '''^hq/src/secrets/__tests__/looksLikeSecret\.test\.ts$''',
   '''^hq/src/sites/__tests__/siteUpgrade\.test\.ts$''',
   '''^hq/src/sites/content/__tests__/contentChannelHandshake\.test\.ts$''',
+  '''^hq/src/sites/content/__tests__/contentChannelUpgradeFailure\.test\.ts$''',
   '''^hq/src/voice/__tests__/voiceOperations\.integration\.test\.ts$''',
+  '''^hq/src/workflows/__tests__/integrationValues\.test\.ts$''',
+  '''^site/src/server/livePreviews/__tests__/handedSecrets\.test\.ts$''',
+  '''^site/src/server/livePreviews/__tests__/livePreviewContainer\.container\.test\.ts$''',
   '''^site/src/server/modelRelay/__tests__/standinCert\.ts$''',
   '''^site/src/server/registration/__tests__/pairing\.test\.ts$''',
 ]

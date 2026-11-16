@@ -60,7 +60,7 @@ key, as it does now. It also reads each answer's usage and upstream status and r
 frames, which feed both the ledger and provider health. The site keeps no provider table of its own.
 
 **How the work is carried out.**
-- **Lanes:** every phase runs as lanes under the lead (`running-lanes`). Each lane has its own branch and worktree,
+- **Lanes:** every phase runs as lanes under the lead. Each lane has its own branch and worktree,
   a brief and the shared rules in `execution/lane-common.md`.
 - **Merging:** lanes merge into `feature/models-from-one-place` one at a time, in the order the phase lists them.
   Each lane is rebased onto the branch's current head, the tests for what it changed are run again, and it merges

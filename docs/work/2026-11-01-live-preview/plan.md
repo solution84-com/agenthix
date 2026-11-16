@@ -83,7 +83,7 @@ for its reshaping, and queues that work for after the release. The general chang
 for every agent command, sites removing only their own containers, the helper cap, the host's network rules) stay on:
 they serve every feature, and the reshaping keeps them.
 
-**How the work is carried out.** Each phase runs as lanes (`running-lanes`): one purpose, one agent, one worktree, a
+**How the work is carried out.** Each phase runs as lanes: one purpose, one agent, one worktree, a
 short brief, and one shared rules file. The contract lanes build against (core's protocol shapes and the schema) is
 committed on the unit's branch first, by the lead, so every lane is cut from it. Lanes run in parallel where their
 files are disjoint, and merge into the unit's branch one at a time in the order the lead writes down; the lead runs

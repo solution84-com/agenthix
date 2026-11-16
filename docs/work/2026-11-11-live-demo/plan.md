@@ -25,7 +25,7 @@ lane agents, and the owner sees one report at the end. The lead:
   clips with the owner's Inworld key is agreed (well under US$1). Nothing touches the demo's machine, its DNS or the
   image registry; the report ends with the steps for those, to run after the next release.
 
-**Lanes** (the `running-lanes` skill): one purpose each, on its own branch and worktree cut from `feature/live-demo`,
+**Lanes**: one purpose each, on its own branch and worktree cut from `feature/live-demo`,
 merged by the lead one at a time as a single commit rebased onto the branch's head. The contract lane lands first;
 the build lanes then run in parallel where their files are disjoint, in sequence where they are not. Lanes run only
 the unit tests and typechecks of what they touch, through the machine-wide lock; the lead runs the integration,

@@ -7,7 +7,7 @@
 <script>(function(){var m=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)');function set(){document.documentElement.setAttribute('data-theme',m&&m.matches?'dark':'light')}set();if(m&&m.addEventListener)m.addEventListener('change',set)})();</script>
 <style>
 /*
- * VISUAL COMPANION DESIGN SYSTEM
+ * BOARD DESIGN SYSTEM
  *
  * One stylesheet, three layers. Extend it in that order and never skip one:
  *
@@ -21,9 +21,7 @@
  *
  * Theme: theme-init.js always resolves <html data-theme="light|dark">. Any element
  * can carry its own data-theme to pin a region (a "theme island"), and any wrapper
- * can redefine colour tokens to brand a region (a "token scope"). See SKILL.md.
- *
- * Framed screens get this inlined. Full-document screens link /companion.css.
+ * can redefine colour tokens to brand a region (a "token scope").
  */
 
 /* ===== 1. SCALE TOKENS ===== */

@@ -46,7 +46,7 @@ everything the unit changed.
 **Close-out mode is proved by the lead only**, after the runner's lane has merged and nothing else runs on the
 machine; lanes prove it in shared mode or with fixtures.
 
-**Lanes, file-disjoint** (the `running-lanes` skill): Phase 1 (e2e specs, hq's `e2e/`) and Phase 2 (local runner and
+**Lanes, file-disjoint**: Phase 1 (e2e specs, hq's `e2e/`) and Phase 2 (local runner and
 ports, `scripts/` and the test configs) build in parallel. Phase 3's lane (CI, `.github/` and `scripts/affected.mjs`)
 may build alongside them, since it shares no file, but is measured only after Phase 2's run has passed. Phase 4 is the
 lead's. Lanes run only the tests of what they touch; the e2e lane runs the specs it fixes, alone. Sonnet for Phases 1

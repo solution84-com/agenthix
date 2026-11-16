@@ -92,7 +92,7 @@ through the site's one staging path; every "what changed" through one diff rende
 
 ### How the work is carried out
 
-- **Lanes**, under the lead (`running-lanes`): one purpose, one branch and worktree, a brief naming the tasks by number,
+- **Lanes**, under the lead: one purpose, one branch and worktree, a brief naming the tasks by number,
   the spec part that is its acceptance, and the files it owns, with one shared rules file.
 - **Models:** security lanes (the verifier, the install pipeline, permissions and the approval gate, staging's
   fingerprint check) run on Opus; bounded lanes on Sonnet. Every brief names its model.

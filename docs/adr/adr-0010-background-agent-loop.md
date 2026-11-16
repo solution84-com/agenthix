@@ -10,9 +10,9 @@ description: Moving the agent runtime onto pg-boss background jobs.
 adr-0009 was written **after** this record despite its lower number. The early numbers are not chronological; adr-0009's own Context names this record as the *previous attempt* it replaces.
 
 ## Context
-In Phase 1, the `agenthesis_site` established a foundation based on the OpenClaw monorepo's concepts. OpenClaw relies on an in-process, synchronous agent execution loop running on long-lived node processes.
+In Phase 1, the first version of the site established a foundation based on the OpenClaw monorepo's concepts. OpenClaw relies on an in-process, synchronous agent execution loop running on long-lived node processes.
 
-As `agenthesis_site` aims to scale and safely isolate agent executions (especially when executing arbitrary tool calls or long-running inference loops that wait for third-party LLM providers), running the agent loop synchronously inside the main web server process presents significant risks:
+As the site aims to scale and safely isolate agent executions (especially when executing arbitrary tool calls or long-running inference loops that wait for third-party LLM providers), running the agent loop synchronously inside the main web server process presents significant risks:
 1. **Memory out-of-bounds:** Rogue AI outputs or infinite reasoning loops can crash the main server.
 2. **Timeouts:** HTTP connections will time out if an agent takes longer than 30s-60s to finish a complex chain of thought.
 3. **Concurrency:** Node's single-threaded nature means heavy synchronous parsing can block the event loop for all users.

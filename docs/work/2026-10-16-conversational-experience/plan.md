@@ -69,7 +69,7 @@ owner chooses to, without a half-built path reaching anyone.
 
 **How the work is carried out.** One unit branch in the platform repository, cut when the roadmap change lands,
 which merges to `main` once at the close unless the owner decides to land a phase earlier behind the flag. Each
-phase runs as lanes under `running-lanes`: the lead commits each phase's contract first — schema, protocol types,
+phase runs as lanes from short briefs: the lead commits each phase's contract first — schema, protocol types,
 tool signatures — so every lane is cut from it; lanes whose files are disjoint run at once, the rest in the order
 the phase lists; the lead merges them one at a time into the unit's branch, generates migrations, and runs the
 suites lanes may not, with the full regression at the end of each phase. The owner walks the work through at

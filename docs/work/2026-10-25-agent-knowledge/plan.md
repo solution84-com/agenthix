@@ -63,7 +63,7 @@ the same change, so there are never two ways in.
 
 The lead runs the unit end to end and stops only for the owner's walkthrough and the hard stops in the lane rules.
 
-- **Lanes, in the background:** every phase runs as lanes (`running-lanes`), each with its own branch and worktree, a
+- **Lanes, in the background:** every phase runs as lanes, each with its own branch and worktree, a
   brief of a few lines (the tasks by number, the spec part that is its acceptance, the files it owns), and the shared
   lane rules every lane follows, kept with the unit's working files. Each lane writes its report there and posts one
   line.

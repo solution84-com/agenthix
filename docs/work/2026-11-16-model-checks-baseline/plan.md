@@ -40,7 +40,7 @@ One branch, `chore/model-checks-baseline`, merged to `main` once at the close.
 search) is the larger half of the gain for what people see first. Phase 5 (the run's search) completes it. Each phase
 is proved by the checks before the next merges.
 
-**Lanes** (`running-lanes`), each a squashed commit on the unit branch: the slimming of shared declarations goes
+**Lanes**, each a squashed commit on the unit branch: the slimming of shared declarations goes
 first (core and hq), since both searches build on the slimmed declarations; then the conversation's search and the
 run's search side by side, file-disjoint (hq's reply loop; the site's MCP server and hq's data path, which the
 run's lane owns).
@@ -114,7 +114,7 @@ count.
 
 | | Records |
 |---|---|
-| **Depends on** | bdr-0018 (the baseline model); ADR-0136 and `versioning.md` (the change is additive) |
+| **Depends on** | the baseline model (the organisation's baseline-model rule, recorded outside this repository); ADR-0136 and `versioning.md` (the change is additive) |
 | **Implements** | ADR-0193 (an agent is shown its must-have tools and finds the rest by search), written for this unit |
 | **Revisits** | none |
 
@@ -158,4 +158,4 @@ count.
 - **Closed by this unit:** #92, #93, #144, #145, #166 and #263, once pushed.
 - **QA:** US-497 and its criteria; SC-2171 to SC-2183 written and tagged; SC-977 and SC-1548 corrected. No QA audit
   ran; these entries wait for the audit before `0.1.0`.
-- **Records:** ADR-0193 notes that it is implemented. bdr-0018, ADR-0136 and `versioning.md` still hold.
+- **Records:** ADR-0193 notes that it is implemented. The organisation's baseline-model rule, ADR-0136 and `versioning.md` still hold.

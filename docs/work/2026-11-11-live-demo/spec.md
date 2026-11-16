@@ -1,6 +1,6 @@
 ---
 name: A live demo of hq — spec
-description: What hq does today that a public demo must fake, contain or switch off, and the design of a demo hq and site on one VPS where no model is called and no agent container starts.
+description: What hq does today that a public demo must fake, contain or switch off, and the design of a demo hq and site on one machine where no model is called and no agent container starts.
 created: 2026-11-11
 author: leang
 ---
@@ -22,7 +22,7 @@ installing anything, signing up or paying. Done when:
 3. A chat reply, a task run and a routine run look and move like real ones, and no model is called and no agent
    container starts, whatever a visitor does.
 4. Nothing a visitor does reaches outside the machine, changes who can get in, or lasts past the next reset.
-5. It runs on one VPS from the normal signed images, installed and reset by the host service.
+5. It runs on one machine from the normal signed images, installed and reset by the host service.
 
 ## Today
 
@@ -269,26 +269,27 @@ written into hq's and the site's environment by `agenthix install --demo` and re
 leaves the Fleet Console out, turns the nightly backup off, and schedules the reset. The demo scripts and the voice
 clips are built into the hq and site images, so they are signed with them; there is nothing to mount.
 
-**Where it runs** (owner, 10 November): `demo.agenthix.com`, on a machine that already carries another hq installation.
+**Where it runs** (owner, 10 November): `demo.agenthix.com`.
 
-- **Two installations on one machine** is the configuration ADR-0108 keeps for testing: the demo installs under a
-  namespace of its own (`INSTALL_NAMESPACE`), on ports it chooses, so nothing is shared by name or port. Only one
-  front door can hold ports 80 and 443, so one Caddy serves both addresses (`agenthix front-door add-installation`).
-- **The address is under `agenthix.com`.** Agenthix's own sign-in pages there use `__Host-` cookies, which a subdomain
-  can neither read nor set, so the demo cannot reach them. What the demo could do is show a visitor's upload as a page
+- **It can share a machine with another installation**, the configuration ADR-0108 keeps for testing: the demo
+  installs under a namespace of its own (`INSTALL_NAMESPACE`), on ports it chooses, so nothing is shared by name or
+  port. Only one front door can hold ports 80 and 443, so one Caddy then serves both addresses
+  (`agenthix front-door add-installation`).
+- **The address is under `agenthix.com`.** Sign-in pages elsewhere on that domain use `__Host-` cookies, which a
+  subdomain can neither read nor set, so the demo cannot reach them. What the demo could do is show a visitor's upload as a page
   on that domain, so the files host (`files.demo.agenthix.com`) serves every file as a download and never as a page.
 
-### No machine-level access on the VPS
+### No machine-level access
 
-**Owner, 10 November:** neither installation on the machine — the demo nor the other hq — gives anyone power over the
-machine from a browser. The machine is managed only over SSH with the host CLI.
+**Owner, 10 November:** the demo gives no one power over the machine from a browser. The machine is managed only over
+SSH with the host CLI.
 
-| | The demo | The other hq on the machine |
-|---|---|---|
-| **Fleet Console** | Not installed | Stopped, and the host service no longer answers it (`agenthix console disconnect`) |
-| **Fleet admins** | None: the demo seed gives no one the role, and visitors are members | The role removed from every account (`agenthix hq fleet-admin --remove`) |
-| **Machine screens in hq** (Sites, Infrastructure, Logs and diagnostics, maintenance) | Not a visitor's: a member never has them | Reviewers' account is a member, so the admin screens are not theirs |
-| **Agent containers** | None: the site has no Docker socket | As installed |
+| | The demo |
+|---|---|
+| **Fleet Console** | Not installed |
+| **Fleet admins** | None: the demo seed gives no one the role, and visitors are members |
+| **Machine screens in hq** (Sites, Infrastructure, Logs and diagnostics, maintenance) | Not a visitor's: a member never has them |
+| **Agent containers** | None: the site has no Docker socket |
 
 ### What the demo does not include
 
@@ -310,7 +311,7 @@ and that nothing typed into it should be personal.
 ## Answered questions
 
 1. **Decided — voice** (owner, 10 November): in, as a demo voice that says it is one.
-2. **Decided — the address and machine** (owner, 10 November): `demo.agenthix.com`, on a machine that carries another hq.
+2. **Decided — the address and machine** (owner, 10 November): `demo.agenthix.com`.
 3. **Decided — reset every 6 hours, with a countdown** (owner asked for longer than an hour and a countdown, 11
    November; 6 hours is the lead's call, in the report).
 4. **Decided — the privacy notice** (owner, 11 November): the line on the entry screen and the frame line, and a short

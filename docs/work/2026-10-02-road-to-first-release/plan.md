@@ -132,7 +132,7 @@ Seven rounds. The split follows the roadmap's milestones, plus two cross-cutting
 - [ ] 5.2 Triage every open bug, debt item and chore against the code as it then stands, including what the audit raises
 - [ ] 5.3 Fix what is fixed, close what no longer applies, and record what is left open and why
 - [ ] 5.4 Run the agent container and model relay checks on a Linux host
-- [ ] 5.5 Confirm the model vendor's written permission for hq holding a person's subscription login — requested well before this round, since the reply is outside our control
+- [ ] 5.5 Ask the model vendor in writing whether hq may hold a person's subscription login — asked well before this round, since the answer is the vendor's to give
 - [ ] 5.6 Run the full regression and merge to `main`
 
 ### Round 6 — Open to outside users, and the release
@@ -155,4 +155,4 @@ Seven rounds. The split follows the roadmap's milestones, plus two cross-cutting
 | Round 0 | The site's move off Wasp is done in round 0, not in the host-management round, and the round now carries the build (0.3) and its verification (0.4) | The investigation found leaving costs about 8 working days and that every site lane in rounds 3 and 4, and the images round 4 publishes, would otherwise be built on the shape being replaced. It runs in parallel with round 1, whose site lanes merge first so the move rebases over them |
 | Round 0 | 0.4's git credential and second-site registration were not walked through; they are covered by the two-machine walkthrough at the final checks, and git is queued for its own hands-on pass | The owner deferred them: their code did not change beyond the new server entry, and the git integration needs its own hands-on pass |
 | Round 1 | Refreshing a lapsed subscription's token needed a second fix found in the walkthrough: the site's pre-launch check refused any subscription whose access token had expired, before Claude Code could renew it | The lane's tests never reached that check; a run on a login idle past its 8-hour access token showed it |
-| Round 1 | Three issues were raised; the subscription design as a whole moves to last | Anthropic's published terms forbid developers collecting or storing Claude.ai credentials; the owner chose to resolve it after the rest, since the product relies on Claude today |
+| Round 1 | Three issues were raised; the subscription design as a whole moves to last | Anthropic's published terms say a product may not "collect, store, or intermediate Claude.ai credentials"; whether the design is permitted is Anthropic's to answer, and the owner chose to resolve it after the rest |

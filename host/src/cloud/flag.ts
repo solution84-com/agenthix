@@ -1,5 +1,5 @@
 /**
- * Agenthix Cloud behind its flag, `cloud` (adr-0189; preview until Cloud's service opens), by core's one rule with this
+ * Agenthix Cloud behind its flag, `cloud` (adr-0189; preview, off in a release), by core's one rule with this
  * container's own `NODE_ENV`. A preview flag takes no organisation switch, so the host service needs none: off in
  * production — the image — and on in a development build unless a test says otherwise. Off, the machine behaves as one
  * an organisation runs itself: Cloud's start-up settings are ignored, Cloud's link and operations refuse, and the

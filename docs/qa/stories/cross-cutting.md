@@ -259,11 +259,11 @@ As the person who installs Agenthix for an organisation, I want everything the d
 
 ## Agenthix Cloud waits behind a flag (added 2026-11-14)
 
-Written at the close of the unit *0.1.0-alpha.4*, from the finished code (ADR-0189, which supersedes ADR-0130). A release ships before Agenthix Cloud's service opens, so every part that offers or uses it is behind one flag at preview.
+Written at the close of the unit *0.1.0-alpha.4*, from the finished code (ADR-0189, which supersedes ADR-0130). Agenthix Cloud's parts are behind the preview flag `cloud`, off in a release.
 
-### US-490 — Be offered no service that has not opened
+### US-490 — Be offered nothing of Agenthix Cloud while its flag is off
 
-As the person who installs Agenthix for an organisation, I want a release to offer, name and call nothing of Agenthix Cloud until its service opens, so that no one in my organisation is shown a service they cannot use.
+As the person who installs Agenthix for an organisation, I want a release to offer, name and call nothing of Agenthix Cloud while its flag is off, so that no one in my organisation is shown a part the release has not turned on.
 
 **Acceptance criteria:**
 - AC-490a: one flag, `cloud`, holds Agenthix Cloud back in every part; at preview it is off in a released build whatever an organisation's switch says, and on in development.

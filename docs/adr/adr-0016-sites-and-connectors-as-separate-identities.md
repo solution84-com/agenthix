@@ -63,7 +63,7 @@ Connectors are not embedded in the Site's configuration at provisioning time. In
 
 ### Why org-owned, not user-owned?
 
-The prior model (personal user MCP key) was designed for MCP tools like Antigravity or Claude Code where one tool instance = one user. Agenthesis Sites are org infrastructure — they run 24/7, independent of which user is logged in. Connectors issued for a Site need to survive personnel changes. Making them org-owned ensures that when a user leaves, their departure does not revoke the org's MCP credentials.
+The prior model (personal user MCP key) was designed for MCP tools like Antigravity or Claude Code where one tool instance = one user. Agenthix Sites are org infrastructure — they run 24/7, independent of which user is logged in. Connectors issued for a Site need to survive personnel changes. Making them org-owned ensures that when a user leaves, their departure does not revoke the org's MCP credentials.
 
 ### Why many Connectors per Site instead of one?
 

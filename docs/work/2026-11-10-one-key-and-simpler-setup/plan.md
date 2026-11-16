@@ -19,7 +19,7 @@ clean-slate rule holds until the first release candidate).
 ## Approach
 
 **Starts from `main`, on its own branch `feature/one-key-and-simpler-setup`, now the voice unit has merged**: it needs that unit's
-Inworld speech providers and the voice settings. Phases run as lanes from short briefs (`running-lanes`), one squashed commit each; the lead runs the
+Inworld speech providers and the voice settings. Phases run as lanes from short briefs, one squashed commit each; the lead runs the
 integration and cross-application suites for what a lane changed, and the full regression and image start tests once at the
 close. Each task is done when its own test passes and the typecheck of the module it touched is clean.
 

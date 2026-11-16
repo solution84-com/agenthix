@@ -38,7 +38,7 @@ fresh from it. From the squash on, every migration keeps rows.
 One branch, `chore/v0.1.0-schema`, cut from `main` after alpha.5.
 
 **The squash goes out in an alpha before `v0.1.0`** (owner, 2026-11-15). This branch merges, and the next alpha
-(alpha.6) carries the squash. The alpha installations (the reviewers' HQ, the demo and the VPS's test installation)
+(alpha.6) carries the squash. The alpha installations
 are reinstalled from it, since a squash ends upgrades from the alphas before it. The squashed migration needs no
 upgrade of its own to prove it: every install from alpha.6 runs it, and the release build's install test runs it on
 every cut. The first migration on top of it is proved like any other, by the migration check and the upgrade test.
@@ -109,13 +109,13 @@ real user's peer depends on. ADR-0136 restarted them once already, at alpha.1, f
 
 - [x] 5.1 `AGENTS.md`, `docs/architecture/versioning.md` and the `database-migrations` skill: the clean-slate rule comes
       out. From the squash on, every schema change keeps rows (add, backfill, then tighten), and the migration check
-      proves it. This is the migrations part of planning#490
+      proves it. This is the migrations part of planned work tracked outside this repository
 - [x] 5.2 The guide and the deployment document: an installation from before the squash is reinstalled. Nothing a
-      user can reach says this, since only our own alpha installations exist
+      user can reach says this, since the squash comes before the first release
 
 ### Phase 6 — The squash cut
 
-- [ ] 6.1 alpha.6 cut with the squash. The reviewers' HQ, the demo and the VPS's test installation reinstalled from it
+- [ ] 6.1 alpha.6 cut with the squash. The alpha installations reinstalled from it
 
 ## Decision records
 
@@ -171,10 +171,10 @@ which are the owner's.
 - **Open items, deferred as issues:**
   - #294: the Fleet Console isn't upgraded with hq.
   - #295: a task's last worked time is never recorded.
-  - planning#506: breaking changes need a version move and a warning.
+  - Breaking changes need a version move and a warning (planned work, tracked outside this repository).
 
   None blocks a release.
-- **Closed by this unit:** #311, #243 and #227 (planning).
+- **Closed by this unit:** #311 and #243, and an item of planned work tracked outside this repository.
 - **Noted, not done:**
   - the file view's "site too old" state is kept for the first post-1.0 gate, with three tests still tagged with the
     retired SC-1883;

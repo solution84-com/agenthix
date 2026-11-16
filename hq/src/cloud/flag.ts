@@ -1,5 +1,5 @@
 /**
- * Agenthix Cloud behind its flag, `cloud` (adr-0189; preview until Cloud's service opens). Off, every Cloud entry
+ * Agenthix Cloud behind its flag, `cloud` (adr-0189; preview, off in a release). Off, every Cloud entry
  * point refuses before it does anything (`requireFeature('cloud')`), and hq's own work with Cloud — checking in, the
  * emails about scheduled changes, the pledge's status — asks Cloud nothing.
  */

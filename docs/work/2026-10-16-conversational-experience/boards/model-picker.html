@@ -253,7 +253,7 @@ ol.q li{margin:10px 0}.opt{display:inline-block;border:1px solid var(--border);b
 </div>
 <script>
 function theme(t,b){document.documentElement.dataset.theme=t;document.querySelectorAll('.toggle button').forEach(x=>x.classList.toggle('on',x===b))}
-function pick(el){const q=el.dataset.choice.split('-')[0];document.querySelectorAll('[data-choice^="'+q+'-"]').forEach(x=>x.style.background='');el.style.background='var(--accent-soft)';if(window.companion)companion.send({type:'click',choice:el.dataset.choice,text:el.textContent})}
+function pick(el){const q=el.dataset.choice.split('-')[0];document.querySelectorAll('[data-choice^="'+q+'-"]').forEach(x=>x.style.background='');el.style.background='var(--accent-soft)'}
 </script>
 </body>
 </html>

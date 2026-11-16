@@ -5,9 +5,7 @@ description: An agent is shown a small set of must-have tools, a few lines namin
 
 # A lean agent context: must-have tools, and a tool search for the rest — spec
 
-**Status:** design agreed with the owner on 16 Nov 2026. The boards are in the unit's companion
-(`execution/companion/`: `context-size.html`, `stock-take.html`, `future-state-v2.html`); the stock-take with every
-tool's size is `execution/stock-take.md`.
+**Status:** design agreed with the owner on 16 Nov 2026.
 
 ## The problem
 
@@ -200,4 +198,4 @@ Code behave the same.
 | | Records |
 |---|---|
 | **Implements** | ADR-0193 (new): an agent is shown its must-have tools and finds the rest by search |
-| **Depends on** | bdr-0018 (the baseline model); ADR-0136 and `versioning.md` (the change is additive) |
+| **Depends on** | the baseline model (the organisation's baseline-model rule, recorded outside this repository); ADR-0136 and `versioning.md` (the change is additive) |

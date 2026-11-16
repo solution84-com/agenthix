@@ -60,7 +60,7 @@ from what passed.
 - **Phase 1** runs as parallel read-only agents (Sonnet), one per slice of the code, each writing its own file under
   `execution/`; the lead writes the mechanical search and merges. The usability reviewer (Opus) checks the map; the
   owner sees the counts per handler and only the calls the reviewer could not settle.
-- **Phases 2 and 3** run as lanes (`running-lanes`): one purpose, one agent (Sonnet), one branch and worktree each,
+- **Phases 2 and 3** run as lanes: one purpose, one agent (Sonnet), one branch and worktree each,
   briefed from this plan, the spec, the map's rows for its area and the skill draft. Phase 2 is one lane, alone.
   **Lanes that could touch the same file run one after the other**; only file-disjoint lanes run in parallel. Each
   lane lands squashed onto the unit's branch, one at a time.

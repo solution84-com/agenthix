@@ -41,7 +41,7 @@ part D describes and never calls Cloud.
 **Every Cloud feature ships at the first release; none is held back** (owner). A flag built into a release cannot
 choose who sees what, since anyone may run any build, so holding a feature back for a trial is not done with one:
 that would be a later feature, in which hq asks Cloud what applies to it (remote configuration), designed when it is
-needed. The Responsible AI Pledge goes live with the platform and Cloud early access on 17 November (owner), so the
+needed. The Responsible AI Pledge goes live with the platform on 17 November (owner), so the
 `pledge` flag is removed too and the flag module with it; no flag is left.
 
 ## Part A — the guide and screenshots for a pre-release

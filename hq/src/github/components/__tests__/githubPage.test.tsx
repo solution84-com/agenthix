@@ -109,9 +109,9 @@ describe('the App section @SC-1308', () => {
   })
 
   it('says who owns the App on GitHub, and when it is a personal account', () => {
-    const { rerender } = render(<AppSection slug="agenthix-1" owner={{ login: 'solution84-test', type: 'Organization' }} permissions={{}} settingsUrl="u" onChanged={vi.fn()} />)
-    expect(screen.getByText(/owned by/).textContent).toBe('owned by solution84-test')
-    rerender(<AppSection slug="agenthix-1" owner={{ login: 'lhengl', type: 'User' }} permissions={{}} settingsUrl="u" onChanged={vi.fn()} />)
-    expect(screen.getByText(/owned by/).textContent).toBe('owned by lhengl (a personal account)')
+    const { rerender } = render(<AppSection slug="agenthix-1" owner={{ login: 'example-org', type: 'Organization' }} permissions={{}} settingsUrl="u" onChanged={vi.fn()} />)
+    expect(screen.getByText(/owned by/).textContent).toBe('owned by example-org')
+    rerender(<AppSection slug="agenthix-1" owner={{ login: 'avery-chen', type: 'User' }} permissions={{}} settingsUrl="u" onChanged={vi.fn()} />)
+    expect(screen.getByText(/owned by/).textContent).toBe('owned by avery-chen (a personal account)')
   })
 })
