@@ -68,8 +68,9 @@ need it; if you have just been made a fleet admin, start at
 The **Responsible AI Pledge** is an Agenthix initiative: a movement of people who commit to using AI honestly, under
 their oversight, and owning what it does. It is separate from the product, and signing it is free and voluntary. HQ
 invites you to it once, on **Home**; with an Agenthix account linked, HQ knows whether you have signed, shows it only to
-you in **Settings**, and stops asking once you have. Read it at
-[agenthix.com/responsible-ai](https://agenthix.com/responsible-ai).
+you in **Settings**, and stops asking once you have.
+
+**[Read and sign the pledge at agenthix.com/responsible-ai](https://agenthix.com/responsible-ai)**
 
 ## Where to go next
 

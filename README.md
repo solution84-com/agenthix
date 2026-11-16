@@ -136,7 +136,9 @@ A release is a git tag at the repo root (`v<version>`, for example `v0.1.0`) on 
 
 The Responsible AI Pledge is an Agenthix initiative. AI isn't good or bad on its own: it's as good as the people who use
 it. The pledge is a movement of people who commit to using it honestly, under their oversight, and owning what it does.
-It is separate from this software, and free to sign. Read it at [agenthix.com/responsible-ai](https://agenthix.com/responsible-ai).
+It is separate from this software, and free to sign.
+
+**[Read and sign the pledge at agenthix.com/responsible-ai](https://agenthix.com/responsible-ai)**
 
 ## Docs
 
