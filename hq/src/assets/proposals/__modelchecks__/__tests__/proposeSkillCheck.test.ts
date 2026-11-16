@@ -1,59 +1,38 @@
 import { describe, it, expect } from 'vitest'
-import type { LeadRequest, LeadStreamEvent, ModelAdapter, ResolvedAccess } from '../../../../conversations/contract'
-import { grade, runCheck, system, tools } from '../proposeSkillCheck'
-
-const access = { providerId: 'p', providerName: 'p', provider: 'openai', model: 'm', apiKey: 'k' } as ResolvedAccess
-
-/** A model that makes these calls, one round each, then answers. */
-function scripted(rounds: Array<Array<{ name: string; input: Record<string, unknown> }>>): ModelAdapter & { seen: LeadRequest[] } {
-  const seen: LeadRequest[] = []
-  return {
-    seen,
-    async *stream(request: LeadRequest): AsyncIterable<LeadStreamEvent> {
-      seen.push(request)
-      const calls = rounds[seen.length - 1] ?? []
-      if (calls.length === 0) yield { type: 'text', text: 'Done.' }
-      for (const [i, c] of calls.entries()) yield { type: 'tool-call', call: { id: `c${seen.length}-${i}`, ...c } }
-    },
-    complete: async () => { throw new Error('not used') },
-  }
-}
+import { grade, writesInShell } from '../proposeSkillCheck'
+import { runSkillsCheck } from '../skillsRun'
+import { scripted, access } from './skillsFake'
 
 const SKILL = { 'SKILL.md': '---\nname: pr-review\ndescription: Review a pull request.\n---\n\n1. Read it.\n' }
+const propose = (files: Record<string, string> = SKILL) =>
+  [{ name: 'propose_skill', input: { name: 'pr-review', description: 'x', files, why: 'asked', aim: 'project' } }]
+const run = (rounds: Parameters<typeof scripted>[0]) => runSkillsCheck(scripted(rounds), access, 'ask')
 
 describe('the propose_skill model check @SC-1662', () => {
-  it('gives the agent skill-creator in its list, and the skill tool answers with its own SKILL.md', async () => {
-    expect(system()[0]!.text).toContain('platform-skill-creator')
-    expect(tools().map(t => t.name)).toEqual(['Skill', 'Read', 'Write', 'Bash', 'propose_skill'])
-    const model = scripted([[{ name: 'Skill', input: { name: 'platform-skill-creator' } }], []])
-    await runCheck(model, access)
-    const result = model.seen[1]!.messages.at(-1) as { result: string }
-    expect(result.result).toContain('propose_skill')
-  })
-
   it('passes a run that loads the skill and proposes with a SKILL.md', async () => {
-    const run = await runCheck(scripted([
-      [{ name: 'Skill', input: { name: 'platform-skill-creator' } }],
-      [{ name: 'propose_skill', input: { name: 'pr-review', description: 'x', files: SKILL, why: 'asked', aim: 'project' } }],
-      [],
-    ]), access)
-    expect(grade(run)).toEqual({ passed: true })
+    expect(grade(await run([[{ name: 'skill', input: { name: 'platform-skill-creator' } }], propose(), []]))).toEqual({ passed: true })
   })
 
   it('fails a run that writes the skill into files, even if it proposes too', async () => {
-    const run = await runCheck(scripted([
-      [{ name: 'Write', input: { file_path: '/projects/website-rebuild/files/.agents/skills/pr-review/SKILL.md', content: 'x' } }],
-      [{ name: 'propose_skill', input: { name: 'pr-review', description: 'x', files: SKILL, why: 'asked', aim: 'project' } }],
-      [],
-    ]), access)
-    expect(grade(run)).toMatchObject({ passed: false, why: expect.stringContaining("wrote a skill's files") })
+    const wrote = await run([
+      [{ name: 'write_file', input: { file_path: '/projects/website-rebuild/files/.agents/skills/pr-review/SKILL.md', content: 'x' } }],
+      propose(), [],
+    ])
+    expect(grade(wrote)).toMatchObject({ passed: false, why: expect.stringContaining("wrote a skill's files") })
   })
 
   it('fails a run that never proposes, or proposes without a SKILL.md', async () => {
-    expect(grade(await runCheck(scripted([[]]), access))).toMatchObject({ passed: false, why: expect.stringContaining('never called') })
-    const run = await runCheck(scripted([
-      [{ name: 'propose_skill', input: { name: 'pr-review', description: 'x', files: { 'README.md': 'x' }, why: 'asked', aim: 'project' } }], [],
-    ]), access)
-    expect(grade(run)).toMatchObject({ passed: false, why: expect.stringContaining('without a SKILL.md') })
+    expect(grade(await run([[]]))).toMatchObject({ passed: false, why: expect.stringContaining('never called') })
+    expect(grade(await run([propose({ 'README.md': 'x' }), []]))).toMatchObject({ passed: false, why: expect.stringContaining('without a SKILL.md') })
+  })
+
+  it('counts a redirect, tee or here-document as writing, and a read with its errors hidden as reading', () => {
+    expect(writesInShell('cat /run/staging/skills/x/SKILL.md 2>/dev/null; echo')).toBe(false)
+    expect(writesInShell('find . -maxdepth 4 -name SKILL.md 2>&1 | head')).toBe(false)
+    expect(writesInShell('ls skills > /dev/null')).toBe(false)
+    expect(writesInShell('echo "# Review" > skills/review/SKILL.md')).toBe(true)
+    expect(writesInShell('echo more >> skills/review/SKILL.md')).toBe(true)
+    expect(writesInShell('tee skills/review/SKILL.md')).toBe(true)
+    expect(writesInShell("cat <<'EOF' > skills/review/SKILL.md")).toBe(true)
   })
 })

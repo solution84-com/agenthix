@@ -1,5 +1,6 @@
 /**
- * Runs every check on every model the environment names, each as many times as it asks, one at a time. Without the
+ * Runs every check on every model the environment names, each as many times as it asks (or as many as the check
+ * itself sets), one at a time. Without the
  * environment it calls nothing and says what to set.
  */
 import type { ModelAdapter } from '../contract'
@@ -11,7 +12,7 @@ import { runTaskRunCheck } from './taskRun/run'
 import { errorGrade, outcomeLine, type Outcome } from './report'
 
 export interface RunnerDeps {
-  /** The real adapter unless set; tests give one on a fake model. Its usage is never recorded. */
+  /** The real adapter unless set; tests give one on a fake model. */
   adapter?: ModelAdapter
   /** Each line as it is known. */
   out(line: string): void
@@ -35,14 +36,19 @@ export async function runModelChecks(
   for (const model of access.accesses) {
     const redact = (line: string) => line.split(model.apiKey).join('[key]')
     for (const check of checks) {
-      for (let run = 1; run <= access.runs; run++) {
+      for (let run = 1; run <= (check.runs ?? access.runs); run++) {
         let grade: Grade
+        let firstRequestTokens: number | null = null
         try {
-          grade = check.grade(await (check.taskRun ? runTaskRunCheck(adapter, model, check.taskRun) : runCheck(adapter, model, check.setup)))
+          const record = await (check.taskRun ? runTaskRunCheck(adapter, model, check.taskRun) : runCheck(adapter, model, check.setup))
+          firstRequestTokens = record.firstRequestTokens ?? null
+          grade = check.grade(record)
         } catch (err) {
           grade = errorGrade(err)
         }
-        const outcome: Outcome = { model: model.model, check: check.id, run, grade }
+        const outcome: Outcome = { model: model.model, check: check.id, run, grade, kind: check.taskRun ? 'task run' : 'lead' }
+        if (check.minPassRate !== undefined) outcome.need = check.minPassRate
+        if (firstRequestTokens !== null) outcome.firstRequestTokens = firstRequestTokens
         if (!grade.passed) outcome.grade = { passed: false, why: redact(grade.why) }
         outcomes.push(outcome)
         deps.out(outcomeLine(outcome))

@@ -144,7 +144,7 @@ describe('the model checks', () => {
       'small · in-reach · run 2: failed: answered without searching',
     ])
     if ('skipped' in result) throw new Error('not run')
-    expect(summaryTable(result.outcomes, result.checks, result.models)).toBe('| Check | small |\n|---|---|\n| in-reach | fails (0/2) |')
+    expect(summaryTable(result.outcomes, result.checks, result.models)).toBe('| Check | small |\n|---|---|\n| in-reach | fails 0/2 |')
   })
 })
 

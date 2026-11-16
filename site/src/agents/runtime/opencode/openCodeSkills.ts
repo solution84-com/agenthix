@@ -17,7 +17,7 @@
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { OPENCODE_SKILLS_DIRNAME, conversationStagingDirName } from '@agenthix/core'
+import { OPENCODE_SKILLS_DIRNAME, conversationStagingDirName, openCodeSkillsSection, type OpenCodeSkill } from '@agenthix/core'
 import { Logger } from '../../../server/utils/logger'
 import { stageSkills, type StagingResult } from '../skillStaging'
 import { recordSkillsUsed } from '../skillUseRecord'
@@ -29,12 +29,7 @@ import { skillDescription } from './skillDescription'
 
 const logger = new Logger('OpenCodeSkills')
 
-export type OpenCodeSkill = {
-  name: string
-  description: string | undefined
-  /** The skill's SKILL.md as the run sees it. */
-  location: string
-}
+export { openCodeSkillsSection, type OpenCodeSkill }
 
 export type OpenCodeTurnSkills = {
   skills: OpenCodeSkill[]
@@ -59,38 +54,6 @@ export function openCodeSkillsDirs(runStaging: RunContext['runStaging'], convers
     serverDir: path.join(runStaging.serverDir, suffix),
     visibleDir: path.posix.join(runStaging.visibleDir, suffix.split(path.sep).join('/')),
   }
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
-}
-
-/** OpenCode's own skills section (v1.18.32, `session/system.ts` and `skill/index.ts`'s `fmt`), for these skills. */
-export function openCodeSkillsSection(skills: OpenCodeSkill[]): string {
-  const described = skills.filter(s => s.description !== undefined).sort((a, b) => a.name.localeCompare(b.name))
-  const list = described.length === 0
-    ? 'No skills are currently available.'
-    : [
-        '<available_skills>',
-        ...described.flatMap(s => [
-          '  <skill>',
-          `    <name>${s.name}</name>`,
-          `    <description>${escapeHtml(s.description ?? '')}</description>`,
-          `    <location>${escapeHtml(s.location)}</location>`,
-          '  </skill>',
-        ]),
-        '</available_skills>',
-      ].join('\n')
-  return [
-    'Skills provide specialized instructions and workflows for specific tasks.',
-    'Use the skill tool to load a skill when a task matches its description.',
-    list,
-  ].join('\n')
 }
 
 /**

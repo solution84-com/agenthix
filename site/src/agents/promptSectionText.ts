@@ -1,5 +1,6 @@
 import {
   BRANDING,
+  buildMemoryContent,
   localDateTimeText,
   type AgentConfigPayload,
   type TaskCommentForRun,
@@ -14,41 +15,7 @@ export function buildAgentIdentityContent(agent: AgentLike): string {
   return `# Agent Identity\n\nYou are **${agent.name}**, an autonomous agent in the ${BRANDING.displayName} platform.\n\n- **Agent ID:** \`${agent.id}\`${agent.role ? `\n- **Role:** ${agent.role}` : ''}`
 }
 
-const KNOWLEDGE_GUIDANCE =
-  '## Knowledge\n\n' +
-  '`search_knowledge` finds how things are done here and how ' +
-  BRANDING.displayName +
-  ' itself works, in one search, across the ' +
-  'places in this conversation. Look there before asking. Where pages differ, the most specific wins: a place, ' +
-  'then the organisation, then the platform guide. What you learn on your own belongs in memory.'
-
-const SKILLS_GUIDANCE =
-  '## Skills\n\n' +
-  "A skill's name starts with where it comes from (`platform-`, `org-`, `agent-`, `person-`, `workspace-N-`); the " +
-  'rest is its name. A person\'s `/code-review` is the skill ending in `code-review`.'
-
-/**
- * Memory is held by hq and recalled by meaning (memory and knowledge spec): none of it arrives whole in the
- * prompt, so the section only says how to reach it. hq decides at each call which memory this run may use.
- */
-export function buildMemoryContent(pinnedPath?: string | null): string {
-  const pinned = pinnedPath
-    ? `\n\nWhat memory found for this work is in \`${pinnedPath}\` (read-only, refreshed when a run starts): read ` +
-      'it first, and follow its rules. `recall` reaches the rest.'
-    : ''
-  return (
-    '## Memory\n\n' +
-    'What you and the other agents learned while working is kept in HQ, not in this prompt. Call `recall` with a ' +
-    'few words of what you need — what the person prefers, how something was done before, a decision already ' +
-    'made — before asking again, or with the key of an item you were told of. Call `remember` when you learn ' +
-    'something about the person worth knowing next time, and `forget` when an item is no longer true.' +
-    pinned +
-    '\n\n' +
-    KNOWLEDGE_GUIDANCE +
-    '\n\n' +
-    SKILLS_GUIDANCE
-  )
-}
+export { buildMemoryContent }
 
 /** The place's `AGENTS.md`, inlined — every run in a project or a person's space reads it. */
 export function buildPlaceInstructionsSection(place: string | null | undefined): string | null {

@@ -80,6 +80,23 @@ function rememberedAs(id: string, title: string, message: string, kind: 'FACT' |
   }
 }
 
+/**
+ * "Remember that …" is a request to keep it, so `remember` is called in that reply, of any kind, with `requested` true.
+ * One call of a model is a draw: the check runs ten times and is met at 9 of 10.
+ */
+const REMEMBER_THAT: Check = {
+  id: 'remember-that',
+  title: 'A "remember that" asked, called as remember: a rate',
+  runs: 10,
+  minPassRate: 0.9,
+  setup: { home: 'project', message: 'Remember that our release day is Thursday.' },
+  grade(run) {
+    const saves = run.calls.filter(c => c.name === 'remember').map(saved)
+    if (saves.length === 0) return fail(`remember not called: ${calls(run)}`)
+    return saves.some(s => s.requested) ? PASS : fail('remember called without requested true')
+  },
+}
+
 /** The person asks for a comparison through work whose first step does not need the Rule. */
 export const QUOTES_IN_KNOWLEDGE = 'Look at the hosting quotes in our Knowledge and tell me which one to take.'
 export const QUOTES_IN_FILES = 'Look at our three hosting quotes in Files and tell me which to take.'
@@ -89,6 +106,7 @@ export const MEMORY_CHECKS: readonly Check[] = [
   ruleWeight('hinted'),
   ruleWeight('none'),
   rememberedAs('remember-rule-asked', 'A standing instruction, asked to be kept', 'Always answer me in British English.', 'RULE', true),
+  REMEMBER_THAT,
   rememberedAs('remember-fact-asked', 'A fact, asked to be kept', 'Remember that my partner is called Sam.', 'FACT', true),
   rememberedAs(
     'remember-fact-in-passing',

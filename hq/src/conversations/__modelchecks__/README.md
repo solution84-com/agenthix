@@ -47,7 +47,7 @@ real tools' words. Nothing reaches a database, a site or a card.
 
 ### Memory
 
-Eight checks of a person's memory (ADR-0188): the person holds one Rule, *Comparing options: use a table* ("When
+Nine checks of a person's memory (ADR-0188): the person holds one Rule, *Comparing options: use a table* ("When
 comparing or choosing between options, use a table: one row per option, columns for cost and risk."), and the project
 a *Hosting quotes* page with three quotes in prose. The memory block is the probe hook's own (`memory/turnBlock.ts`),
 in the tier a check names; `recall` answers from the same memory, and `remember` in the real tool's shape.
@@ -58,6 +58,7 @@ in the tier a check names; `recall` answers from the same memory, and `remember`
 | `rule-weight-hinted` | in the hint by title and key, as before the weight | the same | a table, or `recall` that finds the Rule |
 | `rule-weight-none` | held, not shown: where the local model scores this question (below) | the same | the same |
 | `remember-rule-asked` | none | "Always answer me in British English." | `remember` with kind `rule` (or a deprecated kind read as one) and `requested` |
+| `remember-that` | none | "Remember that our release day is Thursday." | `remember` called in that reply, any kind, with `requested`. Run ten times, whatever `MODEL_CHECK_RUNS` says, and met at 9 of 10: the summary says `passes 9/10` |
 | `remember-fact-asked` | none | "Remember that my partner is called Sam." | `remember` with kind `fact` and `requested` |
 | `remember-fact-in-passing` | none, in Your space | "Can you plan a dinner for four this Saturday? I'm vegetarian, by the way." | nothing remembered, or a `fact` not `requested` |
 | `rule-mid-work` | in the hint | "Look at the hosting quotes in our Knowledge and tell me which one to take." | the reply that compares has a table, or `recall` found the Rule |
@@ -96,6 +97,42 @@ frame stands in for them. The tools answer from `taskRun/script.ts`, with hq's r
 
 A run of a lead's check takes up to 5 model calls (the memory checks, usually 1 to 3); a task run's, up to 20. A check passes for a model only when every run of it passes.
 
+### An agent's skills
+
+Five checks send an agent in a run what a real run is told about skills, not the lead
+(`src/assets/proposals/__modelchecks__/`). The system is built from core's words: the memory, knowledge and skills
+guidance (`buildMemoryContent`), `PLATFORM_TOOLS_INSTRUCTIONS` and OpenCode's skill list (`openCodeSkillsSection`);
+the message of a picked skill is built with core's `pickedSkillInstruction` and `pickedSkillReadInstruction`. The tools
+are the harness's built-ins, a `skill` tool and the platform tools from hq's own declarations, `propose_skill` among
+them. Three skills are listed: the built-in `platform-skill-creator` (its real `SKILL.md`), an organisation's
+`org-release-notes`, and a person's `person-code-review`, which only a person picks. The tools answer from a script
+(`skillsWorld.ts`); nothing reaches a database, a site or a file.
+
+| Check | The message | Passes when |
+|---|---|---|
+| `propose-skill` | "We just went through how I review a pull request here: … Make that a skill for the team" | `propose_skill` with a `SKILL.md`; no skill files written by the agent |
+| `skill-use` | "Write the release notes for 2.4" | `org-release-notes` loaded with the skill tool before any work |
+| `skill-picked` | the picked-skill instruction, then `/release-notes …` as plain text | the first call loads `org-release-notes` with the skill tool |
+| `skill-picked-read` | the read instruction naming `person-code-review`'s staged file, then `/code-review …` | the first call reads that file; the skill tool never loads it |
+| `skill-what-can-you-do` | "What can you do?" | the answer names at least two of the listed skills; no work started |
+
+A run takes up to 6 model calls. The result is written to `hq/.model-checks/skills-<time>.md`, as the lead's is.
+
+### The first request, measured
+
+Each run records the provider's own count of the input of its first model call (the part not cached plus what was
+read from and written to the cache), from the usage the adapter reports; no extra call is made. The report ends with
+a section *First request, tokens*: for the lead's checks, the task-run checks and the skills checks, each check's
+median over its runs, per model. A run whose call failed before the provider answered has no count and is left out.
+
+### Tools found by search
+
+A model may call `use_tool` with `{ name, input }` to run a tool it was not shown (ADR-0193). Where a runner records a
+call (`run.ts`, `taskRun/run.ts`, `skillsRun.ts`), `use_tool` is recorded as a call of `name` with `input`, so every
+grade reads what the agent did and not the route; `find_tools` is recorded as itself. The script answers a `use_tool`
+as the named tool would, and `find_tools` with the offered tools whose name or description match the query words
+(`readCall.ts`).
+
 ## Which models
 
 **The baseline is a low-cost, capable model:** the kind a cost-conscious organisation would choose for everyday agent
@@ -132,7 +169,7 @@ MODEL_CHECK_MODELS=~anthropic/claude-sonnet-latest MODEL_CHECK_RUNS=1 npm run te
 | `MODEL_CHECK_API_KEY` | The key for that vendor; from `.env.dev`'s `DEV_<VENDOR>_API_KEY` when not set. It is never logged or written |
 | `MODEL_CHECK_BASE_URL` | The endpoint, for `openai_compatible` only |
 | `MODEL_CHECK_RUNS` | How many times each check runs on each model; 3 if not set |
-| `MODEL_CHECK_ONLY` | The checks to run, by id, comma-separated (the propose-skill check is `propose-skill`); every check if not set |
+| `MODEL_CHECK_ONLY` | The checks to run, by id, comma-separated (the skills checks are named above, `propose-skill` among them); every check if not set |
 
 Without the first three, every check is skipped with one line saying what to set, and no model is called.
 
