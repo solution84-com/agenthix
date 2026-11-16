@@ -1,4 +1,3 @@
-import path from 'node:path'
 import { Logger } from '../../server/utils/logger'
 import type { CapabilityRunner } from '@agenthix/core'
 import { containerNameFor, labelKey, resolveComposeProjectName, siteIdFilterArgs } from './containerLabels'
@@ -10,7 +9,7 @@ import { ensureAgentNetwork, releaseAgentNetwork } from './containerNetwork'
 import { buildContainerRunCommand } from './containerRunArgs'
 import { prepareOpenCodeConfigMounts } from './openCodeConfigMounts'
 import { prepareRunStaging } from './runStaging'
-import { ensureFoldersUnder } from './homeFolder'
+import { prepareBoundaryFolders } from './boundaryFolders'
 import { ContainerRuns } from './containerRuns'
 import { mountSignature } from './mountSignature'
 import { removeContainersFor, type ContainerRemovalFilter } from './containerRemoval'
@@ -246,12 +245,9 @@ export class AgentContainerManager {
     await prepareRunStaging(key)
     await prepareOpenCodeConfigMounts(key)
 
-    // Pre-create the boundary's folder and the standard folders inside it as
-    // this process (uid 1001). If Docker has to create a missing `-v` source
-    // itself, it makes it root-owned, and the agent (appuser) then can't write
-    // into it (e.g. mkdir into a location's tree → EACCES). Creating them first
-    // keeps them 1001-owned. Made from the boundary's folder down, never through a link a run left (adr-0173).
-    await ensureFoldersUnder(mounts.boundary.hostDir, mounts.folders.map(f => path.relative(mounts.boundary.hostDir, f.hostDir)))
+    // The boundary's folder, the folders inside it and the mount points of the binds in it, made as this process
+    // (uid 1001) so Docker never makes them root-owned (boundaryFolders.ts).
+    await prepareBoundaryFolders(mounts)
       .catch(err => logger.warn(`[container] could not make the boundary's folders: ${err instanceof Error ? err.message : String(err)}`))
 
     // Remove any stopped (or adopted, unverified) container with the same name

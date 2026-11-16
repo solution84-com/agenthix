@@ -63,6 +63,19 @@ function slowBrowser(path: string, every: number, pauseMs: number) {
   return { done, isPaused: () => paused !== null }
 }
 
+/** A count once it has stopped moving: the same at three reads 100 ms apart, read for at most about 5 s. */
+async function settled(read: () => number): Promise<number> {
+  let last = read()
+  let same = 0
+  for (let i = 0; i < 50 && same < 2; i++) {
+    await new Promise(r => setTimeout(r, 100))
+    const now = read()
+    same = now === last ? same + 1 : 0
+    last = now
+  }
+  return last
+}
+
 describe('flow control on a relay stream @SC-1484 @SC-1571', () => {
   it('carries a download of more than 64 MiB to a slow reader whole, holding about a window for it', async () => {
     const FILE = randomBytes(64 * 1024 * 1024 + 4321)
@@ -87,8 +100,11 @@ describe('flow control on a relay stream @SC-1484 @SC-1571', () => {
     await until(() => relay.load.openStreams === 0)
   }, 60_000)
 
+  // What the relay holds for a stalled browser is its window; what the machine's own socket buffers take between the
+  // relay and the browser is the system's, and Linux's loopback takes several MiB (macOS's far less). So the stream is
+  // sized past any socket buffer, and the bytes the relay carried are read once they stop moving.
   it('holds a stalled browser\'s stream at its window, without failing it, and finishes when it reads again', async () => {
-    const SIZE = 8 * 1024 * 1024
+    const SIZE = 64 * 1024 * 1024
     const window = 256 * 1024
     const responses = await withSite(() => ({ head: head(SIZE), body: new Uint8Array(SIZE) }), { window, creditStep: 64 * 1024 })
     let res: import('node:http').IncomingMessage | null = null
@@ -100,10 +116,11 @@ describe('flow control on a relay stream @SC-1484 @SC-1571', () => {
     req.end()
     await until(() => res !== null)
     await new Promise(r => setTimeout(r, 300))
+    const held = await settled(() => relay.load.bytesCarried)
 
     expect(site!.opened[0]?.failedWith).toBeUndefined()
     expect(responses[0]!.writableLength).toBeLessThanOrEqual(window + 64 * 1024)
-    expect(relay.load.bytesCarried).toBeLessThan(SIZE)
+    expect(held).toBeLessThan(SIZE)
 
     let got = 0
     const ended = new Promise<void>(resolve => {
@@ -113,7 +130,7 @@ describe('flow control on a relay stream @SC-1484 @SC-1571', () => {
     res!.resume()
     await ended
     expect(got).toBe(SIZE)
-  })
+  }, 60_000)
 
   it('serves another browser at full speed while one stream of the same site is stalled', async () => {
     const SIZE = 4 * 1024 * 1024

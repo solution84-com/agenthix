@@ -78,6 +78,8 @@ describe('agenthix uninstall refuses @SC-1159', () => {
     expect(r.refusal!.message).toContain(`HQ at ${ADDRESS} is on hq-box. Nothing was removed.`)
     expect(r.refusal!.message).toContain('agenthix hq erase')
     expect((await ask({ op: 'suspend', target: 'hq' })).ok).toBe(true)
+    // Suspending takes the site's agents down itself; what is checked is that the refused uninstall removes nothing.
+    m.calls.length = 0
     expect((await uninstall()).refusal!.message).toContain('is on hq-box, suspended.')
     expect(changes()).toEqual([])
     expect(table).toBe(true)

@@ -212,7 +212,7 @@ export async function forgetConsole(ctx: Context): Promise<{ siteName: string | 
   ctx.link?.stop()
   const site = installed(ctx).site
   if (!site?.settings.hqUrl) return { siteName: null }
-  await ctx.docker.composeStop(site.project, site.file).catch(() => {})
+  await ctx.docker.stopSite(site, ctx.names.agentsProject).catch(() => {})
   return { siteName: site.settings.name }
 }
 

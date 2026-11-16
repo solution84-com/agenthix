@@ -93,6 +93,16 @@ export class Docker {
     if (networks.length) await this.ok(['network', 'rm', ...networks], { timeoutMs: 2 * 60_000 })
   }
 
+  /**
+   * Stops a site that stays down — suspended, stopped, or its Fleet Console gone — and takes down the agents it
+   * started: an agent's idle timer is its site's, so nothing ends one while the site is stopped. An upgrade's stop
+   * keeps them, since its site comes back to them.
+   */
+  async stopSite(site: { project: string; file: string }, agentsProject: string): Promise<void> {
+    await this.composeStop(site.project, site.file)
+    await this.removeGroup(agentsProject)
+  }
+
   /** Every network on the machine, with its IPv4 subnets (compose/subnets.ts). */
   async networks(): Promise<DockerNetwork[]> {
     const names = (await this.ok(['network', 'ls', '--format', '{{.Name}}'], { timeoutMs: 60_000 }))

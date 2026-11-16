@@ -32,6 +32,26 @@ export const pairedBySecret = (env: NodeJS.ProcessEnv = process.env): boolean =>
   Boolean(env.HQ_URL?.trim() && env.HQ_PAIRING_SECRET?.trim())
 
 /**
+ * A site a Fleet Console added is given its own machine credential in the same variable as the pairing secret
+ * (the host service's `siteProject`); only hq's own site dials hq-web by its installation's container name. A site
+ * no host service names (development, `pair.sh`) is hq's own.
+ */
+function besideItsHq(hqUrl: string, env: NodeJS.ProcessEnv): boolean {
+  const ns = env.HOST_NAMESPACE?.trim()
+  if (!ns) return true
+  try {
+    return new URL(hqUrl).hostname === `${ns}-hq-web`
+  } catch {
+    return false
+  }
+}
+
+function connectedLine(base: string, dial: string, env: NodeJS.ProcessEnv): string {
+  const at = dial === base ? base : `${dial}, where it moved from ${base},`
+  return besideItsHq(base, env) ? `Paired with hq at ${at} by HQ_PAIRING_SECRET.` : `Connected to hq at ${at} with this site's credential.`
+}
+
+/**
  * hq's own site is connected by configuration, not registration: the same
  * secret sits in hq's and this site's environment, and this site presents it as
  * its bearer credential exactly as a registered site presents its machine
@@ -75,6 +95,6 @@ export async function connectFromPairingSecretIfConfigured(options: PairingOptio
     pairedHqUrl: base,
     keepMove,
   })
-  logger.info(dial === base ? `Paired with hq at ${base} by HQ_PAIRING_SECRET.` : `Paired with hq at ${dial}, where it moved from ${base}, by HQ_PAIRING_SECRET.`)
+  logger.info(connectedLine(base, dial, process.env))
   return 'connected'
 }

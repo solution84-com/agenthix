@@ -51,6 +51,18 @@ describe('suspending and resuming', () => {
     expect(await ask({ op: 'resume', target: 'hq' })).toMatchObject({ ok: false, refusal: { message: expect.stringContaining('is not suspended') } })
   })
 
+  it("takes down the site's agents with it, whose idle timer is the site's @SC-842", async () => {
+    m.agentContainers.push('agenthix-agent-project-p1-project-rw')
+    m.agentNetworks.push('agenthix-agent-net-1')
+    expect(await ask({ op: 'suspend', target: 'site' })).toMatchObject({ ok: true })
+    expect(m.agentContainers).toEqual([])
+    expect(m.agentNetworks).toEqual([])
+    m.agentContainers.push('agenthix-agent-project-p1-project-rw')
+    await ask({ op: 'resume', target: 'site' })
+    expect(await ask({ op: 'suspend', target: 'hq' })).toMatchObject({ ok: true })
+    expect(m.agentContainers).toEqual([])
+  })
+
   it('suspends the site alone, and status says how to start it @SC-842', async () => {
     await ask({ op: 'suspend', target: 'site' })
     expect(composeVerbs()).toEqual(['agenthix-site stop'])

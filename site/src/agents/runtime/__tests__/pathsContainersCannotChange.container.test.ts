@@ -19,6 +19,7 @@ import { harnessHomeFor, runStagingFor } from '../harnessHomes'
 import { prepareOpenCodeConfigMounts } from '../openCodeConfigMounts'
 import { buildContainerRunCommand } from '../containerRunArgs'
 import { codeWorkspaceMounts } from '../codeWorkspaceMounts'
+import { prepareBoundaryFolders } from '../boundaryFolders'
 import { resolveBoundaryMount } from '../locationResolver'
 import { getSiteRoot } from '../../agentDiskPaths'
 import type { AgentMounts, ContainerKey } from '../containerTypes'
@@ -64,6 +65,9 @@ describe.skipIf(!available)('paths a container cannot change (adr-0173)', () => 
       boundary, folders: [], locationMode: 'rw',
       readOnly: await codeWorkspaceMounts(boundary, { ownerType: 'project', ownerId: 'p1' }, [{ id: 'w1' }]),
     }
+    // As the site does before every start: on Linux, a mount point Docker made itself would be root-owned, and
+    // neither the site nor this test's cleanup could remove the workspace's folder.
+    await prepareBoundaryFolders(mounts)
     spawnSync('docker', ['rm', '-f', NAME], { stdio: 'ignore' })
     const { args } = buildContainerRunCommand(KEY, { handle: 'a', runtime: 'opencode', sessionId: 's', credential: null }, NAME, mounts, 'none')
     const run = spawnSync('docker', args, { encoding: 'utf8' })
