@@ -78,7 +78,7 @@ test('with nothing urgent, the line names the monthly updates only while they ar
   assert.equal(lineFor(assess([], [], NOW), 'December', { updatesDue: true }), '')
 })
 
-test('Release stops while a shipped critical or high alert is past its 7 days, unless a dry run or a patch', () => {
+test('Release stops while a shipped critical or high alert is past its 7 days, unless a dry run or a patch version on a release branch', () => {
   const late = assess([alert(80)], [], new Date('2026-11-23T00:00:00Z'))
   assert.match(releaseProblem(late, { dryRun: false, exempt: false }), /1 security alert in shipped code is past its 7 days with no decision \(high: undici in hq\)/)
   assert.equal(releaseProblem(late, { dryRun: true, exempt: false }), null)
@@ -133,10 +133,29 @@ test('--line prints one line, or nothing when the alerts cannot be read, and alw
 })
 
 test('--release stops past the 7 days, and stops when the alerts cannot be read', () => {
-  assert.equal(run(['--release'], { alerts: [alert(80)], env: { GITHUB_REF: 'refs/heads/main' } }).status, 1)
-  assert.equal(run(['--release', '--dry-run'], { alerts: [alert(80)], env: { GITHUB_REF: 'refs/heads/main' } }).status, 0)
-  assert.equal(run(['--release'], { alerts: [], env: { GITHUB_REF: 'refs/heads/main' } }).status, 0)
-  assert.equal(run(['--release'], { env: { GITHUB_REF: 'refs/heads/main' } }).status, 1)
+  const main = { GITHUB_REF: 'refs/heads/main' }
+  assert.equal(run(['--release', '--version', '0.2.0'], { alerts: [alert(80)], env: main }).status, 1)
+  assert.equal(run(['--release', '--version', '0.2.0', '--dry-run'], { alerts: [alert(80)], env: main }).status, 0)
+  assert.equal(run(['--release', '--version', '0.2.0'], { alerts: [], env: main }).status, 0)
+  assert.equal(run(['--release', '--version', '0.2.0'], { env: main }).status, 1)
+})
+
+test('--release skips the alerts for a patch version on a release branch, and checks a major or minor there', () => {
+  const at = (version, ref) => run(['--release', '--version', version], { alerts: [alert(80)], env: { GITHUB_REF: ref } })
+  const patch = at('0.1.1', 'refs/heads/release/v0.1.1')
+  assert.equal(patch.status, 0)
+  assert.match(patch.stdout, /not checked: .*patch/)
+  assert.equal(at('0.1.0', 'refs/heads/release/v0.1.0').status, 1)
+  assert.equal(at('1.0.0', 'refs/heads/release/v1.0.0').status, 1)
+  assert.equal(at('0.1.1', 'refs/heads/main').status, 1)
+  // Unread alerts are no reason to skip: a minor on a release branch whose alerts can't be read still stops.
+  assert.equal(run(['--release', '--version', '0.2.0'], { env: { GITHUB_REF: 'refs/heads/release/v0.2.0' } }).status, 1)
+})
+
+test('--release without the version is refused: the gate cannot tell a patch from a minor', () => {
+  const r = run(['--release'], { alerts: [], env: { GITHUB_REF: 'refs/heads/release/v0.1.1' } })
+  assert.equal(r.status, 2)
+  assert.match(r.stderr, /--version/)
 })
 
 test('--triage prints the listing', () => {

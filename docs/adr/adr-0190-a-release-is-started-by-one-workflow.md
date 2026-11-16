@@ -30,6 +30,10 @@ stay so.
    overdue; captures the guide's screenshots and pins them to the tag, committing and pushing the edit when there is
    one; runs the release build for that commit; then tags the commit and publishes. A stage that fails stops the run
    and is named on its page.
+
+   > ⚠️ **Superseded in part by adr-0194 — Release runs on the release's own branch.** *(annotated 2026-11-17)* A
+   > real run is started on `release/v<version>`, never on `main`; a patch's branch is no longer the exception. The
+   > rest of this item still stands.
 2. **The tag is no longer pushed by hand.** The workflow creates it, and starts the publishing workflow at the tag, so
    the signer a host service checks is unchanged (ADR-0117). A tag pushed by hand still publishes.
 3. **A failed release is fixed on a branch** and proved there by a dry run of Release, which does everything but push,

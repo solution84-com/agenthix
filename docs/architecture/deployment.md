@@ -73,14 +73,15 @@ image on an Apple-silicon Mac needs Docker Desktop's Rosetta setting on, since i
 
 A version tag publishes the images: `v<major>.<minor>.<patch>` for a release, and `v<major>.<minor>.<patch>-alpha.<n>`
 or `-rc.<n>` for a pre-release, while features still land or once they are done and being proved (`-beta.<n>` is accepted too,
-ordered between them). **A release is a tag on a commit of `main` that has been proved**
-([ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md)); a release branch exists only for a patch
-([versioning.md](versioning.md#the-product-version), the `releasing` skill). Nothing is built at the tag, and no image
+ordered between them). **A release is a tag on a proved commit of its own release branch**, `release/v<version>`,
+merged into `main` after it publishes ([ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md),
+[ADR-0194](../adr/adr-0194-every-release-is-prepared-and-cut-on-its-own-release-branch.md);
+[versioning.md](versioning.md#the-product-version), the `releasing` skill). Nothing is built at the tag, and no image
 carries a version: the tag gives a name to images already built and proved.
 
 **The release build** (`.github/workflows/release-build.yml`) builds and proves everything a release ships except
-publishing it. It is started by hand for a commit of `main`, and by every push to a `release/**` branch (a patch),
-never by a pull request. The same steps run on a dev machine as the **release rehearsal**,
+publishing it. It is started by hand for a commit of `main` or a release branch, or called by *Release*; never by a
+push or a pull request. The same steps run on a dev machine as the **release rehearsal**,
 `scripts/release/prove.sh`, for the dev machine's own architecture. The rehearsal first refuses to go on if the
 Sigstore trust root that hq's image carries (`hq/assets/sigstore/`, which lets hq check package signatures offline) was
 fetched more than 300 days ago; `npm run sigstore:refresh` in `hq/` fetches a new one, and the refreshed files are
@@ -105,7 +106,7 @@ committed before the release. The rehearsal itself changes no file.
    them in as a bundler does; Checks runs the same check on every change.
 
 **Release** (`.github/workflows/release.yml`) is how a release is made: one run, started by hand with the version on
-`main` (or a patch's release branch). It checks the commit and the version, captures the guide's screenshots and pins
+its release branch. It checks the commit and the version, captures the guide's screenshots and pins
 them to the tag (committing and pushing the edit when there is one), runs the release build for that commit as a
 workflow it calls, then creates the tag and starts *Publish release* at it. A dry run on any branch does all of it but
 push, tag and publish. The steps are the [`releasing`](../../.agents/skills/releasing/SKILL.md) skill's.
@@ -115,8 +116,8 @@ one order. Release starts it at the tag, since a tag a workflow pushes starts no
 too, and it refuses to run anywhere but at a tag:
 
 1. the tagged commit's *All checks passed* must have passed, and so must the latest release build for it: the one a
-   Release run from `main` or a release branch called, or one started by hand from either or by a push to a release
-   branch (it waits while either runs);
+   Release run from `main` or a release branch called, or one started by hand from either (it waits while either
+   runs); a push proves nothing;
 2. **promotion, after a check of origin:** each part's content key is recomputed at the tagged commit and must equal the
    candidate's, and each platform digest must carry the release build's attestation for that part, architecture and
    key (`scripts/release/verify-candidate.mjs`). A digest built from other content is never promoted, whoever pushed

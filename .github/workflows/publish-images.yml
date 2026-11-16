@@ -11,9 +11,9 @@ name: Publish release
 # 0. The version is the tag's alone: its form is checked, and nothing in the repository carries a version.
 #    No flag released in an earlier minor release may still be listed in core (scripts/release/flags-overdue.mjs).
 # 1. The tagged commit's Checks must have passed ("All checks passed"), and so must the latest release build for it:
-#    a run of release-build.yml started by a push to a release branch, or by hand from main or a release branch, or
-#    the release build a run of Release from main or a release branch called (scripts/release/proven-run.mjs). It waits while either runs. That run's candidate record names each part's two
-#    platform images by digest. The guide's screenshots this release carries are taken from the same run's guide set:
+#    a run of release-build.yml started by hand from main or a release branch, or the release build a run of Release
+#    from main or a release branch called (scripts/release/proven-run.mjs); a push proves nothing. It waits while either
+#    runs. That run's candidate record names each part's two platform images by digest. The guide's screenshots this release carries are taken from the same run's guide set:
 #    exactly those whose links, in the guide's pages and the README at the tagged commit, name this tag (the pin step
 #    put them there; hq/scripts/guide/release-screenshots.mjs). It fails, before anything is published, if the set lacks
 #    one.

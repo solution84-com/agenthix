@@ -1,9 +1,10 @@
 name: Release build
 
 # The release's own build, and the release bar's one run. Called by Release (release.yml) for the commit it releases,
-# and also started by every push to a release branch and by hand for a commit (workflow_dispatch), it builds and proves
-# everything a release ships except publishing it, and publishes nothing a person can reach: nothing built here carries
-# a version, which the tag gives at publish. Called by Release, its jobs and artifacts are that run's.
+# or started by hand for a commit (workflow_dispatch), it builds and proves everything a release ships except publishing
+# it, and publishes nothing a person can reach: nothing built here carries a version, which the tag gives at publish.
+# Called by Release, its jobs and artifacts are that run's. A push starts nothing here: pushing a release branch only
+# saves its progress and runs Checks (adr-0194).
 #
 # 1. The registry and the image names come from the branding module, the parts and their Dockerfiles from
 #    scripts/images/parts.json, and each part's content key from scripts/images/keys.mjs, computed once here.
@@ -22,8 +23,6 @@ name: Release build
 # Nothing here signs an image for a host service: that signature names publish-images.yml at the version's tag
 # (host/src/images/published.ts). The attestation made here is only how this workflow recognises its own builds.
 on:
-  push:
-    branches: ['release/**']
   workflow_dispatch:
     inputs:
       commit:
@@ -44,9 +43,8 @@ on:
         default: false
 
 concurrency:
-  # A hand-started run is told its commit, and two runs from main for different commits are two builds; a push to a
-  # release branch is told by the branch. Called by Release, the event is Release's, started by hand.
-  group: release-build-${{ github.event_name == 'workflow_dispatch' && inputs.commit || github.ref }}
+  # Every run is told its commit, and two runs for different commits are two builds.
+  group: release-build-${{ inputs.commit }}
   cancel-in-progress: true
 
 permissions: {}
@@ -316,7 +314,7 @@ jobs:
       contents: read
       packages: read
     with:
-      commit: ${{ inputs.commit || github.sha }}
+      commit: ${{ inputs.commit }}
       registry: ${{ needs.prepare.outputs.registry }}
       names: ${{ needs.prepare.outputs.names }}
       digests: ${{ needs.candidate.outputs.digests }}
@@ -330,7 +328,7 @@ jobs:
     permissions:
       contents: read
     with:
-      commit: ${{ inputs.commit || github.sha }}
+      commit: ${{ inputs.commit }}
 
   core:
     name: "Core package: build, check and pack"

@@ -52,6 +52,11 @@ The constraint: what is proved must be what is published, and a version must not
 
 5. **A release branch exists only for a patch** while `main` has moved on, cut from the newest tag of its line and
    merged into `main` with `--no-ff`. `main` never flows into it. Tags are protected from being moved or deleted.
+
+   > ⚠️ **Superseded by adr-0194 — a release branch only for a patch.** *(annotated 2026-11-17)* Every release, major,
+   > minor or patch, is now prepared and cut on its own branch, `release/<version>`, then merged into `main`; a major or
+   > minor is cut from `main`, a patch from the tag it fixes. That `main` never flows into a release branch, and that
+   > tags are protected from being moved or deleted, still stands.
 6. **At most two lines are maintained:** the newest minor of the current major and of the one before it. Before
    `1.0.0`, only the newest release.
 

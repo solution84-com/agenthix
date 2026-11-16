@@ -113,8 +113,8 @@ Australia/Sydney, wherever the check runs, so the dev machine and GitHub's runne
 
 A reminder never fails a dev start or a regression. **Release's stage 0 is the only enforcement**: Checks does not
 check the month, since a failing Checks on `main` would only stop Release, which stage 0 already does, and would hold
-up contributors' pull requests for something not theirs. A patch on a release branch is not stopped, and neither is a
-Release dry run.
+up contributors' pull requests for something not theirs. A patch version (`x.y.z` with `z` above 0) on a release
+branch is not stopped, and neither is a Release dry run; a major or minor always is.
 
 ## Exact installs
 

@@ -5,7 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { dueState, exempt, lineFor, nextUpdatesName, releaseProblem, sydneyMonth, takenMonth } from '../due.mjs'
+import { dueState, isPatch, lineFor, nextUpdatesName, patchOnReleaseBranch, releaseProblem, sydneyMonth, takenMonth } from '../due.mjs'
 
 const script = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'due.mjs')
 
@@ -51,14 +51,26 @@ test('the line names the month and what to run, and is empty when done', () => {
     'Dependency updates for December are overdue: run the monthly dependency updates.')
 })
 
-test('a release branch, or a pull request into one, is exempt; main is not', () => {
-  assert.equal(exempt({ GITHUB_REF: 'refs/heads/release/0.1' }), true)
-  assert.equal(exempt({ GITHUB_REF: 'refs/pull/7/merge', GITHUB_BASE_REF: 'release/0.1' }), true)
-  assert.equal(exempt({ GITHUB_REF: 'refs/heads/main' }), false)
-  assert.equal(exempt({ GITHUB_REF: 'refs/pull/7/merge', GITHUB_BASE_REF: 'main' }), false)
+test('a patch is x.y.z with z above 0, or a pre-release of one; a major or minor is not', () => {
+  for (const v of ['0.1.1', 'v0.1.1', '1.4.3', '0.1.10', '0.1.1-rc.1', '2.0.1-alpha.3']) assert.equal(isPatch(v), true, v)
+  for (const v of ['0.1.0', 'v0.2.0', '1.0.0', '2.0.0', '0.2.0-rc.1', '0.1.0-alpha.6', '', undefined, '0.1', '0.1.x', '0.1.01', 'latest']) {
+    assert.equal(isPatch(v), false, String(v))
+  }
 })
 
-test('Release stops whenever the month is not done, except a dry run or a patch on a release branch', () => {
+test('only a patch version on a release branch skips the gate; a major or minor is checked wherever it is cut', () => {
+  assert.equal(patchOnReleaseBranch('0.1.1', 'refs/heads/release/v0.1.1'), true)
+  assert.equal(patchOnReleaseBranch('0.1.1-rc.1', 'refs/heads/release/v0.1.1'), true)
+  assert.equal(patchOnReleaseBranch('0.1.0', 'refs/heads/release/v0.1.0'), false)
+  assert.equal(patchOnReleaseBranch('0.2.0', 'refs/heads/release/v0.2.0'), false)
+  assert.equal(patchOnReleaseBranch('2.0.0', 'refs/heads/release/v2.0.0'), false)
+  assert.equal(patchOnReleaseBranch('0.1.1', 'refs/heads/main'), false)
+  assert.equal(patchOnReleaseBranch('0.1.1', 'refs/heads/fix/x'), false)
+  assert.equal(patchOnReleaseBranch('0.1.1', undefined), false)
+  assert.equal(patchOnReleaseBranch(undefined, 'refs/heads/release/v0.1.1'), false)
+})
+
+test('Release stops whenever the month is not done, except a dry run or a patch version on a release branch', () => {
   assert.equal(releaseProblem({ state: 'done', name: 'November' }, { dryRun: false, exempt: false }), null)
   assert.equal(releaseProblem({ state: 'due', name: 'December' }, { dryRun: false, exempt: false }),
     "Dependency updates for December aren't done: run the monthly dependency updates first.")
@@ -100,9 +112,26 @@ test('--line prints one line when due and nothing when done, and exits 0 either 
 })
 
 test('--release exits non-zero when not done, and passes with --dry-run', () => {
-  assert.equal(run(['--release'], { month: '2026-11', now: '2026-12-02T00:00:00Z', env: { GITHUB_REF: 'refs/heads/main' } }).status, 1)
-  assert.equal(run(['--release', '--dry-run'], { month: '2026-11', now: '2026-12-02T00:00:00Z', env: { GITHUB_REF: 'refs/heads/main' } }).status, 0)
-  assert.equal(run(['--release'], { month: '2026-12', now: '2026-12-02T00:00:00Z', env: { GITHUB_REF: 'refs/heads/main' } }).status, 0)
+  const main = { GITHUB_REF: 'refs/heads/main' }
+  assert.equal(run(['--release', '--version', '0.2.0'], { month: '2026-11', now: '2026-12-02T00:00:00Z', env: main }).status, 1)
+  assert.equal(run(['--release', '--version', '0.2.0', '--dry-run'], { month: '2026-11', now: '2026-12-02T00:00:00Z', env: main }).status, 0)
+  assert.equal(run(['--release', '--version', '0.2.0'], { month: '2026-12', now: '2026-12-02T00:00:00Z', env: main }).status, 0)
+})
+
+test('--release skips the month for a patch version on a release branch, and checks a major or minor there', () => {
+  const at = (version, ref) => run(['--release', '--version', version], { month: '2026-11', now: '2026-12-02T00:00:00Z', env: { GITHUB_REF: ref } })
+  const patch = at('0.1.1', 'refs/heads/release/v0.1.1')
+  assert.equal(patch.status, 0)
+  assert.match(patch.stdout, /not checked: .*patch/)
+  assert.equal(at('0.1.0', 'refs/heads/release/v0.1.0').status, 1)
+  assert.equal(at('0.2.0-rc.1', 'refs/heads/release/v0.2.0').status, 1)
+  assert.equal(at('0.1.1', 'refs/heads/main').status, 1)
+})
+
+test('--release without the version is refused: the gate cannot tell a patch from a minor', () => {
+  const r = run(['--release'], { month: '2026-12', now: '2026-12-02T00:00:00Z', env: { GITHUB_REF: 'refs/heads/release/v0.1.1' } })
+  assert.equal(r.status, 2)
+  assert.match(r.stderr, /--version/)
 })
 
 test('the committed taken.json records a month', () => {

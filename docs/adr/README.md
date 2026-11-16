@@ -2,7 +2,7 @@
 name: ADRs
 description: This codebase's architecture decision records — every ADR, its title, and its state.
 created: 2026-08-09
-updated: 2026-11-15
+updated: 2026-11-17
 author: leang
 ---
 
@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0193`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0195`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -287,6 +287,7 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0145](adr-0145-an-installation-owns-its-published-ports-and-address-blocks.md) | An Installation Owns Its Published Ports and Address Blocks | Accepted |
 | [ADR-0146](adr-0146-a-release-is-a-proven-build-given-a-name.md) | A Release Is a Proven Build Given a Name | Accepted |
 | [ADR-0146-s-4](adr-0146-a-release-is-a-proven-build-given-a-name.md#decision) | ↳ The proven commit is tagged by hand (its Decision, item 4) | Superseded by adr-0190 |
+| [ADR-0146-s-5](adr-0146-a-release-is-a-proven-build-given-a-name.md#decision) | ↳ A release branch exists only for a patch (its Decision, item 5) | Superseded by adr-0194 |
 | [ADR-0147](adr-0147-a-secret-is-used-only-by-a-workflow-a-person-approved-run-by-the-platform.md) | A Secret Is Used Only by a Workflow a Person Approved, Run by the Platform | Accepted |
 | [ADR-0148](adr-0148-an-agent-runs-approved-workflows-and-reads-their-masked-output.md) | An Agent Runs Approved Workflows and Reads Their Masked Output | Accepted |
 | [ADR-0149](adr-0149-platform-knowledge-is-the-user-guide.md) | Platform Knowledge Is the User Guide | Accepted |
@@ -326,6 +327,8 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0188](adr-0188-memory-is-a-persons-saved-by-an-agent-where-it-works.md) | Memory Is a Person's, Saved by an Agent Where It Works | Accepted |
 | [ADR-0189](adr-0189-agenthix-cloud-ships-behind-a-preview-flag.md) | Agenthix Cloud Ships Behind a Preview Flag | Accepted |
 | [ADR-0190](adr-0190-a-release-is-started-by-one-workflow.md) | A Release Is Started by One Workflow | Accepted |
+| [ADR-0190-s-1](adr-0190-a-release-is-started-by-one-workflow.md#decision) | ↳ Release runs on `main` (or a patch's release branch) (its Decision, item 1) | Superseded by adr-0194 |
 | [ADR-0191](adr-0191-dependencies-are-updated-by-our-own-step-as-part-of-releasing.md) | Dependencies Are Updated by Our Own Step, as Part of Releasing | Superseded by adr-0192 |
 | [ADR-0192](adr-0192-dependencies-are-updated-locally-once-a-month-and-every-security-alert-is-decided.md) | Dependencies Are Updated Locally Once a Month, and Every Security Alert Is Decided | Accepted |
 | [ADR-0193](adr-0193-an-agent-is-shown-its-must-have-tools-and-finds-the-rest-by-search.md) | An Agent Is Shown Its Must-Have Tools and Finds the Rest by Search | Accepted |
+| [ADR-0194](adr-0194-every-release-is-prepared-and-cut-on-its-own-release-branch.md) | Every Release Is Prepared and Cut on Its Own Release Branch | Accepted |

@@ -106,6 +106,7 @@ enforced.
 
 ## Pull requests
 
+- Open every pull request against `main`. The `release/…` branches are the maintainers', for preparing a release.
 - One purpose per pull request, with a description of what changed and why, and how you checked it.
 - If a user or operator would notice the change, add a line to the changelog (see above).
 - Run the checks in *Making a change* for every module you touched before you open it. The same checks run on every

@@ -84,6 +84,11 @@ nothing complete was published.
 A version is therefore always backed by the signature the host service checked for it: the number travels beside the
 image rather than inside it. A build made on a machine rather than by the release workflow reports `dev`.
 
+**Every release is cut on its own branch**, `release/v<version>`, then merged into `main`
+([ADR-0194](../adr/adr-0194-every-release-is-prepared-and-cut-on-its-own-release-branch.md)): a major or minor is cut
+from `main`, a patch from the tag it fixes, so a patch carries nothing that was merged after it. The tag lands on the
+branch's last commit; the `releasing` skill has the steps.
+
 **At most two lines are maintained.** A *line* is the releases of one `major.minor`. Fixes, security fixes included, go
 to the newest minor of the current major and the newest minor of the major before it; two majors back gets nothing,
 and its users upgrade. Before `1.0.0` only the newest release gets fixes: under `0.x` every minor may break, so there
@@ -336,4 +341,4 @@ hq). Where the product's name appears on a machine, it comes from the recorded n
 | `core/snapshot/` and its test | Version moves, deprecation marks, and removals at the right major |
 | `scripts/images/parts.json` and `scripts/__tests__/image-parts.test.mjs` | The image parts and their inputs, held to what each Dockerfile copies, so a content key cannot miss an input |
 | `.github/workflows/publish-images.yml`, `scripts/release/verify-candidate.mjs` | The tag's checks: its form, *Checks* and the release build passed for the commit, each image's attestation and recomputed content key, the index annotation, the signature as a host service checks it |
-| [ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md) and the `releasing` skill | How a release is made: a tag on a proven commit, the version given at publish |
+| [ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md), [ADR-0194](../adr/adr-0194-every-release-is-prepared-and-cut-on-its-own-release-branch.md) and the `releasing` skill | How a release is made: a tag on a proven commit of its release branch, the version given at publish |
