@@ -23,8 +23,10 @@ export function operationOwner(kind: OperationKindValue): OperationOwner {
   }
 }
 
+const livePreviewTool: ConversationTool = { ...offerLivePreviewTool, area: 'apps' }
+
 export function conversationTools(): readonly ConversationTool[] {
-  return [...workerTools, ...taskTools, ...toolCallTools, ...memoryTools, ...knowledgeTools, ...placeTools, offerLivePreviewTool, ledgerTool, ...zoomTools, keepListeningTool]
+  return [...workerTools, ...taskTools, ...toolCallTools, ...memoryTools, ...knowledgeTools, ...placeTools, livePreviewTool, ledgerTool, ...zoomTools, keepListeningTool]
 }
 
 export function conversationTool(name: string): ConversationTool | null {

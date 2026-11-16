@@ -17,12 +17,12 @@ function m(seq: number, role: 'PERSON' | 'AGENT', text: string, extra: Partial<C
 
 describe('the instructions @SC-996', () => {
   const text = leadBaseInstructions({ agentName: 'Kernel', agentRole: null, placeLabel: 'their own space' })
-  it('say how to talk to a listening person', () => {
-    expect(text).toContain('When the person is listening')
-    expect(text).toMatch(/no headings, lists, tables, code or markup/)
-    expect(text).toMatch(/numbers, dates, times and names in words/)
-    expect(text).toMatch(/result as one sentence, then offer the detail/)
-    expect(text).toContain('Approving: deploy to')
+  it('say how to talk to a listening person only in a turn the person hears', () => {
+    const heard = (withTurnBlock([{ role: 'user', content: 'hi' }], [m(1, 'PERSON', 'hi', { spoken: true, turnId: null })], { trigger: 'MESSAGE', inputIds: ['m1'] }, true)[0] as { content: string }).content
+    for (const said of [/While the person is listening/, /no headings, lists, tables, code or markup/, /numbers, dates, times and names in words/, /result as one sentence, then offer the detail/, /Approving: deploy to/]) {
+      expect(heard).toMatch(said)
+      expect(text).not.toMatch(said)
+    }
   })
   it('say how to show what must be seen', () => {
     expect(text).toContain(':::shown <a short title>')

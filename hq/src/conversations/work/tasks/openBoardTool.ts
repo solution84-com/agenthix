@@ -41,6 +41,7 @@ function refusal(capability: TurnCapability): string | null {
 export function createOpenBoardTool(deps: OpenBoardDeps): ConversationTool {
   return {
     name: OPEN_BOARD,
+    area: 'planning',
     input,
     describe: async () => declaration.description,
     offered: async capability => refusal(capability) === null,

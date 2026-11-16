@@ -12,12 +12,12 @@
  * person's answer (conversation layer spec, Approval). Once approved it runs under `allowOnce`, the one call the
  * answer let through.
  */
-import { type CapabilityEffectivePermissions, type ToolPermissionState } from '@agenthix/core'
+import { WITHDRAWN_FROM_AGENTS, type CapabilityEffectivePermissions, type ToolPermissionState } from '@agenthix/core'
 import { TOOL_GROUPS } from './connectionGroups'
 import { ControlPlaneError, type TurnCaller } from './types'
 
 /** Tools no turn calls, though they have a connection group: deprecated, or starting work. */
-const NOT_FOR_TURNS: ReadonlySet<string> = new Set(['tick_subtask'])
+const NOT_FOR_TURNS: ReadonlySet<string> = new Set(WITHDRAWN_FROM_AGENTS)
 
 /** Whether a turn may ever call a tool, whatever its permissions. */
 export function isTurnTool(tool: string): boolean {

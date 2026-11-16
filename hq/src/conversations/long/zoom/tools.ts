@@ -13,6 +13,8 @@ import { tokensOf, type SegmentRecord } from './spans'
 export interface ZoomDeps {
   /** The conversation's segments, oldest first, opened. */
   segments(conversationId: string): Promise<SegmentRecord[]>
+  /** Whether anything in the conversation has been folded into a segment. */
+  folded(conversationId: string): Promise<boolean>
   /** The messages of a span, oldest first. */
   messagesIn(conversationId: string, firstSeq: number, lastSeq: number): Promise<ConversationMessageView[]>
   /** How many tokens the window can still take before the high mark. */
@@ -54,13 +56,13 @@ export function createZoomTools(deps: ZoomDeps): ConversationTool[] {
     spent.set(capability.turnId, (spent.get(capability.turnId) ?? 0) + tokens)
     if (spent.size > SPENT_TURNS_KEPT) spent.delete(spent.keys().next().value as string)
   }
-  const offered = async (capability: TurnCapability) => usable(capability)
+  // Offered only once something is folded; a conversation whose segments cannot be read has nothing to zoom into.
+  const offered = async (capability: TurnCapability) => usable(capability) && (await deps.folded(capability.conversationId).catch(() => false))
   return [
     {
       name: 'expand',
-      describe: async () =>
-        'Read the full summary of older segments of this conversation, one, several or all, in the order they happened. '
-        + 'Use it when a brief does not tell you enough. What does not fit the room left is named, not cut.',
+      area: 'conversation',
+      describe: async () => 'Read the full summary of folded segments: one, several or all. What does not fit is named, not cut.',
       input: expandInput,
       offered,
       async run(capability, input) {
@@ -76,9 +78,8 @@ export function createZoomTools(deps: ZoomDeps): ConversationTool[] {
     },
     {
       name: 'messages',
-      describe: async () =>
-        'Read the exact words of one older segment, a page at a time. Use it when its summary is not enough: a name, a number, a wording. '
-        + 'The result says what remains.',
+      area: 'conversation',
+      describe: async () => 'Read the exact words of one folded segment, a page at a time. The result says what remains.',
       input: messagesInput,
       offered,
       async run(capability, input) {
@@ -93,9 +94,8 @@ export function createZoomTools(deps: ZoomDeps): ConversationTool[] {
     },
     {
       name: 'offer_new_conversation',
-      describe: async () =>
-        'Offer the person a new conversation for a subject that has moved far from this one. One line on screen; they may ignore it. '
-        + 'Offer at most once for a subject.',
+      area: 'conversation',
+      describe: async () => 'Offer the person, in one line on screen, a new conversation for a subject far from this one.',
       input: offerInput,
       // The offer needs a person to read it; a turn that answers no one has none.
       offered: async capability => usable(capability) && capability.trigger !== 'CONTINUATION',

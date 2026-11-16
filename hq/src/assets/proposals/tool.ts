@@ -4,13 +4,14 @@
  * of the aims here.
  */
 import { z, type ZodRawShape } from 'zod'
-import { PROPOSE_SKILL_DECLARATION } from '@agenthix/core'
+import { PROPOSE_SKILL_DECLARATION, type ToolArea } from '@agenthix/core'
 import { AIMS, PROPOSE_SKILL_TOOL } from './types'
 
 const args = PROPOSE_SKILL_DECLARATION.args
 
-export const PROPOSE_SKILL_SCHEMA: { name: string; description: string; schema: ZodRawShape } = {
+export const PROPOSE_SKILL_SCHEMA: { name: string; area: ToolArea; description: string; schema: ZodRawShape } = {
   name: PROPOSE_SKILL_TOOL,
+  area: PROPOSE_SKILL_DECLARATION.area,
   description: PROPOSE_SKILL_DECLARATION.description,
   schema: {
     name: z.string().max(args.name!.maxLength!).describe(args.name!.description),

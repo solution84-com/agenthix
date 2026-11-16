@@ -47,6 +47,7 @@ import { verifyHqToken } from '../identity/tokenService'
 import { callOperation } from './operations'
 import { ControlPlaneError, type ControlPlaneErrorCode } from './types'
 import { ALL_CONTROL_PLANE_TOOLS } from './toolSchemas'
+import { FIND_TOOLS_SCHEMA } from './findToolsOp'
 import { Logger } from '../utils/logger'
 
 const logger = new Logger('DataApi')
@@ -59,7 +60,8 @@ const STATUS: Record<ControlPlaneErrorCode, number> = { forbidden: 403, not_foun
 // Object.prototype to a real (non-schema) value. Same reasoning as
 // callOperation's hasOwnProperty guard (operations.ts, review I2), enforced
 // here by data structure instead of by an extra check.
-const SCHEMAS = new Map(ALL_CONTROL_PLANE_TOOLS.map(t => [t.name, z.object(t.schema)]))
+// find_tools is not one of the tools it searches, so it is not in ALL_CONTROL_PLANE_TOOLS.
+const SCHEMAS = new Map([...ALL_CONTROL_PLANE_TOOLS, FIND_TOOLS_SCHEMA].map(t => [t.name, z.object(t.schema)]))
 
 export const dataHandler: DataApi = async (req, res) => {
   const auth = req.headers.authorization

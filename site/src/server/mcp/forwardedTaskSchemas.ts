@@ -31,6 +31,7 @@ export const FORWARDED_TASK_TOOLS: ForwardedTool[] = SERVED_TASK_TOOL_DECLARATIO
   .filter(d => !CONVERSATION_ONLY_TASK_TOOLS.has(d.name))
   .map(d => ({
     name: d.name,
+    area: d.area,
     description: d.description,
     schema: Object.fromEntries(Object.entries(d.args).map(([k, a]) => [k, forwardedTaskArg(a)])),
   }))

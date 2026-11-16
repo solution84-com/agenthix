@@ -14,7 +14,7 @@
  * disk; the lead, in hq, does not read them.
  */
 import { prisma } from 'wasp/server'
-import { pickedSkillOf, sharedFilesOf, type FeatureFlag } from '@agenthix/core'
+import { pickedSkillOf, sharedFilesOf, type FeatureFlag, type FoldedName } from '@agenthix/core'
 import type { LeadMessage, PromptPart } from '../contract'
 import type { ConversationMessageView } from '../../shared/conversations/protocol'
 import { MESSAGE_PAGE_SIZE } from '../../shared/conversations/protocol'
@@ -23,7 +23,7 @@ import { readAgentContent } from '../../packages/agentPackageService'
 import { readCurrentFiles } from '../../packages/packageStore'
 import { ORG_FILE } from '../../packages/orgPackageService'
 import { readMessages } from '../store/messages'
-import { cardTurnBlock, leadBaseInstructions, leadLongRules, leadMemoryRules, listeningTurnBlock, type ContinuationStep } from '../lead/instructions'
+import { cardTurnBlock, leadBaseInstructions, leadKnowledgeRules, leadLongRules, listeningTurnBlock, type ContinuationStep } from '../lead/instructions'
 import { voiceTurnBlock } from '../lead/voiceTurnBlock'
 import { ZOOM_RULES } from '../long/zoom/rules'
 import { memoryForTurn } from '../memory/turnMemory'
@@ -62,20 +62,25 @@ export interface Instructions {
   orgInstructions: string | null
   /** The flagged features on for the organisation, whose parts of the instructions are written (adr-0172). */
   featuresOn?: readonly FeatureFlag[]
+  /** The turn's folded tools by name and area (tools/foldedTools.ts), for the area lines. */
+  foldedTools?: readonly FoldedName[]
 }
 
 export function systemParts(i: Instructions): PromptPart[] {
-  const parts: PromptPart[] = [{ text: `${leadBaseInstructions(i)}\n\n${leadMemoryRules()}\n\n${leadLongRules()}\n\n${ZOOM_RULES}` }]
+  const parts: PromptPart[] = [{ text: `${leadBaseInstructions(i)}\n\n${leadKnowledgeRules()}\n\n${leadLongRules()}` }]
   if (i.agentInstructions) parts.push({ text: `# Your instructions\n\n${i.agentInstructions}` })
   if (i.orgInstructions) parts.push({ text: `# Your organisation\n\n${i.orgInstructions}` })
   parts[parts.length - 1] = { ...parts[parts.length - 1]!, cacheAfter: true }
   return parts
 }
 
-/** The instructions, then the compaction block as a second part with its own breakpoint once there is one. */
+/**
+ * The instructions, then, once something is folded, the compaction block and how to read further into the past, as a
+ * second part with its own breakpoint: a conversation not yet folded carries neither.
+ */
 export function systemWithBlock(i: Instructions, segments: readonly OpenedSegment[]): PromptPart[] {
   const block = compactionBlock(segments)
-  return block ? [...systemParts(i), { text: block, cacheAfter: true }] : systemParts(i)
+  return block ? [...systemParts(i), { text: `${block}\n\n${ZOOM_RULES}`, cacheAfter: true }] : systemParts(i)
 }
 
 /** The people who spoke in a conversation, by id: named only where more than one did, so one person's alone read as before. */
@@ -383,13 +388,18 @@ async function adaptiveVoiceOf(userId: string): Promise<boolean> {
   return row?.adaptiveVoice ?? true
 }
 
-export async function assembleContext(conversation: TurnConversation, agentId: string, turn: ContextTurn): Promise<LeadContext> {
+export async function assembleContext(
+  conversation: TurnConversation,
+  agentId: string,
+  turn: ContextTurn,
+  foldedTools: readonly FoldedName[] = [],
+): Promise<LeadContext> {
   const [segments, history, awaiting] = await Promise.all([
     readSegments(conversation.id),
     readAll(conversation.id),
     awaitingCardIds(conversation.id),
   ])
-  const instructions = await instructionsFor(conversation, agentId)
+  const instructions = { ...(await instructionsFor(conversation, agentId)), foldedTools }
   // What memory the probe found goes with the turn's own message, after the cached prefix.
   // A report turn presents results and starts no work, so it is not told of web search.
   const [memory, places, webSearch] = await Promise.all([

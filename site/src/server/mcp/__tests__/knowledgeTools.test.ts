@@ -22,7 +22,8 @@ const { mockCallHqData, FakeHqDataError } = vi.hoisted(() => {
 })
 vi.mock('../../hq/dataClient', () => ({ callHqData: mockCallHqData, HqDataError: FakeHqDataError }))
 
-import { createMcpServer } from '../mcpServer'
+import { createMcpServer, runForwardedTools } from '../mcpServer'
+import { agentSchema } from '../toolSearchTools'
 import { KNOWLEDGE_CHANGE_TOOLS } from '../forwardedKnowledgeSchemas'
 
 const runningContext = { runId: 'run-7', sessionId: 's1' } as never
@@ -35,11 +36,17 @@ beforeEach(() => {
 
 describe('the knowledge tools on a run\'s MCP server', () => {
   it('are all five, each shown without the run\'s id @SC-1394', () => {
-    createMcpServer({ capabilityJwt: 'jwt-1', siteTools: { context: runningContext, openCode: false } })
+    const opts = { capabilityJwt: 'jwt-1', siteTools: { context: runningContext, openCode: false } }
+    createMcpServer(opts)
+    const { shown, folded } = runForwardedTools(opts)
     for (const name of NAMES) {
-      expect(registrations.has(name)).toBe(true)
-      expect(Object.keys(registrations.get(name)!.schema)).not.toContain('runId')
+      const tool = shown.get(name) ?? folded.get(name)
+      expect(tool, name).toBeDefined()
+      expect(Object.keys(agentSchema(tool!))).not.toContain('runId')
     }
+    // Searching and reading are shown in full; changing knowledge is found by search.
+    expect(registrations.has('search_knowledge') && registrations.has('read_knowledge')).toBe(true)
+    expect(folded.has('write_knowledge')).toBe(true)
     expect(Object.keys(registrations.get('read_knowledge')!.schema)).toEqual(['page', 'offset', 'limit'])
   })
 
@@ -62,7 +69,8 @@ describe('the knowledge tools on a run\'s MCP server', () => {
   it("say hq's refusal as a tool error @SC-1394", async () => {
     mockCallHqData.mockRejectedValue(new FakeHqDataError('write_knowledge is not available for this agent'))
     createMcpServer({ capabilityJwt: 'jwt-1', siteTools: { context: runningContext, openCode: false } })
-    const answer = await registrations.get('write_knowledge')!.handler({ page: 'org:a.md', content: 'x' }) as { isError?: boolean }
+    const answer = await registrations.get('use_tool')!.handler({ name: 'write_knowledge', input: { page: 'org:a.md', content: 'x' } }) as { isError?: boolean }
+    expect(mockCallHqData).toHaveBeenCalledWith('write_knowledge', { page: 'org:a.md', content: 'x', runId: 'run-7' }, 'jwt-1')
     expect(answer.isError).toBe(true)
   })
 
@@ -71,5 +79,7 @@ describe('the knowledge tools on a run\'s MCP server', () => {
     expect(registrations.has('search_knowledge')).toBe(true)
     expect(registrations.has('read_knowledge')).toBe(true)
     for (const name of KNOWLEDGE_CHANGE_TOOLS) expect(registrations.has(name)).toBe(false)
+    const { folded } = runForwardedTools({ capabilityJwt: 'jwt-1', disabledTools: new Set(KNOWLEDGE_CHANGE_TOOLS), siteTools: { context: runningContext, openCode: false } })
+    for (const name of KNOWLEDGE_CHANGE_TOOLS) expect(folded.has(name)).toBe(false)
   })
 })

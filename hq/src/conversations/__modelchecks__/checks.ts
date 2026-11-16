@@ -15,6 +15,7 @@ import { WEB_SEARCH_CHECKS } from './taskRun/webSearchChecks'
 import { LEAD_WEB_SEARCH_CHECKS } from './leadWebSearchChecks'
 import { TASK_TOOL_CHECKS } from './taskToolChecks'
 import { MEMORY_CHECKS } from './memoryChecks'
+import { FOLD_CHECKS } from './foldChecks'
 import type { TaskRunSetup } from './taskRun/setup'
 
 export type Grade = { passed: true } | { passed: false; why: string }
@@ -24,6 +25,10 @@ export type Check = {
   id: string
   title: string
   grade(run: RunRecord): Grade
+  /** How many times the check runs on each model, in place of MODEL_CHECK_RUNS: a check read as a rate. */
+  runs?: number
+  /** The share of those runs that must pass, instead of all of them; 0 for a check that only measures, and never fails. */
+  minPassRate?: number
 } & ({ setup: CheckSetup; taskRun?: never } | { taskRun: TaskRunSetup; setup?: never })
 
 type Args = Record<string, unknown>
@@ -142,4 +147,5 @@ export const CHECKS: readonly Check[] = [
   ...LEAD_WEB_SEARCH_CHECKS,
   ...TASK_TOOL_CHECKS,
   ...MEMORY_CHECKS,
+  ...FOLD_CHECKS,
 ]

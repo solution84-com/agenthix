@@ -20,7 +20,6 @@ import { applyWorkerFrame } from './frames'
 import { frameOfRun, type WorkerArgs } from './runReads'
 import { workerClosedReason } from './standingWorker'
 import { placeTakenBrief } from './freshStart'
-import { briefOpening, withOpening } from './opening'
 import { briefChoice, fellBackLine, keepModelNote } from './workModel'
 
 const logger = new Logger('WorkerQueue')
@@ -65,17 +64,6 @@ export interface RunInput {
   senderId?: string
 }
 
-/** The brief as its run reads it: who it is, for whom and where, then what to do. */
-async function briefInput(op: { brief: string | null; authorisedById: string; boundaryType: string | null }, agentName: string, boundaryName: string): Promise<string> {
-  const person = await prisma.user.findUnique({ where: { id: op.authorisedById }, select: { displayName: true } })
-  const opening = briefOpening({
-    agentName,
-    personName: person?.displayName?.trim() || null,
-    projectName: op.boundaryType === 'project' ? boundaryName : null,
-  })
-  return withOpening(openText(op.brief ?? ''), opening)
-}
-
 function pickedSkillOfArgs(args: string | null): PickedSkill | null {
   return args ? pickedSkillOf(openJson<WorkerArgs>(args).skill) : null
 }
@@ -110,7 +98,7 @@ export async function dispatchAccepted(operationId: string, input: RunInput = {}
     // The run's credential is resolved for the session's model, so the session carries the one this brief runs on.
     if (model && session.model !== model) await prisma.agentSession.update({ where: { id: session.id }, data: { model } })
     const siteId = await dispatchService.resolveSiteIdForSession(session)
-    const text = input.text ?? await briefInput(op, agent.name, boundaryName)
+    const text = input.text ?? openText(op.brief ?? '')
     // The picked skill goes with the brief itself, never with a run that carries it on (an approval's).
     const skill = input.text === undefined ? pickedSkillOfArgs(op.args) : null
     const { runId } = await dispatchService.dispatchChatRun(session.id, text, agent, model, {

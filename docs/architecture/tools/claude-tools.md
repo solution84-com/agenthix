@@ -71,12 +71,14 @@ for MCP tools — you cannot selectively surface a subset via the SDK options al
 
 ### Current behaviour
 
-The site's MCP server omits the tools in the run's capability `neverTools` and returns the rest — for a
-bypassed run, every platform tool but those a workspace's allowed list leaves out — so
-`ask`-state tools stay visible by design: Claude can plan around them, and calling one goes to approval.
-Enforcement happens at the call level — the gate refuses or defers any call to a tool the agent hasn't
-been granted. The same tools are also passed in `disallowedTools` as `mcp__platform__<tool>`, in case the
-server's filter ever misses one. OpenCode's connection is filtered by the same server.
+The site's MCP server omits the tools in the run's capability `neverTools` (for a bypassed run, those a workspace's
+allowed list leaves out), and lists the rest in two parts: the must-have tools in full, with `find_tools` and
+`use_tool`, and every other tool by name in the server's instructions, found and called through those two
+([tool-search.md](./tool-search.md)). `ask`-state tools stay offered by design: Claude can plan around them, and
+calling one, directly or through `use_tool`, goes to approval; in a run nobody can approve, an `ask` tool is neither
+shown nor found. Enforcement happens at the call level — the gate refuses or defers any call to a tool the agent hasn't
+been granted, deciding a `use_tool` call on the tool it names. The same tools are also passed in `disallowedTools` as
+`mcp__platform__<tool>`, in case the server's filter ever misses one. OpenCode's connection is filtered by the same server.
 
 ---
 

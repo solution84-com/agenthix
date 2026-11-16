@@ -13,9 +13,11 @@ import type { CheckSetup } from '../setup'
 import { runTaskRunCheck } from '../taskRun/run'
 import { runCheck } from '../run'
 import { runModelChecks } from '../runner'
-import { SKIP_LINE, checkAccess } from '../env'
-import { summaryTable } from '../report'
-import { PROJECT, RELEASE_PAGE } from '../world'
+import { SKIP_LINE, checkAccess, checkAsked } from '../env'
+import { allPassed, summaryTable, type Outcome } from '../report'
+import { PROJECT, RELEASE_PAGE, WORKSPACES } from '../world'
+import { answer } from '../script'
+import { capabilityOf } from '../setup'
 
 type Step = { calls?: { name: string; input: unknown }[]; text?: string }
 
@@ -57,7 +59,11 @@ describe('the model checks', () => {
     expect(sent).toContain("[This conversation's places, checked this turn]")
     expect(sent).toContain(`${PROJECT.name} (its pages are named ${PROJECT.slug}:)`)
     expect(sent).toContain('Look through the files in my space.')
-    expect(fake.toolNames[0]).toEqual(expect.arrayContaining(['search_knowledge', 'read_knowledge', 'edit_knowledge', 'suggest_place', 'list_projects', 'start_work', 'remember']))
+    expect(fake.toolNames[0]).toEqual(expect.arrayContaining(['search_knowledge', 'read_knowledge', 'suggest_place', 'start_work', 'remember', 'find_tools', 'use_tool']))
+    // The rest are found by search, and the instructions name their areas.
+    expect(fake.toolNames[0]).not.toContain('edit_knowledge')
+    expect(sent).toContain('More tools, called with use_tool by name')
+    expect(sent).toMatch(/- knowledge pages: [^\\]*edit_knowledge/)
   })
 
   it('pass a guide question searched in the guide before the answer @SC-1446', async () => {
@@ -83,6 +89,14 @@ describe('the model checks', () => {
     const wrong = scripted([{ calls: [{ name: 'start_work', input: { boundary: PROJECT.key, brief: 'List the files.' } }] }])
     const graded = check('my-space').grade(await runCheck(wrong.adapter, anthropicAccess, check('my-space').setup))
     expect(graded).toEqual({ passed: false, why: `used the conversation's project instead: start_work(boundary=${PROJECT.key})` })
+  })
+
+  it('refuses start_work in a workspace the place does not have, as the real tool does', async () => {
+    const capability = capabilityOf('project')
+    const work = { boundary: PROJECT.key, title: 'Login page', brief: 'Add a login page.' }
+    expect(await answer('start_work', { ...work, workspace: 'website-workflows' }, capability, 'project'))
+      .toEqual({ status: 'refused', reason: expect.stringMatching(/^there is no workspace with the id "website-workflows"/) })
+    expect(await answer('start_work', { ...work, workspace: WORKSPACES[0].id }, capability, 'project')).toMatchObject({ status: 'accepted' })
   })
 
   it('pass a place outside the conversation offered by its name @SC-1446', async () => {
@@ -121,6 +135,12 @@ describe('the model checks', () => {
     expect(checkAccess({ MODEL_CHECK_PROVIDER: 'openai_compatible', MODEL_CHECK_MODELS: 'm', MODEL_CHECK_API_KEY: 'k' })).toEqual({ skip: SKIP_LINE })
   })
 
+  it('run only the checks MODEL_CHECK_ONLY names, and every check without it', () => {
+    expect(checkAsked({}, 'propose-skill')).toBe(true)
+    expect(checkAsked({ MODEL_CHECK_ONLY: 'in-reach, board-open' }, 'propose-skill')).toBe(false)
+    expect(checkAsked({ MODEL_CHECK_ONLY: 'in-reach, propose-skill' }, 'propose-skill')).toBe(true)
+  })
+
   it('pass a check for a model only when every run does, and never show the key @SC-1445', async () => {
     const env = { MODEL_CHECK_PROVIDER: 'anthropic', MODEL_CHECK_MODELS: 'small', MODEL_CHECK_API_KEY: 'sk-secret-1', MODEL_CHECK_RUNS: '2' }
     let at = 0
@@ -136,9 +156,10 @@ describe('the model checks', () => {
     expect(lines).toEqual([
       'small · in-reach · run 1: failed: the model call failed: refused key [key]',
       'small · in-reach · run 2: failed: answered without searching',
+      '    answer: "Fridays."',
     ])
     if ('skipped' in result) throw new Error('not run')
-    expect(summaryTable(result.outcomes, result.checks, result.models)).toBe('| Check | small |\n|---|---|\n| in-reach | fails (0/2) |')
+    expect(summaryTable(result.outcomes, result.checks, result.models)).toBe('| Check | small |\n|---|---|\n| in-reach | fails 0/2 |')
   })
 })
 
@@ -150,9 +171,14 @@ describe('the task-run checks', () => {
     await runTaskRunCheck(fake.adapter, anthropicAccess, taskCheck('taskrun-steer-app').taskRun)
     const sent = JSON.stringify(fake.prompts[0])
     expect(sent).toContain("Your branch's live preview is open now. Apps running in it: `shop`.")
-    expect(sent).toContain('A person asked for this in the task')
+    expect(sent).not.toContain('A person asked for this in the task')
+    expect(sent).not.toContain('Execute your assigned task')
+    expect(sent).toContain('## Execution')
     expect(sent).toContain('task management tools are available')
-    expect(fake.toolNames[0]).toEqual(expect.arrayContaining(['list_apps', 'start_app', 'reload_view', 'commit', 'run_workflow', 'run_task', 'edit_file', 'set_result']))
+    expect(fake.toolNames[0]).toEqual(expect.arrayContaining(['list_apps', 'start_app', 'reload_view', 'commit', 'edit_file', 'set_result', 'find_tools', 'use_tool']))
+    // The tools it is not shown are named by area beside the platform tools' instructions, and found by search.
+    expect(fake.toolNames[0]).not.toContain('run_workflow')
+    expect(sent).toMatch(/- workflows: [^\\]*run_workflow/)
   })
 
   it('pass a run that lists the apps, changes the page, commits and reloads', async () => {
@@ -169,7 +195,7 @@ describe('the task-run checks', () => {
 
   it('fail a run that runs start-live-preview, leaves its change uncommitted, or calls run_task', async () => {
     const c = taskCheck('taskrun-steer-app')
-    const workflow = scripted([{ calls: [{ name: 'run_workflow', input: { name: 'start-live-preview' } }] }, { text: 'Done.' }])
+    const workflow = scripted([{ calls: [{ name: 'use_tool', input: { name: 'run_workflow', input: { name: 'start-live-preview' } } }] }, { text: 'Done.' }])
     expect(c.grade(await runTaskRunCheck(workflow.adapter, anthropicAccess, c.taskRun))).toMatchObject({ passed: false, why: expect.stringContaining('start-live-preview') })
     const uncommitted = scripted([
       { calls: [{ name: 'list_apps', input: {} }] },
@@ -178,8 +204,25 @@ describe('the task-run checks', () => {
       { text: 'Done.' },
     ])
     expect(c.grade(await runTaskRunCheck(uncommitted.adapter, anthropicAccess, c.taskRun))).toMatchObject({ passed: false, why: expect.stringContaining('did not commit') })
-    const own = scripted([{ calls: [{ name: 'run_task', input: { taskId: 'SHOP-7' } }] }, { text: 'Done.' }])
+    const own = scripted([{ calls: [{ name: 'use_tool', input: { name: 'run_task', input: { taskId: 'SHOP-7' } } }] }, { text: 'Done.' }])
     expect(c.grade(await runTaskRunCheck(own.adapter, anthropicAccess, c.taskRun))).toMatchObject({ passed: false, why: expect.stringContaining('run_task') })
+  })
+
+  it('pass a routine found with find_tools and made with use_tool, and fail a folded tool called by its own name', async () => {
+    const c = taskCheck('taskrun-fold-routine')
+    const routine = { projectId: 'SHOP', title: 'Banner check', agentId: 'agent-kernel', instructions: 'Check the banner shows', cron: '0 9 * * 1-5' }
+    const found = scripted([
+      { calls: [{ name: 'find_tools', input: { query: 'create a routine every weekday' } }] },
+      { calls: [{ name: 'use_tool', input: { name: 'create_routine', input: routine } }] },
+      { text: 'Set up.' },
+    ])
+    const run = await runTaskRunCheck(found.adapter, anthropicAccess, c.taskRun)
+    expect(run.calls.map(x => x.name)).toEqual(['find_tools', 'create_routine'])
+    expect(c.grade(run)).toEqual({ passed: true })
+    const direct = scripted([{ calls: [{ name: 'create_routine', input: routine }] }, { text: 'Set up.' }])
+    const refused = await runTaskRunCheck(direct.adapter, anthropicAccess, c.taskRun)
+    expect(refused.calls.map(x => x.name)).toEqual(['create_routine (not offered)'])
+    expect(c.grade(refused).passed).toBe(false)
   })
 
   it('fail a clash run that opens a live preview, and pass one that does not', async () => {
@@ -191,5 +234,17 @@ describe('the task-run checks', () => {
     const sent = JSON.stringify(opened.prompts[0])
     expect(sent).toContain('Your branch has no live preview open.')
     expect(sent).toContain('do not start the app or open a live preview for this')
+  })
+})
+
+describe('a check that only measures (minPassRate 0)', () => {
+  it('is reported as measured, with its rate, and never fails the run', () => {
+    const o = (passed: boolean): Outcome => ({
+      model: 'small', check: 'rule-weight-none', run: 1, kind: 'lead', need: 0,
+      grade: passed ? { passed: true } : { passed: false, why: 'no table' },
+    })
+    const outcomes = [o(true), o(false), o(false)]
+    expect(summaryTable(outcomes, ['rule-weight-none'], ['small'])).toBe('| Check | small |\n|---|---|\n| rule-weight-none | measured 1/3 |')
+    expect(allPassed(outcomes)).toBe(true)
   })
 })

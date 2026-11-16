@@ -4,7 +4,7 @@
  * is written against these types alone. Nothing outside src/conversations/model/ names a provider's SDK.
  */
 import type { z } from 'zod'
-import type { CapabilityEffectivePermissions, KnowledgeStepView } from '@agenthix/core'
+import type { CapabilityEffectivePermissions, FoldedName, KnowledgeStepView, ToolArea } from '@agenthix/core'
 import type { OrgRole } from '../server/identity/rolePolicy'
 import type { CallCosting } from '../billing/types'
 import type {
@@ -115,6 +115,9 @@ export interface PromptPart { text: string; cacheAfter?: boolean }
 
 export interface LeadToolDefinition { name: string; description: string; input: z.ZodType }
 
+/** A tool a turn may use, with its area: what the tool search and the area lines read (tools/foldedTools.ts). */
+export interface OfferedTool extends LeadToolDefinition { area: ToolArea }
+
 export interface LeadRequest {
   access: ResolvedAccess
   system: PromptPart[]
@@ -222,6 +225,8 @@ export interface MailboxSink {
 export interface ToolAdapter {
   /** The tools the lead may call in this turn, under its capability. */
   toolsFor(capability: TurnCapability): Promise<LeadToolDefinition[]>
+  /** The tools the turn finds by search rather than is shown, by name and area, for the area lines; none when absent. */
+  foldedFor?(capability: TurnCapability): Promise<FoldedName[]>
   /**
    * Runs one call: creates its Operation row first, waits up to `waitLimitMs` for a foreground tool, and past
    * that detaches the same call, which carries on and reports to `mailbox` when it ends.
@@ -309,8 +314,13 @@ export interface OperationOwner {
  * a control-plane tool that becomes operation-returning in a conversation (run_task, create_task). Looked up
  * before the control plane's tools, by name. It creates and settles its own Operation rows.
  */
+/** What part of the work a tool belongs to (core's `ToolArea`): never sent to the model. */
+export type { ToolArea }
+
 export interface ConversationTool {
   name: string
+  /** Every tool the registry offers has one (work/registry.ts); optional only for the live preview's, given its area there. */
+  area?: ToolArea
   /** The tool's description for this turn: start_work lists the boundaries the person and the agent share. */
   describe(capability: TurnCapability): Promise<string>
   input: z.ZodType

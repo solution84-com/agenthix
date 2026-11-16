@@ -49,8 +49,25 @@ export const SERVER_JS = [
   "http.createServer((req, res) => res.end(fs.readFileSync(__dirname + '/public/index.html'))).listen(3000)",
 ].join('\n')
 
-/** The branch's files at the start of every run, by their path in the working folder. */
-export const FILES: Readonly<Record<string, string>> = { [PAGE]: PAGE_TEXT, 'package.json': PACKAGE_JSON, 'server.js': SERVER_JS }
+/** The page on main: the branch's last commit added the banner. */
+export const MAIN_PAGE_TEXT = PAGE_TEXT.split('\n').filter(l => !l.includes('class="banner"')).join('\n')
+export const MAIN_FOLDER = '/projects/shop/main'
+
+/**
+ * The branch's files at the start of every run, by their path in the working folder, and main's, read-only, by their
+ * full path.
+ */
+/** The project's roadmap, as hq seeds every project's files with it (storage/filesService.ts). */
+export const ROADMAP = '/projects/shop/files/ROADMAP.md'
+const ROADMAP_TEXT = [
+  '# Shop — Roadmap', '', '## Mission / Vision', '', '_Describe the project goal and success criteria here._', '',
+  '## Current Week', '', '_No activity yet._', '', '## Previous Weeks', '', '_None yet._',
+].join('\n')
+
+export const FILES: Readonly<Record<string, string>> = {
+  [PAGE]: PAGE_TEXT, 'package.json': PACKAGE_JSON, 'server.js': SERVER_JS, [ROADMAP]: ROADMAP_TEXT,
+  [`${MAIN_FOLDER}/${PAGE}`]: MAIN_PAGE_TEXT, [`${MAIN_FOLDER}/package.json`]: PACKAGE_JSON, [`${MAIN_FOLDER}/server.js`]: SERVER_JS,
+}
 
 export const SHOP_APP = { name: 'shop', folder: '', command: 'npm start', port: 3000 }
 

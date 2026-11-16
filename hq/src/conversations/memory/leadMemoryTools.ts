@@ -16,7 +16,7 @@ import type { ConversationTool, ToolCallOutcome, TurnCapability } from '../contr
 import type { MemoryPrincipal, MemoryService } from '../../memory/contract'
 import { MEMORY_BODY_MAX_CHARS, MEMORY_MAX_TAGS, MEMORY_TITLE_MAX_CHARS } from '../../shared/memory/protocol'
 import {
-  RECALL_KINDS, TOOL_KINDS, TOOL_SCOPES, forTool, itemKindOf, recallFor, recallRequest,
+  RECALL_KINDS, forTool, itemKindOf, recallFor, recallRequest,
 } from '../../server/controlplane/memoryOps'
 import { MemoryRefused } from '../../memory/memoryService'
 import { NO_PERSON_REFUSAL } from '../../memory/scopes'
@@ -68,22 +68,24 @@ const recallInput = z.object({
   kind: z.enum(RECALL_KINDS).optional().describe('Only items of this kind'),
   tags: z.array(z.string().min(1)).max(MEMORY_MAX_TAGS).optional().describe('Only items carrying any of these tags'),
 })
+// A key a model still sends that is not declared here (the old `scope`, a kind no longer offered) is dropped, not refused.
+const OLD_KINDS: Readonly<Record<string, (typeof RECALL_KINDS)[number]>> = { preference: 'rule', decision: 'rule', feedback: 'rule', project: 'fact' }
 const rememberInput = z.object({
   title: z.string().min(1).max(MEMORY_TITLE_MAX_CHARS).describe('A short title naming the subject'),
   body: z.string().min(1).max(MEMORY_BODY_MAX_CHARS).describe('What you learned, readable on its own'),
-  kind: z.enum(TOOL_KINDS).describe('"rule" for how the person wants things done, "fact" for anything else; the other values are deprecated'),
+  kind: z.preprocess(v => (typeof v === 'string' ? (OLD_KINDS[v] ?? v) : v), z.enum(RECALL_KINDS)).optional().describe('"rule" or "fact" (the default)'),
   tags: z.array(z.string()).max(MEMORY_MAX_TAGS).optional().describe('A few words to group it by'),
-  key: z.string().max(64).optional().describe('The key of an item to replace; made from the title when left out'),
-  requested: z.boolean().optional().describe('True when the person asked you to remember this, or corrected you'),
-  correction: z.boolean().optional().describe('True when this records something the person corrected you on'),
-  /** @deprecated Read and ignored: hq sets a memory's scope (ADR-0188). */
-  scope: z.enum(TOOL_SCOPES).optional().describe('Deprecated and ignored: memory is kept for the person, you and this place'),
+  key: z.string().max(64).optional().describe('The key of an item to replace'),
+  requested: z.boolean().optional().describe('true only when the person asked you to remember it, or corrected you; not for something said in passing'),
+  correction: z.boolean().optional().describe('It records something the person corrected you on'),
 })
 const forgetInput = z.object({
   key: z.string().min(1).describe('The item\'s key'),
-  /** @deprecated Read and ignored (ADR-0188). */
-  scope: z.enum(TOOL_SCOPES).optional().describe('Deprecated and ignored'),
 })
+
+const REMEMBER_DESCRIPTION =
+  'Keep one thing about the person for later, recalled by meaning: a title naming its subject and a body that reads ' +
+  'on its own months from now. An item very like one already held updates it.'
 
 /** Memory is a person's: a turn for no person is told so, rather than finding nothing. */
 function noPerson(principal: MemoryPrincipal): ToolCallOutcome | null {
@@ -93,6 +95,7 @@ function noPerson(principal: MemoryPrincipal): ToolCallOutcome | null {
 export function createLeadMemoryTools(deps: LeadMemoryDeps): ConversationTool[] {
   const recall: ConversationTool = {
     name: 'recall',
+    area: 'memory',
     input: recallInput,
     offered: async c => readsFor(c),
     describe: async () => descriptionOf('recall'),
@@ -119,24 +122,22 @@ export function createLeadMemoryTools(deps: LeadMemoryDeps): ConversationTool[] 
 
   const remember: ConversationTool = {
     name: 'remember',
+    area: 'memory',
     input: rememberInput,
     offered: async c => writesFor(c),
-    describe: async () =>
-      `${descriptionOf('remember')} When the person corrected you, set correction too: what you had wrong is then ` +
-      'measured against what memory already held. Not for what a knowledge page says, or what you just wrote into ' +
-      'one: the page keeps it, and a memory of it would go stale.',
+    describe: async () => REMEMBER_DESCRIPTION,
     async run(capability, raw) {
       if (!writesFor(capability)) return { status: 'refused', reason: 'remember changes something, and this reply acts for no one' }
       const parsed = rememberInput.safeParse(raw ?? {})
       if (!parsed.success) return badArguments('remember', parsed.error)
-      const { correction, requested, scope: _ignored, ...args } = parsed.data
+      const { correction, requested, ...args } = parsed.data
       try {
         const principal = await deps.principalOf(capability, 'remember')
         const none = noPerson(principal)
         if (none) return none
         if (correction) await recordCorrectionMiss(capability, principal, `${args.title}\n${args.body}`)
         const outcome = await deps.service.remember(principal, {
-          title: args.title, body: args.body, kind: itemKindOf(args.kind), tags: args.tags, key: args.key,
+          title: args.title, body: args.body, kind: itemKindOf(args.kind ?? 'fact'), tags: args.tags, key: args.key,
           requested: requested === true || correction === true, conversationId: capability.conversationId,
         })
         if (outcome.status === 'refused') return { status: 'refused', reason: outcome.reason }
@@ -156,6 +157,7 @@ export function createLeadMemoryTools(deps: LeadMemoryDeps): ConversationTool[] 
 
   const forget: ConversationTool = {
     name: 'forget',
+    area: 'memory',
     input: forgetInput,
     offered: async c => writesFor(c),
     describe: async () => descriptionOf('forget'),
@@ -176,11 +178,10 @@ export function createLeadMemoryTools(deps: LeadMemoryDeps): ConversationTool[] 
 
   const usedMemory: ConversationTool = {
     name: USED_MEMORY,
+    area: 'memory',
     input: usedMemoryInput,
     offered: async c => readsFor(c),
-    describe: async () =>
-      'Say which remembered items your reply relied on, by key — from the memory shown with the message or from ' +
-      'recall. Call it once, together with the end of your reply; an empty list when you relied on none.',
+    describe: async () => 'Say which remembered items your reply relied on, by key, from the memory shown or from recall.',
     async run(capability, raw) {
       if (!readsFor(capability)) return { status: 'refused', reason: `${USED_MEMORY} is not available in this reply` }
       const parsed = usedMemoryInput.safeParse(raw ?? {})

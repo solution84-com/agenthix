@@ -8,6 +8,7 @@
  * reaches no agent until a person accepts or publishes it.
  */
 import type { WorkflowToolArg } from '../workflows/agentTools.js'
+import type { ToolArea } from '../harness/toolAreas.js'
 
 export const PROPOSE_SKILL_TOOL = 'propose_skill'
 
@@ -20,6 +21,7 @@ export type ProposeSkillAim = (typeof PROPOSE_SKILL_AIMS)[number]
 
 export type SkillToolDeclaration = {
   name: typeof PROPOSE_SKILL_TOOL
+  area: ToolArea
   description: string
   args: Record<string, WorkflowToolArg>
   runIdFromCaller: true
@@ -27,10 +29,11 @@ export type SkillToolDeclaration = {
 
 export const PROPOSE_SKILL_DECLARATION: SkillToolDeclaration = {
   name: PROPOSE_SKILL_TOOL,
+  area: 'skills',
   description:
-    'Propose a skill: written steps that agents follow for one kind of task. This is the only way to write or change a ' +
-    'skill. Never write a skill folder into files yourself. A person reviews it, and no agent uses it until they ' +
-    'accept or publish it. Use it when a person asks you to make something a skill, or to change one. ' +
+    'Propose a skill (written steps agents follow for one kind of task) when a person asks you to make or change ' +
+    'one. It is the only way to write a skill: never write a skill folder yourself. No agent uses it until a person ' +
+    'accepts or publishes it. ' +
     `Send SKILL.md and any other files the skill needs. At most ${MAX_SKILL_PROPOSALS_PER_RUN} proposals in one run. ` +
     'Answers whether it became the person\'s draft or a proposal waiting for review, and any warnings.',
   args: {

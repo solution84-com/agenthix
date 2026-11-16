@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { leadBaseInstructions, leadMemoryRules } from '../instructions'
+import { leadBaseInstructions, leadKnowledgeRules, leadMemoryRules } from '../instructions'
 
 const text = leadBaseInstructions({ agentName: 'Kernel', agentRole: null, placeLabel: 'their own space' })
 
@@ -7,6 +7,7 @@ describe("the lead's instructions on places, projects and failures @SC-961", () 
   it('make work for two places two pieces of work, one in each, never one done from the other', () => {
     expect(text).toMatch(/Work asked for in two places is two pieces of\s+work, one started in each/)
     expect(text).toMatch(/never do one place's work from another/)
+    expect(text).toMatch(/words leave the place open, ask which before starting/)
   })
 
   it('know a project by its key as well as its name', () => {
@@ -28,6 +29,10 @@ describe("the lead's instructions on places, projects and failures @SC-961", () 
     expect(text).toMatch(/"knowledge" is its Knowledge; "my space" is Your space, never the conversation's project/)
   })
 
+  it("send a change to another conversation's or a task's branch to its own conversation", () => {
+    expect(text).toMatch(/A branch that is another conversation's or a task's is changed only from its own\s+conversation/)
+  })
+
   it('try again what failed earlier, rather than trusting the old failure', () => {
     expect(text).toMatch(/Something that failed earlier in this conversation may work now/)
     expect(text).toMatch(/try again; refuse only for what fails now/)
@@ -43,8 +48,9 @@ describe("the lead's memory and knowledge rules @SC-1443", () => {
   })
 
   it("send a question about the product to the guide first, naming its screens (F7)", () => {
-    expect(rules).toMatch(/A question about Agenthix itself is searched in the guide \(scope platform\) before you answer it/)
-    expect(rules).toMatch(/names its screens as the guide does/)
+    const knowledge = leadKnowledgeRules()
+    expect(knowledge).toMatch(/A question about Agenthix itself is searched in the guide \(scope platform\) before you answer it/)
+    expect(knowledge).toMatch(/names its screens as the guide does/)
   })
 })
 
@@ -60,5 +66,17 @@ describe("the lead's memory rules after ADR-0188", () => {
   it('send what is true of a place to its Knowledge, never to memory, and mark a requested memory', () => {
     expect(rules).toMatch(/What is true of a place, for everyone who works there, goes to that place's Knowledge, never to memory/)
     expect(rules).toMatch(/Set requested when they\s+asked you to remember it or corrected you/)
+  })
+})
+
+describe("the lead's memory rules in the base instructions (lean agent context spec, §2)", () => {
+  it('come near the top, right after how to talk', () => {
+    const memory = text.indexOf('Memory:')
+    expect(memory).toBeGreaterThan(text.indexOf('How you talk:'))
+    expect(memory).toBeLessThan(text.indexOf('Tools and work:'))
+  })
+
+  it('tie saying "I\'ll remember" to the call, in the same reply', () => {
+    expect(text).toMatch(/call remember in that same reply\. Saying you will remember it is not remembering it: only the call keeps it/)
   })
 })

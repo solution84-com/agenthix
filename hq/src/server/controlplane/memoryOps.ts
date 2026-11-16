@@ -22,11 +22,13 @@ export const TOOL_SCOPES = ['person', 'agent_person', 'agent_place'] as const
  */
 export const TOOL_KINDS = ['fact', 'rule', 'preference', 'decision', 'feedback', 'project'] as const
 export const RECALL_KINDS = ['fact', 'rule'] as const
+/** What `remember` offers now: the deprecated kinds are no longer shown, and a memory left without one is a fact. */
+export const REMEMBER_KINDS = RECALL_KINDS
 type ToolScope = (typeof TOOL_SCOPES)[number]
 type ToolKind = (typeof TOOL_KINDS)[number]
 
-export function itemKindOf(kind: ToolKind): MemoryItemKindValue {
-  return kind === 'fact' || kind === 'project' ? 'FACT' : 'RULE'
+export function itemKindOf(kind: ToolKind | undefined): MemoryItemKindValue {
+  return kind === undefined || kind === 'fact' || kind === 'project' ? 'FACT' : 'RULE'
 }
 
 const service: MemoryService = memoryService
@@ -43,7 +45,7 @@ function requirePerson(principal: MemoryPrincipal): void {
 
 export async function rememberOp(
   ctx: CallerContext,
-  args: { title: string; body: string; kind: ToolKind; tags?: string[]; key?: string; requested?: boolean; scope?: ToolScope },
+  args: { title: string; body: string; kind?: ToolKind; tags?: string[]; key?: string; requested?: boolean; scope?: ToolScope },
 ): Promise<{ status: 'added' | 'replaced' | 'superseded' | 'merged'; key: string; itemId: string; requested: boolean }> {
   requireMayWrite(ctx, 'remember')
   const principal = await memoryPrincipalOf(ctx, 'remember')

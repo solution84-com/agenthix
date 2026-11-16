@@ -61,3 +61,16 @@ describe("the server's own words @SC-111", () => {
     expect((server.server as any)._serverInfo).toMatchObject({ name: 'hq' })
   })
 })
+
+describe("people's own clients are shown every tool @SC-2178", () => {
+  it('lists the platform tools in full and has no find_tools or use_tool: the folding is for the agents Agenthix runs', () => {
+    const server = createMcpServer({ caller: connectionCaller() })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tools = (server as any)._registeredTools as Record<string, { description?: string }>
+    expect(tools['find_tools']).toBeUndefined()
+    expect(tools['use_tool']).toBeUndefined()
+    for (const name of ['create_task', 'update_task', 'add_comment', 'get_task_details']) {
+      expect(tools[name]?.description, name).toBeTruthy()
+    }
+  })
+})

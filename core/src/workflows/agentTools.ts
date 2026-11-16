@@ -11,6 +11,7 @@
  */
 import type { WorkflowParameter } from './definition.js'
 import type { WorkflowRunState, WorkflowStepState } from './runStates.js'
+import type { ToolArea } from '../harness/toolAreas.js'
 
 export const WORKFLOW_TOOL_NAMES = {
   list: 'list_workflows',
@@ -30,6 +31,7 @@ export type WorkflowToolArg = { type: 'string' | 'stringMap'; description: strin
 
 export type WorkflowToolDeclaration = {
   name: WorkflowToolName
+  area: ToolArea
   description: string
   args: Record<string, WorkflowToolArg>
   runIdFromCaller: true
@@ -38,15 +40,17 @@ export type WorkflowToolDeclaration = {
 export const WORKFLOW_TOOL_DECLARATIONS: WorkflowToolDeclaration[] = [
   {
     name: WORKFLOW_TOOL_NAMES.list,
+    area: 'workflows',
     description:
-      'List the workflows of this place: each one\'s name, description, whether it is on, the parameters its approved ' +
-      'version takes, the secrets and variables it uses, and any version waiting for a person. Secrets are named, ' +
-      'never shown. Use a workflow for anything that needs a secret, such as pushing to GitHub or deploying.',
+      'List this place\'s workflows: each one\'s name, description, whether it is on, its approved version\'s ' +
+      'parameters, the secrets (named, never shown) and variables it uses, and any version waiting for a person. Use ' +
+      'a workflow for anything that needs a secret, such as pushing to GitHub or deploying.',
     args: {},
     runIdFromCaller: true,
   },
   {
     name: WORKFLOW_TOOL_NAMES.propose,
+    area: 'workflows',
     description:
       'Propose a new version of a workflow from a definition file (workflow.yaml) in your workspace and the files it ' +
       'names. A person reviews and approves it before it can run. Answers the version\'s number and what the plain ' +
@@ -62,11 +66,11 @@ export const WORKFLOW_TOOL_DECLARATIONS: WorkflowToolDeclaration[] = [
   },
   {
     name: WORKFLOW_TOOL_NAMES.run,
+    area: 'workflows',
     description:
-      'Run the approved version of a workflow on one of this place\'s workspaces, and wait for it. Answers each step\'s result and the last lines of its ' +
-      'output, with every secret masked. A long run can be checked later with workflow_run. The live preview\'s own ' +
-      'workflows (start-live-preview, reload-live-preview) are the person\'s and are refused: start or reload the app ' +
-      'with the app tools.',
+      'Run a workflow\'s approved version on a workspace of this place, and wait for it. Answers each step\'s result ' +
+      'and the last lines of its output, secrets masked; check a long run later with workflow_run. The live ' +
+      'preview\'s own workflows (start-live-preview, reload-live-preview) are refused: use the app tools.',
     args: {
       name: { type: 'string', description: 'The workflow\'s name, such as push', maxLength: 64 },
       parameters: { type: 'stringMap', description: 'A value for each of the workflow\'s parameters, by name', optional: true },
@@ -79,6 +83,7 @@ export const WORKFLOW_TOOL_DECLARATIONS: WorkflowToolDeclaration[] = [
   },
   {
     name: WORKFLOW_TOOL_NAMES.runState,
+    area: 'workflows',
     description: 'A workflow run\'s state: each step\'s result and the last lines of its output, with every secret masked.',
     args: { id: { type: 'string', description: 'The run\'s id, as run_workflow answered it', maxLength: 64 } },
     runIdFromCaller: true,

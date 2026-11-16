@@ -104,7 +104,18 @@ describe('their descriptions @SC-1409', () => {
     expect(d).toContain('64 KB')
   })
 
-  it('every change tool says to change knowledge only when a person asks', () => {
-    for (const name of ['write_knowledge', 'edit_knowledge', 'delete_knowledge']) expect(tool(name).description).toMatch(/only when a person asks/)
+  it('says once, in write_knowledge, to change knowledge only when a person asks, and the other change tools point to it', () => {
+    for (const name of ['edit_knowledge', 'delete_knowledge']) {
+      expect(tool(name).description).toMatch(/rules of write_knowledge apply/)
+      expect(tool(name).description).not.toMatch(/only when a person asks/)
+    }
+  })
+
+  it('gives the page format with examples in read_knowledge alone', () => {
+    const pageOf = (name: string) => (tool(name).schema.page as z.ZodType).description
+    expect(pageOf('read_knowledge')).toMatch(/website-rebuild:processes\/release\.md/)
+    for (const name of ['write_knowledge', 'edit_knowledge', 'delete_knowledge']) {
+      expect(pageOf(name)).toBe('The page, as search_knowledge names it')
+    }
   })
 })

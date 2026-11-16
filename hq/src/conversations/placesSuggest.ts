@@ -43,6 +43,7 @@ const refused = (reason: string): ToolCallOutcome => ({ status: 'refused', reaso
 export function createSuggestPlaceTool(deps: SuggestPlaceDeps): ConversationTool {
   return {
     name: SUGGEST_PLACE_TOOL,
+    area: 'conversation',
     input,
     offered: async capability => offeredTo(capability),
     describe: async () => definition.description ?? '',
@@ -76,11 +77,19 @@ export function createSuggestPlaceTool(deps: SuggestPlaceDeps): ConversationTool
   }
 }
 
+/** The words for the person's own space: its level, and what the person and the agent call it. */
+const OWN_SPACE_WORDS = new Set([PERSONAL_LEVEL, 'your space', 'my space'])
+
+/** Whether the words name the person's own space, as the person or the agent would say it. */
+export function namesOwnSpace(words: string): boolean {
+  return OWN_SPACE_WORDS.has(words.trim().replace(/:$/, '').toLowerCase())
+}
+
 /** The project the words name among those the person can open: by slug, then key, then name; or their own space. */
 export async function findOpenPlace(personId: string, words: string): Promise<Place | null> {
   const wanted = words.trim().replace(/:$/, '')
   const lower = wanted.toLowerCase()
-  if (lower === PERSONAL_LEVEL || lower === 'your space') return { type: 'user', id: personId }
+  if (namesOwnSpace(wanted)) return { type: 'user', id: personId }
   const projects = await prisma.project.findMany({
     where: { ...entitledProjectsFilter(personId), NOT: { personalSpace: true } },
     select: { id: true, slug: true, key: true, name: true },

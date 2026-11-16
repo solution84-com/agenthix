@@ -134,6 +134,8 @@ describe('the memory checks', () => {
     expect(c.setup.home).toBe('your-space')
     expect(c.grade(run(['A menu.']))).toEqual({ passed: true })
     expect(c.grade(run(['A menu.'], ['remember', { title: 'Vegetarian', body: 'Is vegetarian.', kind: 'fact' }]))).toEqual({ passed: true })
+    expect(c.grade(run(['A menu.'], ['remember', { title: 'Vegetarian', body: 'Is vegetarian.' }]))).toEqual({ passed: true })
+    expect(c.grade(run(['A menu.'], ['remember', { title: 'Vegetarian', body: 'Is vegetarian.', kind: 'diet' }])).passed).toBe(false)
     expect(c.grade(run(['A menu.'], ['remember', { title: 'Vegetarian', body: 'Is vegetarian.', kind: 'fact', requested: true }])).passed).toBe(false)
     expect(c.grade(run(['A menu.'], ['remember', { title: 'No meat', body: 'Never suggest meat.', kind: 'rule' }])).passed).toBe(false)
   })

@@ -23,6 +23,7 @@ describe('the tools a turn may ever call @SC-950', () => {
 
   it('a deprecated tool and a name no tool has are not callable', () => {
     expect(isTurnTool('tick_subtask')).toBe(false)
+    expect(isTurnTool('fetch_my_queued_tasks')).toBe(false)
     expect(isTurnTool('constructor')).toBe(false)
     expect(isTurnTool('no_such_tool')).toBe(false)
   })

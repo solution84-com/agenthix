@@ -7,15 +7,14 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { runModelChecks } from './runner'
 import { CHECKS } from './checks'
+import { checkAsked } from './env'
 import { allPassed, report, summaryTable } from './report'
 
 const OUT_DIR = path.resolve(__dirname, '../../../.model-checks')
 
 describe('the lead with a real model', () => {
   it('maps each question to the right place and tool', async ctx => {
-    // MODEL_CHECK_ONLY names the checks to run, comma-separated: a subset costs less.
-    const only = (process.env.MODEL_CHECK_ONLY ?? '').split(',').map(s => s.trim()).filter(Boolean)
-    const checks = only.length ? CHECKS.filter(c => only.includes(c.id)) : CHECKS
+    const checks = CHECKS.filter(c => checkAsked(process.env, c.id))
     const result = await runModelChecks(process.env, { out: line => console.log(line) }, checks)
     if ('skipped' in result) return ctx.skip(result.skipped)
     const at = new Date()

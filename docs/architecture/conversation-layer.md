@@ -115,6 +115,7 @@ The conversation's own tools are `start_work`, `create_task`, `run_task`, `cance
 knowledge tools (`search_knowledge`, `read_knowledge`, `write_knowledge`, `edit_knowledge`, `delete_knowledge`;
 `hq/src/conversations/memory/leadKnowledgeTools.ts`) and hq's task, board and project tools. `recall` searches memory
 only. The change tools are offered only in a turn that answers a person.
+A turn is shown only its must-have tools in full; every other tool it may use is named in the instructions under its area, found with `find_tools` and called with `use_tool`, which the turn runs as the tool it names ([tool-search.md](tools/tool-search.md)).
 
 ## Work on a site
 

@@ -1,7 +1,7 @@
 /**
- * MCP tool classification (plan 5d-2 task 8): `ping`/`get_site_info` stay
- * local; every control-plane tool is a thin `callHqData(name, args, capabilityJwt)`
- * forward. `@modelcontextprotocol/sdk`'s `McpServer` is mocked to a recorder
+ * MCP tool classification (plan 5d-2 task 8): every control-plane tool is a
+ * thin `callHqData(name, args, capabilityJwt)` forward, shown in full when it
+ * is a must-have and reached through use_tool otherwise (ADR-0193). `@modelcontextprotocol/sdk`'s `McpServer` is mocked to a recorder
  * — same "stub the transport, not the logic" posture as hq's own
  * mcpServer.authorization.test.ts — so each registered tool's handler can be
  * invoked directly without a real MCP transport.
@@ -29,7 +29,13 @@ const { mockCallHqData, FakeHqDataError } = vi.hoisted(() => {
 })
 vi.mock('../../hq/dataClient', () => ({ callHqData: mockCallHqData, HqDataError: FakeHqDataError }))
 
-import { createMcpServer } from '../mcpServer'
+import { createMcpServer, runForwardedTools, type CreateMcpServerOptions } from '../mcpServer'
+
+/** Every forwarded tool a run is offered: shown in full, or found by search. */
+const offered = (opts: CreateMcpServerOptions) => {
+  const { shown, folded } = runForwardedTools(opts)
+  return new Set([...shown.keys(), ...folded.keys()])
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -41,25 +47,18 @@ function textOf(result: { content: Array<{ text: string }> }): unknown {
   return JSON.parse(result.content[0].text)
 }
 
-describe('local tools — touch no control-plane data', () => {
-  it('ping never calls callHqData', async () => {
-    const result = await registrations.get('ping')!({})
-    expect(mockCallHqData).not.toHaveBeenCalled()
-    expect(textOf(result as any)).toMatchObject({ pong: true })
-  })
-
-  it('get_site_info never calls callHqData', async () => {
-    const result = await registrations.get('get_site_info')!({})
-    expect(mockCallHqData).not.toHaveBeenCalled()
-    expect(textOf(result as any)).toEqual({ status: 'standalone', mode: 'standalone' })
+describe('infrastructure tools — no model needs them', () => {
+  it('ping and get_site_info are not offered', () => {
+    expect(registrations.has('ping')).toBe(false)
+    expect(registrations.has('get_site_info')).toBe(false)
   })
 })
 
 describe('forwarded tools — thin callHqData forwards', () => {
-  it('a control-plane tool (get_org) forwards via callHqData with the resolved capability', async () => {
+  it('a control-plane tool (get_task_details) forwards via callHqData with the resolved capability', async () => {
     mockCallHqData.mockResolvedValue({ orgId: 'org-1', name: 'Acme' })
-    const result = await registrations.get('get_org')!({})
-    expect(mockCallHqData).toHaveBeenCalledWith('get_org', {}, 'jwt-1')
+    const result = await registrations.get('get_task_details')!({ taskId: 'WEB-1' })
+    expect(mockCallHqData).toHaveBeenCalledWith('get_task_details', { taskId: 'WEB-1' }, 'jwt-1')
     expect(textOf(result as any)).toEqual({ orgId: 'org-1', name: 'Acme' })
   })
 
@@ -69,7 +68,7 @@ describe('forwarded tools — thin callHqData forwards', () => {
 
   it('a forward that fails with HqDataError renders as an MCP tool error, not a thrown exception', async () => {
     mockCallHqData.mockRejectedValue(new FakeHqDataError(403, 'forbidden'))
-    const result = await registrations.get('get_org')!({})
+    const result = await registrations.get('get_task_details')!({ taskId: 'WEB-1' })
     expect((result as any).isError).toBe(true)
     expect(textOf(result as any)).toEqual({ error: 'forbidden' })
   })
@@ -80,16 +79,17 @@ describe('forwarded tools — thin callHqData forwards', () => {
   // same-shaped MCP tool error as if it were an ordinary rejection.
   it('a non-HqDataError failure propagates instead of being rendered as a tool error', async () => {
     mockCallHqData.mockRejectedValue(new TypeError('unexpected shape'))
-    await expect(registrations.get('get_org')!({})).rejects.toThrow(TypeError)
+    await expect(registrations.get('get_task_details')!({ taskId: 'WEB-1' })).rejects.toThrow(TypeError)
   })
 })
 
 describe('disabledTools patches out a tool entirely', () => {
   it('a neverTools-listed tool is never registered', () => {
     registrations.clear()
-    createMcpServer({ capabilityJwt: 'jwt-1', disabledTools: new Set(['get_org']) })
-    expect(registrations.has('get_org')).toBe(false)
-    expect(registrations.has('list_agents')).toBe(true)
+    createMcpServer({ capabilityJwt: 'jwt-1', disabledTools: new Set(['add_comment', 'get_org']) })
+    expect(registrations.has('add_comment')).toBe(false)
+    expect(registrations.has('get_task_details')).toBe(true)
+    expect(runForwardedTools({ capabilityJwt: 'jwt-1', disabledTools: new Set(['get_org']) }).folded.has('get_org')).toBe(false)
   })
 })
 
@@ -97,7 +97,7 @@ describe('a tool call the gate refused at /mcp', () => {
   it('is answered with the refusal by whichever tool it names, and nothing is forwarded', async () => {
     registrations.clear()
     createMcpServer({ capabilityJwt: 'jwt-1', callRefusal: 'This run is pausing here.' })
-    for (const name of ['get_org', 'ping', 'stop_processes']) {
+    for (const name of ['get_task_details', 'use_tool', 'find_tools', 'stop_processes']) {
       const result = await registrations.get(name)!({}) as { isError: boolean; content: Array<{ text: string }> }
       expect(result).toEqual({ isError: true, content: [{ type: 'text', text: 'This run is pausing here.' }] })
     }
@@ -157,8 +157,9 @@ describe('the live preview off: no app tools, and no live preview used (adr-0172
   it("is on in a development build when the run's switches say so", () => {
     vi.stubEnv('NODE_ENV', 'development')
     registrations.clear()
-    createMcpServer({ capabilityJwt: 'jwt-1', features: { livePreview: true }, siteTools: { context: context({ branch: 'add-banner' }), openCode: true } })
-    for (const name of APP_TOOLS) expect(registrations.has(name), name).toBe(true)
+    const opts = { capabilityJwt: 'jwt-1', features: { livePreview: true }, siteTools: { context: context({ branch: 'add-banner' }), openCode: true } }
+    createMcpServer(opts)
+    for (const name of APP_TOOLS) expect(offered(opts).has(name), name).toBe(true)
   })
 })
 
@@ -173,20 +174,19 @@ withFeature('livePreview', () => {
     // runs: a run on a branch whose live preview started after the first listing must still have them.
     it('a code-work run whose capability names no live preview is offered them all the same', () => {
       registrations.clear()
-      createMcpServer({ capabilityJwt: 'jwt-1', siteTools: { context: context({ branch: 'add-banner' }), openCode: true } })
-      for (const name of APP_TOOLS) expect(registrations.has(name), name).toBe(true)
+      for (const name of APP_TOOLS) expect(offered({ capabilityJwt: 'jwt-1', siteTools: { context: context({ branch: 'add-banner' }), openCode: true } }).has(name), name).toBe(true)
     })
 
     it('a code-work run with a live preview is offered them', () => {
       registrations.clear()
-      createMcpServer({ capabilityJwt: 'jwt-1', livePreview: claim, siteTools: { context: context({ branch: 'add-banner' }), openCode: true } })
-      for (const name of APP_TOOLS) expect(registrations.has(name), name).toBe(true)
+      for (const name of APP_TOOLS) expect(offered({ capabilityJwt: 'jwt-1', livePreview: claim, siteTools: { context: context({ branch: 'add-banner' }), openCode: true } }).has(name), name).toBe(true)
     })
 
     it('a run that is not code work and names no live preview is not', () => {
       registrations.clear()
       createMcpServer({ capabilityJwt: 'jwt-1', siteTools: { context: context(), openCode: true } })
       for (const name of APP_TOOLS) expect(registrations.has(name), name).toBe(false)
+      for (const name of APP_TOOLS) expect(offered({ capabilityJwt: 'jwt-1', siteTools: { context: context(), openCode: true } }).has(name), name).toBe(false)
     })
 
     it('a call goes to hq, which answers it, with the run filled in by the site', async () => {

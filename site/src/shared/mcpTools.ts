@@ -5,7 +5,7 @@
  * domain group — matching the canonical tool reference in docs/domains/tools/tools.md.
  *
  * Domain groups: PLATFORM, ORG, PRODUCT, PROJECT, BOARD, MILESTONE, RUN, TASK, AGENT, LIBRARY, GIT, MEMORY, WORKFLOW,
- * KNOWLEDGE, SKILL
+ * KNOWLEDGE, SKILL, TOOL_SEARCH
  *
  * Access tiers (cross-cutting):
  *   ALWAYS_INJECTED  — PLATFORM tools + task execution lifecycle; never user-configurable
@@ -16,7 +16,7 @@
  * Runtime adapters are responsible for translating to their own naming scheme.
  */
 
-import { PROPOSE_SKILL_TOOL, WORKFLOW_TOOL_NAMES } from '@agenthix/core'
+import { FIND_TOOLS, PROPOSE_SKILL_TOOL, USE_TOOL, WORKFLOW_TOOL_NAMES } from '@agenthix/core'
 import { ALL_RUNTIME_TOOL_NAMES } from './runtimeTools'
 
 // ── Tool registry (by domain) ─────────────────────────────────────────────────
@@ -27,8 +27,6 @@ export const SYSTEM_MCP_TOOLS = {
    * Infrastructure — not shown in UI. Always injected and never user-configurable.
    */
   PLATFORM: {
-    PING:               'ping',
-    GET_SITE_INFO:      'get_site_info',
     STOP_PROCESSES:     'stop_processes',
   },
 
@@ -169,14 +167,21 @@ export const SYSTEM_MCP_TOOLS = {
     PROPOSE_SKILL: PROPOSE_SKILL_TOOL,
   },
 
+  /**
+   * The tool search (ADR-0193): a run finds the tools it is not shown and calls them through use_tool, which the gate
+   * decides as the tool it names. Always injected: searching grants nothing.
+   */
+  TOOL_SEARCH: {
+    FIND_TOOLS,
+    USE_TOOL,
+  },
+
 } as const
 
 // ── Access tier views ─────────────────────────────────────────────────────────
 
 /** Always injected — not user-configurable. */
 export const ALWAYS_INJECTED_MCP_TOOLS: string[] = [
-  SYSTEM_MCP_TOOLS.PLATFORM.PING,
-  SYSTEM_MCP_TOOLS.PLATFORM.GET_SITE_INFO,
   // Stops only the calling conversation's own processes, which a sandboxed
   // command cannot signal (served by the site itself, siteTools.ts there)
   SYSTEM_MCP_TOOLS.PLATFORM.STOP_PROCESSES,
@@ -191,6 +196,7 @@ export const ALWAYS_INJECTED_MCP_TOOLS: string[] = [
   ...Object.values(SYSTEM_MCP_TOOLS.WORKFLOW),
   ...Object.values(SYSTEM_MCP_TOOLS.KNOWLEDGE),
   ...Object.values(SYSTEM_MCP_TOOLS.SKILL),
+  ...Object.values(SYSTEM_MCP_TOOLS.TOOL_SEARCH),
 ]
 
 /** Included by default when allowedTools is null. */
@@ -270,3 +276,4 @@ export type SystemMcpTool =
   | typeof SYSTEM_MCP_TOOLS.GIT[keyof typeof SYSTEM_MCP_TOOLS.GIT]
   | typeof SYSTEM_MCP_TOOLS.MEMORY[keyof typeof SYSTEM_MCP_TOOLS.MEMORY]
   | typeof SYSTEM_MCP_TOOLS.KNOWLEDGE[keyof typeof SYSTEM_MCP_TOOLS.KNOWLEDGE]
+  | typeof SYSTEM_MCP_TOOLS.TOOL_SEARCH[keyof typeof SYSTEM_MCP_TOOLS.TOOL_SEARCH]

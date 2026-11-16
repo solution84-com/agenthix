@@ -60,6 +60,11 @@ export function referencePart(name: string): string {
 }
 
 /** An attachment's reference, as the agent's task tools answer it. */
+/** What a reply writes to show a task to a person: `tasks/MOP-1`. */
+export function taskReference(taskKey: string): string {
+  return `tasks/${taskKey}`
+}
+
 export function attachmentReference(taskKey: string, fileName: string): string {
   return `attachments/${taskKey}/${referencePart(fileName)}`
 }

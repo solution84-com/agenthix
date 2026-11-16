@@ -115,7 +115,7 @@ and a resumed one is brought up to them before the message is sent (`syncOpenCod
 `openCodeSessions.ts`: `GET /session/:id`, then `PATCH /session/:id` when the session's rules do not
 already end with the turn's set). If either call fails, the turn fails before any message is sent.
 
-A platform tool set to `never` is removed from the list by the site's MCP server, as on Claude.
+A platform tool set to `never` is removed from the list by the site's MCP server, as on Claude. The same server offers OpenCode the same split: the must-have tools in full, the rest by name and through `find_tools` and `use_tool` ([tool-search.md](./tool-search.md)); the gate decides a `use_tool` call on the tool it names, as for Claude.
 
 On a turn of an organisation with no search key, the rules also deny `<connection>_web_search`, for every
 agent, bypassed ones included (`openCodeHiddenPlatformTools`): the turn's context carries no `webSearchKey`, so

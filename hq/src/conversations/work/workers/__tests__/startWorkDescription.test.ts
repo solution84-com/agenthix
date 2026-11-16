@@ -20,18 +20,16 @@ describe("start_work's description @SC-960 @SC-968", () => {
     expect(text).toMatch(/by its key or its name/)
   })
 
-  it('makes work in two places two pieces of work, one started in each', () => {
+  it('leaves the rules for two places and for saying what starts to the base instructions, said once there', () => {
     const text = describeStartWork({ admitted: [personal, shop] })
-    expect(text).toMatch(/Work in one place sees only that place/)
-    expect(text).toMatch(/two places is two pieces of work, one\s+started in each, never one covering both/)
+    expect(text).not.toMatch(/two places is two pieces of work/)
+    expect(text).not.toMatch(/say in one short line/)
   })
 
-  it('makes the work its own, said in the first person, never a job that comes back', () => {
+  it('makes the work its own, never a job that comes back', () => {
     const text = describeStartWork({ admitted: [personal] })
     expect(text).toMatch(/Do work yourself in the background/)
     expect(text).toMatch(/do not wait for it/)
-    expect(text).toMatch(/say in one short line, in the first person and in the same step as the\s+call, what you are doing/)
-    expect(text).not.toMatch(/do not announce it/)
     expect(text).not.toMatch(/\bjobs?\b|comes back/)
   })
 
@@ -40,18 +38,13 @@ describe("start_work's description @SC-960 @SC-968", () => {
     expect(text).toMatch(/Projects the person works in that you aren't assigned to/)
     expect(text).toContain('- WAL: the Walkthrough project')
     expect(text).toMatch(/Members, ＋ Add, An agent/)
-    expect(text).toMatch(/Never do that project's work from another place/)
   })
 
   it("has an unassigned project asked for anyway, so its refusal comes back and is told at once (finding 32)", () => {
     const text = describeStartWork({ admitted: [personal], unassigned: [walkthrough] })
-    expect(text).toMatch(/still call start_work there, beside any other work/)
-    expect(text).toMatch(/tell the person in\s+this reply/)
+    expect(text).toMatch(/still call start_work there/)
+    expect(text).toMatch(/you tell the person in this reply/)
     expect(text).not.toMatch(/Say so when the person asks/)
-  })
-
-  it('has work in several places started together, in one step', () => {
-    expect(describeStartWork({ admitted: [personal, shop] })).toMatch(/Start them all together, in one step/)
   })
 
   it('says nothing of unassigned projects when there are none', () => {

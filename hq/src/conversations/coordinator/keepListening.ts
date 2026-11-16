@@ -17,6 +17,7 @@ export { KEEP_LISTENING, KEEP_LISTENING_DESCRIPTION, NOT_HELD, canHold, holdReas
 export function createKeepListeningTool(deps: { featureOn(): Promise<boolean> }): ConversationTool {
   return {
     name: KEEP_LISTENING,
+    area: 'conversation',
     input: keepListeningInput,
     describe: async () => KEEP_LISTENING_DESCRIPTION,
     offered: async capability => capability.trigger !== 'REPORT' && (await deps.featureOn()),
@@ -31,6 +32,7 @@ export const keepListeningTool = createKeepListeningTool({ featureOn: voiceBridg
 export function ignoringKeepListening(tools: ToolAdapter): ToolAdapter {
   return {
     toolsFor: capability => tools.toolsFor(capability),
+    ...(tools.foldedFor ? { foldedFor: (capability: Parameters<NonNullable<ToolAdapter['foldedFor']>>[0]) => tools.foldedFor!(capability) } : {}),
     call: (capability, call, options) => (call.name === KEEP_LISTENING ? Promise.resolve(NOT_HELD) : tools.call(capability, call, options)),
     readsOnly: (capability, call) => call.name === KEEP_LISTENING || (tools.readsOnly?.(capability, call) ?? false),
   }

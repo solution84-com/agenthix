@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { CONVERSATION_ONLY_TASK_TOOLS, SERVED_TASK_TOOL_DECLARATIONS, TASK_TOOL_DECLARATIONS, TASK_TOOL_NAMES } from '../agentTools.js'
 import { TASK_STATES } from '../taskModel.js'
 import { EXECUTION_STATES } from '../executionState.js'
+import { TASK_MODEL_CONCEPTS } from '../../harness/platformToolsInstructions.js'
+import { TOOL_AREAS } from '../../harness/toolAreas.js'
 
 // The tools the spec names as reworded for the new model.
 const SPEC_TOOLS = [
@@ -27,19 +29,28 @@ describe('the agents\' task tools, in the new model', () => {
       expect(t.description, t.name).not.toMatch(/\bqueue/i)
     }
     const create = TASK_TOOL_DECLARATIONS.find(t => t.name === 'create_task')!
-    expect(create.description).toMatch(/never starts it.*unless you pass queue: true/)
-    expect(create.args.queue!.description).toMatch(/Only when the person you work for asked for it/)
-    expect(create.args.queue!.description).toMatch(/the task is still made, not started/)
+    expect(create.description).toMatch(/starts only if you pass queue: true/)
+    expect(create.args.queue!.description).toMatch(/same reasons as run_task/)
+    expect(create.args.queue!.description).toMatch(/the task is still made/)
   })
 
-  // adr-0175, adr-0095, adr-0091: the words a model reads once say how work starts, for whom, and what is refused.
-  it('say that run_task is an explicit start, who the run is for, and each refusal', () => {
+  // adr-0175, adr-0095, adr-0091: how work starts and for whom is said once, in the platform tools' instructions;
+  // each tool says what else it refuses.
+  it('say once, beside the tools, that work starts only when asked, who a run is for, and what is refused', () => {
+    const concepts = TASK_MODEL_CONCEPTS.join('\n')
+    for (const words of [
+      /Work starts only when someone starts it/, /only when the person you work for asked for it/,
+      /run no person started/, /Start work permission/, /through a person's connection, on theirs/,
+      /on behalf of the task's person/, /cannot start another task/,
+    ]) expect(concepts).toMatch(words)
+    for (const t of TASK_TOOL_DECLARATIONS) expect(JSON.stringify(t), t.name).not.toMatch(/run no person started|Start work permission/)
+  })
+
+  it('say that run_task starts now, in its agent\'s line, and each refusal of its own', () => {
     const run = TASK_TOOL_DECLARATIONS.find(t => t.name === 'run_task')!
     expect(Object.keys(run.args)).toEqual(['taskId'])
     for (const words of [
-      /starts only when someone starts it/, /agent's line/, /never waits for the run to end/,
-      /Through a person's connection the run is on their behalf/, /on behalf of the task's person/,
-      /cannot start another task/, /run no person started/, /Start work permission/,
+      /Start a task now/, /agent's line/, /Answers at once/,
       /the task this run is working on/, /an epic/, /archived/, /no agent/, /start time still to come/, /deeper in a chain/,
       /set_task_schedule/,
     ]) expect(run.description).toMatch(words)
@@ -50,11 +61,10 @@ describe('the agents\' task tools, in the new model', () => {
     const update = TASK_TOOL_DECLARATIONS.find(t => t.name === 'update_routine')!
     for (const t of [create, update]) {
       expect(t.description, t.name).toMatch(/on behalf of the person you work for/)
-      expect(t.description, t.name).toMatch(/in a run of a routine/)
-      expect(t.description, t.name).toMatch(/run no person started/)
-      expect(t.description, t.name).toMatch(/Start work permission/)
-      expect(t.description, t.name).toMatch(/does not let agents set schedules/)
     }
+    expect(create.description).toMatch(/in a run of a routine/)
+    expect(create.description).toMatch(/does not let agents set schedules/)
+    expect(update.description).toMatch(/Refused as create_routine is/)
     expect(create.description).toMatch(/owns no task/)
     expect(create.description).toMatch(/more often than every 5 minutes/)
     expect(create.description).toMatch(/skipped/)
@@ -71,11 +81,21 @@ describe('the agents\' task tools, in the new model', () => {
     expect(description('open_board')).toMatch(/changes nothing/)
   })
 
-  it('name a task, an epic and a project by key or id, and every other thing by its id from list_boards', () => {
+  it('name a task, an epic and a project by key or id, and say once per tool that the other ids come from list_boards', () => {
     const create = TASK_TOOL_DECLARATIONS.find(t => t.name === 'create_task')!
     expect(create.args.projectId!.description).toMatch(/key/)
     expect(create.args.epicId!.description).toMatch(/key or id/)
-    for (const arg of ['typeId', 'columnId', 'sprintId', 'fieldValues']) expect(create.args[arg]!.description, arg).toMatch(/list_boards/)
+    for (const name of ['create_task', 'update_task']) {
+      const t = TASK_TOOL_DECLARATIONS.find(d => d.name === name)!
+      expect(t.description, name).toMatch(/come from list_boards/)
+      expect(JSON.stringify(t).match(/list_boards/g), name).toHaveLength(1)
+    }
+  })
+
+  it('place every tool in an area, kept beside its description', () => {
+    for (const t of TASK_TOOL_DECLARATIONS) expect(TOOL_AREAS, t.name).toContain(t.area)
+    expect(TASK_TOOL_DECLARATIONS.find(t => t.name === 'list_boards')!.area).toBe('planning')
+    expect(TASK_TOOL_DECLARATIONS.find(t => t.name === 'create_task')!.area).toBe('tasks')
   })
 
   it('cap the lists an agent may send', () => {

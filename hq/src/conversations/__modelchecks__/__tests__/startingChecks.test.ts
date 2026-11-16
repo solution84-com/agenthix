@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import { STARTING_CHECKS } from '../taskRun/startingChecks'
 import { answerTaskRun, startState } from '../taskRun/script'
-import { taskRunTools } from '../taskRun/setup'
+import { taskRunFoldedTools, taskRunTools } from '../taskRun/setup'
 import type { RunRecord } from '../run'
 
 const check = (id: string) => STARTING_CHECKS.find(c => c.id === id)!
@@ -14,17 +14,39 @@ const run = (...calls: Array<[name: string, input: Record<string, unknown>]>): R
 })
 
 describe('the starting and routine checks', () => {
-  it('give a run the starting and routine tools in core\'s words', () => {
-    const tools = taskRunTools().map(t => t.name)
-    expect(tools).toEqual(expect.arrayContaining(['run_task', 'create_routine', 'update_routine', 'set_task_schedule']))
+  it('give a run the starting and routine tools in core\'s words, found by search', () => {
+    expect(taskRunTools().map(t => t.name)).toEqual(expect.arrayContaining(['find_tools', 'use_tool', 'create_task']))
+    expect(taskRunTools().map(t => t.name)).not.toContain('create_routine')
+    const folded = taskRunFoldedTools().map(t => t.name)
+    expect(folded).toEqual(expect.arrayContaining(['run_task', 'create_routine', 'update_routine', 'set_task_schedule', 'run_workflow']))
   })
 
-  it('pass a follow-up left for later, and fail one started', () => {
+  it('pass a weekday routine made through use_tool, and fail none made', () => {
+    const c = check('taskrun-fold-routine')
+    const routine = { projectId: 'SHOP', title: 'Banner check', agentId: 'agent-kernel', instructions: 'Check the banner shows', cron: '0 9 * * 1-5' }
+    expect(c.grade(run(['find_tools', { query: 'every weekday' }], ['create_routine', routine])).passed).toBe(true)
+    expect(c.grade(run(['create_routine (not offered)', routine])).passed).toBe(false)
+    expect(c.grade(run(['create_routine', { ...routine, cron: '0 9 * * *' }])).passed).toBe(false)
+  })
+
+  it('pass the deploy workflow run, and fail the live preview\'s own or none', () => {
+    const c = check('taskrun-fold-workflow')
+    expect(c.grade(run(['run_workflow', { name: 'deploy-staging' }])).passed).toBe(true)
+    expect(c.grade(run(['run_workflow', { name: 'start-live-preview' }])).passed).toBe(false)
+    expect(c.grade(run(['list_workflows', {}])).passed).toBe(false)
+  })
+
+  it('pass the change made and the checkout follow-up left for later; fail one started, missing or with no change', () => {
     const c = check('taskrun-follow-up-not-started')
-    expect(c.grade(run(['create_task', { title: 'Banner on checkout', projectId: 'SHOP' }])).passed).toBe(true)
-    expect(c.grade(run(['create_task', { title: 'Banner on checkout', projectId: 'SHOP', queue: true }])).passed).toBe(false)
-    expect(c.grade(run(['create_task', { title: 'x' }], ['run_task', { taskId: 'SHOP-9' }])).passed).toBe(false)
-    expect(c.grade(run()).passed).toBe(false)
+    const edit: [string, Record<string, unknown>] = ['edit_file', { file_path: '/projects/shop/clones/7a1f/public/index.html', old_string: 'a', new_string: 'b' }]
+    const follow: [string, Record<string, unknown>] = ['create_task', { title: 'Banner on checkout', projectId: 'SHOP' }]
+    expect(c.grade(run(edit, follow)).passed).toBe(true)
+    expect(c.grade(run(['bash', { command: "sed -i 's/x/y/' public/index.html" }], follow)).passed).toBe(true)
+    expect(c.grade(run(edit, ['create_task', { title: 'Banner on checkout', projectId: 'SHOP', queue: true }])).passed).toBe(false)
+    expect(c.grade(run(edit, ['create_task', { title: 'Banner on checkout' }], ['run_task', { taskId: 'SHOP-9' }])).passed).toBe(false)
+    expect(c.grade(run(follow)).passed).toBe(false)
+    expect(c.grade(run(edit, ['create_task', { title: 'Something else' }])).passed).toBe(false)
+    expect(c.grade(run(edit)).passed).toBe(false)
   })
 
   it('pass SHOP-8 started with run_task, and fail the run\'s own task started', () => {

@@ -149,7 +149,7 @@ The gate decides calls; each harness also decides which tools the model sees at 
 |---|---|---|
 | Built-in tools | Only the agent's `always` and `ask` built-ins — in an unattended run, `always` only — plus `TodoWrite` and `Skill`, are in the SDK's `tools` list; a bypassed agent gets the full useful set (`buildSdkBuiltinTools`, `sdkNames.ts`) | Each session's rules deny with pattern `*`, which hides them, a restricted agent's `never` built-ins and, in an unattended run, its `ask` ones; `edit`, `write` and `apply_patch` share one permission key, so they are hidden only when both `edit_file` and `write_file` are withheld. The rules are brought up to date at every turn ([opencode-tools.md](./opencode-tools.md)) |
 | Always removed | `disallowedTools`: `AskUserQuestion`, `EnterPlanMode`, `ExitPlanMode`, `CronCreate`/`Delete`/`List`, `TeamCreate`/`Delete` | Denied with pattern `*`: `task`, `question`, and every other conversation's tool connection |
-| Platform tools | The site's MCP server leaves the run's `never` tools out of its tool list; they are also in `disallowedTools`, and in an unattended run so is every `ask` platform tool (`buildSdkDisallowedTools`) | The same MCP server, on the conversation's own connection; in an unattended run the session's rules also deny each `ask` platform tool by its id, `<connection>_<tool>` |
+| Platform tools | The site's MCP server leaves the run's `never` tools out of its tool list, shows the must-have tools in full and offers the rest through `find_tools` and `use_tool` ([tool-search.md](./tool-search.md)), which the gate decides on the inner tool's name; they are also in `disallowedTools`, and in an unattended run so is every `ask` platform tool (`buildSdkDisallowedTools`) | The same MCP server, on the conversation's own connection; in an unattended run the session's rules also deny each `ask` platform tool by its id, `<connection>_<tool>` |
 
 In an unattended run `bash` stays listed while it is `always` or any `always` pattern exists, since some
 command can still run, and is hidden otherwise. Whatever a harness lists, the gate refuses a `never` tool or command in
@@ -314,6 +314,7 @@ name. Call ids are opaque strings in each provider's own format.
 | `site/src/agents/runtime/riskRating.ts` | Risk level per call, on canonical names |
 | `site/src/agents/runtime/landlockCheck.ts` | The kernel check before any harness starts |
 | `site/docker/launcher/` | The Landlock launcher, both harnesses' shells, the `rg` wrapper, the secret list |
+| `site/src/agents/runtime/toolSearchCall.ts` | A `use_tool` call as the call of the tool it names, for the gate and the record ([tool-search.md](./tool-search.md)) |
 | `site/src/server/mcp/handler.ts` | Verifies the run's capability and leaves its `never` tools out of the MCP tool list |
 | `hq/src/server/controlplane/authorize.ts`, `runPerson.ts` | Checks each platform tool call against the run's boundary and its person |
 | `core/src/protocol/capability.ts` | `ToolPermission`, `BashPatternPermission`, `ToolPermissionState` |

@@ -30,12 +30,12 @@ export const START_WORK = 'start_work'
 export const TITLE_MAX_CHARS = 120
 
 const input = z.object({
-  boundary: z.string().min(1).describe('The key of the one place this work is in, from the list in this tool\'s description. Work in two places is two calls.'),
-  title: z.string().min(1).max(TITLE_MAX_CHARS).describe('One line naming the work as the person would say it ("Profile the image pipeline").'),
-  brief: z.string().min(1).max(MESSAGE_MAX_CHARS).describe('Everything the work needs to know: what to do, what it is for, what to bring back. It sees nothing of this conversation.'),
+  boundary: z.string().min(1).describe('The key of the one place this work is in, from this tool\'s description.'),
+  title: z.string().min(1).max(TITLE_MAX_CHARS).describe('One line naming the work as the person would ("Profile the image pipeline").'),
+  brief: z.string().min(1).max(MESSAGE_MAX_CHARS).describe('Everything the work needs: what to do, what for, what to bring back. It sees nothing of this conversation.'),
   effort: z.enum(['light', 'heavy']).optional().describe('heavy for a large or difficult piece of work; light (the default) otherwise.'),
-  model: z.string().max(MODEL_CHOICE_MAX_CHARS).optional().describe("The model the person's own words name for this work, exactly as one of the values listed in this tool's description. Leave out unless they name one."),
-  workspace: z.string().min(1).max(200).optional().describe("The workspaceId of one of the place's workspaces, from this tool's description, for work that changes it or works in it. Leave out for work in the place's files."),
+  model: z.string().max(MODEL_CHOICE_MAX_CHARS).optional().describe("Only when the person names a model: one of the values listed in this tool's description."),
+  workspace: z.string().min(1).max(200).optional().describe("A workspaceId from this tool's description, for work that changes or works in that workspace. Leave out for the place's files."),
   then: z.string().max(2_000).optional().describe(THEN_DESCRIPTION),
 })
 type Input = z.infer<typeof input>
@@ -54,38 +54,22 @@ export interface StartWorkPlaces {
 export function describeStartWork({ admitted, unassigned = [], models = [], workspaces = [] }: StartWorkPlaces): string {
   const line = (b: SharedBoundary) => `- ${b.key}: ${b.type === 'user' ? "the person's own space" : `the ${b.name} project`}`
   const lines = [
-    'Do work yourself in the background, in your own working session in one place the person and you share: reading,',
-    'comparing, summarising or producing many things — anything that needs a model over the data. It returns at once:',
-    'do not wait for it. When you start it, say in one short line, in the first person and in the same step as the',
-    'call, what you are doing ("I\'m listing your space now — I\'ll tell you what\'s in it."); the reply ends once',
-    'the work has started. When the work ends you are told what you found, and you tell the person then.',
+    'Do work yourself in the background, in one place of this conversation: reading, comparing, summarising or',
+    'producing many things. It returns at once: do not wait for it. When it ends you are told what you found.',
     '',
-    'Places you can start work in, the places in this conversation (pass the key as `boundary`). People name a',
-    'project by its key or its name; either finds it:',
+    'Places you can start work in (pass the key as `boundary`; a project goes by its key or its name):',
     ...admitted.map(line),
-    '',
-    'Work can start only in a place in this conversation. When the person asks for work in another place, only they',
-    'can add it: ask them with suggest_place, and start the work once they have.',
   ]
   if (unassigned.length > 0) {
     lines.push(
       '',
-      "Projects the person works in that you aren't assigned to. They exist, but no work can start there until a",
-      'project admin assigns you (in the project: Members, ＋ Add, An agent). When the person asks for work in one,',
-      'still call start_work there, beside any other work: it is refused with the reason, and you tell the person in',
-      "this reply. Never do that project's work from another place:",
+      "Projects the person works in that you aren't assigned to, until a project admin assigns you (in the project:",
+      'Members, ＋ Add, An agent). Asked for work in one, still call start_work there: it is refused with the reason,',
+      'which you tell the person in this reply:',
       ...unassigned.map(line),
     )
   }
-  lines.push(
-    '',
-    'Work in one place sees only that place. Work the person asks for in two places is two pieces of work, one',
-    'started in each, never one covering both. Start them all together, in one step. Within one place, fold what',
-    "it needs into one brief: a place runs one piece of work at a time. When the person's words leave the place",
-    'open, ask which before starting.',
-    ...workspaces,
-    ...models,
-  )
+  lines.push(...workspaces, ...models)
   return lines.join('\n')
 }
 
@@ -127,6 +111,7 @@ export interface StartWorkDeps {
 export function createStartWorkTool(deps: StartWorkDeps = { moveOn: schedulePump }): ConversationTool {
   return {
     name: START_WORK,
+    area: 'conversation',
     input,
 
     async offered(capability) {

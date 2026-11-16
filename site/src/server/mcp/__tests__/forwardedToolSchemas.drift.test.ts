@@ -43,7 +43,7 @@ import { CODE_TOOL_NAME_SET } from '../forwardedCodeSchemas'
 import { APP_TOOL_NAME_SET } from '../forwardedAppSchemas'
 import { TASK_TOOL_NAME_SET } from '../forwardedTaskSchemas'
 
-interface ToolInfo { fields: string[]; description: string | undefined }
+interface ToolInfo { fields: string[]; description: string | undefined; area: string | undefined }
 
 /** Flattens a string literal, or a `+`-concatenation of string literals (both
  *  files wrap a long description across several lines this way), into the
@@ -103,7 +103,11 @@ function extractToolInfo(source: string, fileName: string): Map<string, ToolInfo
           (p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && propName(p.name) === 'description',
         )
         const description = descProp ? descriptionOf(descProp.initializer) : undefined
-        result.set(toolName, { fields: fieldNames, description })
+        const areaProp = node.properties.find(
+          (p): p is ts.PropertyAssignment => ts.isPropertyAssignment(p) && propName(p.name) === 'area',
+        )
+        const area = areaProp && ts.isStringLiteralLike(areaProp.initializer) ? areaProp.initializer.text : undefined
+        result.set(toolName, { fields: fieldNames, description, area })
       }
     }
     ts.forEachChild(node, visit)
@@ -196,5 +200,12 @@ describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts description drift @
 
   it.each(toolNamesWithADescription)('%s has the same description on both sides', (name) => {
     expect(siteInfo.get(name)?.description).toEqual(hqInfo.get(name)?.description)
+  })
+})
+
+describe('site forwardedToolSchemas.ts ↔ hq toolSchemas.ts area drift', () => {
+  it.each([...siteInfo.keys()].filter(name => !HQ_TOOLS_NOT_FORWARDED.has(name)))('%s is in the same area on both sides', (name) => {
+    expect(siteInfo.get(name)?.area).toBeDefined()
+    expect(siteInfo.get(name)?.area).toEqual(hqInfo.get(name)?.area)
   })
 })

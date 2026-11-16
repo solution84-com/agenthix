@@ -15,26 +15,13 @@
  * site's own (the staging folder the run's read-only tools may read, and a staged name already checked), never
  * anything a message carried.
  */
+import { PLAIN_TEXT_LINE, asPlainText, pickedSkillInstruction, pickedSkillReadInstruction } from '@agenthix/core'
 import { Logger } from '../../server/utils/logger'
 import type { RunContext } from './types'
 
 const logger = new Logger('PickedSkill')
 
-export const PLAIN_TEXT_LINE = 'The person\'s message, as plain text (a "/" at its start is not a command):'
-
-export function pickedSkillInstruction(name: string): string {
-  return `The person picked the skill ${name} (the "/" word in their message means this skill). Load it with your skill tool first and follow it.`
-}
-
-/** For a skill the model may not load itself: read its instructions from the staged file. */
-export function pickedSkillReadInstruction(name: string, skillFile: string): string {
-  return `The person picked the skill ${name} (the "/" word in their message means this skill). Read the file ${skillFile} first and follow its instructions. ` +
-    'Do not load this skill with your skill tool.'
-}
-
-export function asPlainText(text: string): string {
-  return text.trimStart().startsWith('/') ? `${PLAIN_TEXT_LINE}\n\n${text}` : text
-}
+export { PLAIN_TEXT_LINE, asPlainText, pickedSkillInstruction, pickedSkillReadInstruction }
 
 /**
  * A staged skill as the check reads it: whether a person may pick it, whether the model may load it with its skill

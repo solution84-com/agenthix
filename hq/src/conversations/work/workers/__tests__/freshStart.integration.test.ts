@@ -28,7 +28,7 @@ import * as siteStore from '../../../../test/fakes/siteRuntimeStore'
 import { createStartWorkTool } from '../startWork'
 import { pump } from '../queue'
 import { handleWorkerRunStatus } from '../runEvents'
-import { NEVER_ABORTED, briefOf, world, type World } from './workerFixtures'
+import { NEVER_ABORTED, world, type World } from './workerFixtures'
 
 let w: World
 const tool = createStartWorkTool({ moveOn: () => {} })
@@ -67,7 +67,7 @@ describe('a standing worker past the high mark @SC-960', () => {
     const moved = await op(second.id)
     expect(moved.workerSessionId).not.toBe(oldWorker)
     expect(moved).toMatchObject({ state: 'RUNNING', runId: 'run-2' })
-    expect(dispatch.dispatchedChatRuns.map(r => [r.sessionId, briefOf(r.inputText)])).toEqual([[oldWorker, 'First'], [moved.workerSessionId, 'Second']])
+    expect(dispatch.dispatchedChatRuns.map(r => [r.sessionId, r.inputText])).toEqual([[oldWorker, 'First'], [moved.workerSessionId, 'Second']])
     const fresh = await prisma.agentSession.findUniqueOrThrow({ where: { id: moved.workerSessionId! } })
     expect(fresh).toMatchObject({ conversationId: w.conversation.id, primaryOwnerId: w.project.id, userId: w.person.id, workerGeneration: 1 })
     expect(await op(first.id)).toMatchObject({ state: 'COMPLETED', workerSessionId: oldWorker })

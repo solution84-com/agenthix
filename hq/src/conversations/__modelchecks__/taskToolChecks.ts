@@ -36,13 +36,15 @@ export const TASK_TOOL_CHECKS: readonly Check[] = [
   },
   {
     id: 'tasks-into-sprint',
-    title: 'Planning tasks into the current sprint names its id, as list_boards lists it',
+    title: 'Planning tasks into the current sprint names its id, as list_boards lists it (plan_task in a conversation)',
     setup: { home: 'project', message: `Put ${TASK.key} and ${OTHER_TASK.key} into the current sprint.` },
     grade(run) {
-      const planned = run.calls.filter(c => (c.name === 'change_tasks' || c.name === 'update_task') && argsOf(c.input).sprintId !== undefined)
+      const planned = run.calls.filter(c => ['change_tasks', 'update_task', 'plan_task'].includes(c.name) && argsOf(c.input).sprintId !== undefined)
       if (planned.length === 0) return fail(`no sprint set: ${calls(run)}`)
       if (planned.some(c => argsOf(c.input).sprintId !== CURRENT_SPRINT.id)) return fail(`planned into ${String(argsOf(planned[0]!.input).sprintId)}, not ${CURRENT_SPRINT.id}`)
-      const covered = new Set(planned.flatMap(c => names(c.name === 'change_tasks' ? argsOf(c.input).taskIds : argsOf(c.input).taskId)))
+      // A task named by its id counts as named by its key.
+      const keyOf = (n: string) => [TASK, OTHER_TASK].find(t => t.id.toUpperCase() === n)?.key ?? n
+      const covered = new Set(planned.flatMap(c => names(c.name === 'change_tasks' ? argsOf(c.input).taskIds : argsOf(c.input).taskId).map(keyOf)))
       for (const key of [TASK.key, OTHER_TASK.key]) if (!covered.has(key)) return fail(`${key} was not planned: ${calls(run)}`)
       return startedNothing(run) ?? PASS
     },

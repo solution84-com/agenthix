@@ -1,15 +1,15 @@
 ---
 name: Orchestrate
-description: Dispatch queued tasks to the right agents and follow up on stalled work. The kernel's core autonomous loop.
+description: Dispatch queued tasks to the right agents and follow up on stalled work.
 ---
 
 # Orchestrate
 
-Use this skill in your standing job to drive work forward across the workforce. This is the kernel's primary autonomous behaviour.
+Use this skill to drive work forward across the workforce.
 
 ## When to Use
 
-- On every run of your standing job, after checking the Workforce Assembly board
+- When asked to drive work forward, after checking the Workforce Assembly board
 - When the user asks you to "kick off the next wave" or "pick up any queued work"
 
 ## Step 1: Check the Workforce Assembly Board
@@ -40,7 +40,7 @@ For each, check when the task last had activity (comments or state changes):
 - Active recently: skip
 - No activity for an unusually long time: add one comment noting the delay and what might be blocking it
 
-Do not add a second follow-up comment if you already added one in a previous cycle.
+Do not add a second follow-up comment if you already added one earlier.
 
 ## Step 4: Stop
 
@@ -51,7 +51,7 @@ Report a brief summary: how many tasks were dispatched, how many were followed u
 - Never execute implementation work yourself — dispatch it to the right agent
 - Do not move tasks from `in_review` or `approved` without explicit user action
 - One follow-up comment per stalled task — do not spam
-- If the workforce assembly queue is clear and all tasks are active, this step is done — a quiet cycle is healthy
+- If the workforce assembly queue is clear and all tasks are active, this step is done — nothing to do is fine
 
 ## Library Skills
 

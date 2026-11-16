@@ -52,8 +52,8 @@ describe('codeWorkPromptText @SC-1674', () => {
     expect(text).toContain('call `merge_into_main` at once')
     expect(text).toContain('passed on to you in a brief')
     expect(text).toContain('Never call it when nobody asked')
-    expect(MERGE_TOOL_DECLARATION.description).toMatch(/as soon as the person asks you to merge into main/)
-    expect(MERGE_TOOL_DECLARATION.description).toMatch(/do not tell them to press Merge themselves/)
+    expect(MERGE_TOOL_DECLARATION.description).toMatch(/Call it as soon as they ask/)
+    expect(MERGE_TOOL_DECLARATION.description).toMatch(/Never call it because the work looks finished and nobody asked/)
   })
 
   it('says the run has the app tools, how they reach the live preview, and that an earlier "none" no longer holds', () => {
@@ -94,12 +94,12 @@ describe('codeWorkPromptText @SC-1674', () => {
     const text = codeWorkPromptText(work({ behindMain: 2 }), ON)
     expect(text).toContain('call `update_from_main`')
     expect(text).toContain('then call `commit` to finish the merge')
-    expect(MERGE_TOOL_DECLARATION.description).toContain('call update_from_main')
+    expect(MERGE_TOOL_DECLARATION.description).toContain('update_from_main, resolve, commit')
     expect(UPDATE_TOOL_DECLARATION.description).toContain('call commit')
   })
 
   it('says the person confirms the merge, so the agent does not report it as done', () => {
-    expect(MERGE_TOOL_DECLARATION.description).toMatch(/does not merge by itself/)
+    expect(MERGE_TOOL_DECLARATION.description).toMatch(/shows them a confirmation/)
     expect(MERGE_TOOL_DECLARATION.description).toMatch(/only when they press Merge/)
     expect(codeWorkPromptText(work(), ON)).toContain('the merge happens when they press Merge')
   })

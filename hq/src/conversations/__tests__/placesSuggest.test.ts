@@ -9,7 +9,7 @@ vi.mock('wasp/server', () => ({ prisma: {} }))
 import type { ActionBody } from '../../shared/conversations/protocol'
 import { turnCapability } from '../../server/controlplane/__tests__/turnFixtures'
 import { conversationTools } from '../work/registry'
-import { SUGGEST_UNREACHABLE, createSuggestPlaceTool, type SuggestPlaceDeps } from '../placesSuggest'
+import { SUGGEST_UNREACHABLE, createSuggestPlaceTool, namesOwnSpace, type SuggestPlaceDeps } from '../placesSuggest'
 import { placeSuggestionOf } from '../placesProtocol'
 import type { Place } from '../places'
 
@@ -62,6 +62,11 @@ describe('suggest_place @SC-1439', () => {
     const { tool, cards } = setup([{ type: 'project', id: 'p-web' }], { type: 'user', id: 'u1' })
     await ask(tool, { home: 'PROJECT', projectId: 'p-web' }, { place: 'personal', why: 'Your notes are there.' })
     expect(placeSuggestionOf(cards[0]!)?.place).toEqual({ kind: 'user', name: 'Your space', level: 'personal' })
+  })
+
+  it('reads the own space by its level and by what the person or the agent calls it', () => {
+    for (const words of ['personal', 'personal:', 'Your space', 'my space', ' My space ']) expect(namesOwnSpace(words)).toBe(true)
+    for (const words of ['shop', 'space', 'their space']) expect(namesOwnSpace(words)).toBe(false)
   })
 
   it("refuses a place the person can't open, in fixed words that echo nothing asked", async () => {

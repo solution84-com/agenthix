@@ -66,6 +66,7 @@ const answerInput = z.object({
 
 export const answerApprovalTool: ConversationTool = {
   name: ANSWER_APPROVAL,
+  area: 'conversation',
   input: answerInput,
   async offered(capability) {
     if (!answersAPerson(capability)) return false
@@ -115,6 +116,7 @@ const cancelInput = z.object({
 
 export const cancelOperationTool: ConversationTool = {
   name: CANCEL_OPERATION,
+  area: 'conversation',
   input: cancelInput,
   async offered(capability) {
     if (!actsForAPerson(capability)) return false

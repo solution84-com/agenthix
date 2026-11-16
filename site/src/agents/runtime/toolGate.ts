@@ -26,6 +26,7 @@ import { gateRunStopped, reachGatePause, untilGateRunStopped } from './toolGateR
 import type { RunContext } from './types'
 import { FINISHED_RUN_ASKS_TEXT, refusalWhileAsking } from './askingRun'
 import { grantPass } from './gatePasses'
+import { gateCallOf } from './toolSearchCall'
 import { Logger } from '../../server/utils/logger'
 
 const logger = new Logger('ToolGate')
@@ -117,7 +118,9 @@ export async function recordToolCall(
 }
 
 /** The gate's decision on one call. Never rejects. */
-export async function decideToolCall(context: RunContext, call: GateCall, options: GateOptions): Promise<GateDecision> {
+export async function decideToolCall(context: RunContext, asCalled: GateCall, options: GateOptions): Promise<GateDecision> {
+  // A use_tool call is decided and recorded as the call of the tool it names (toolSearchCall.ts).
+  const call = gateCallOf(asCalled)
   const stoppedDecision = refuse(RUN_STOPPED_TEXT)
   if (gateRunStopped(context.runId)) {
     await recordToolCall(context, call, { riskLevel: 'FLAGGED', blocked: true, blockReason: 'run-stopped' }).catch(() => {})

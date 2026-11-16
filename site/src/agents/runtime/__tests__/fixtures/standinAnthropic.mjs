@@ -11,6 +11,9 @@
 //   DO:BIGREAD          a Bash call with a large output, then a Read of the
 //                       file Claude Code saved it to, then text
 //   DO:SKILL <name>     one Skill call loading that skill, then text
+//   DO:PLATFORM <tool> <json input>   one call of mcp__platform__<tool> with
+//                       that input; several such lines, one call each in
+//                       turn, then text
 //   DO:SLOW             text trickled for 20 s
 //   anything else       text
 import http from 'node:http'
@@ -31,6 +34,8 @@ function plan(msgs) {
   const rounds = msgs.slice(at + 1).filter(m => m.role === 'assistant').length
   const last = resultsOf(msgs[msgs.length - 1])[0]
   const lastText = typeof last?.content === 'string' ? last.content : JSON.stringify(last?.content ?? '')
+  const platform = [...userText.matchAll(/^DO:PLATFORM (\S+) (.*)$/gm)][rounds]
+  if (platform) return { tool: `mcp__platform__${platform[1]}`, input: JSON.parse(platform[2]) }
   const bash = userText.match(/DO:BASH (.*)$/s)
   if (bash && rounds === 0) return { tool: 'Bash', input: { command: bash[1].trim(), description: 'stand-in' } }
   const read = userText.match(/DO:READ (\S+)/)

@@ -9,7 +9,7 @@ Use this skill to verify that the workforce's skill library reflects current pra
 
 ## When to Use
 
-- In your standing job, after the pattern scan step
+- When asked to audit the workforce's skills
 - When a skill is suspected to be broken or outdated (e.g., an agent failed while following it)
 - When a significant platform change has been made (new tools, renamed files, changed workflows)
 

@@ -22,7 +22,7 @@ import { readToolTask } from './taskToolShapes'
 import { taskCommentsForAgent } from '../../agents/taskCommentsForRun'
 import { getTaskAttachmentDir } from '../hqStoragePaths'
 import { attachmentFileNameProblem } from '../../shared/attachmentFileName'
-import { attachmentReference } from '../../shared/taskReferences'
+import { attachmentReference, taskReference } from '../../shared/taskReferences'
 import {
   listAgentTasks,
   getTask,
@@ -77,7 +77,8 @@ export async function getTaskDetailsOp(ctx: CallerContext, args: { taskId: strin
     : []
   const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null)
   return {
-    taskId: task.id, taskKey, title: task.title, description: task.description,
+    // What a reply writes to show the task to a person, as each attachment's reference below.
+    taskId: task.id, taskKey, reference: taskReference(taskKey), title: task.title, description: task.description,
     priority: task.priority, projectId: task.projectId, assignedAgentId: task.assignedAgentId,
     // Where it is in the plan: its type and column, so its task state (adr-0174); what an agent is doing with it is
     // its execution state, set by the system.

@@ -55,6 +55,10 @@ only what the agent is told:
 
 Either way the call does not run, and the decision waits until the run has ended.
 
+A tool the agent reaches through `use_tool` ([tool-search.md](./tool-search.md)) is decided, refused and listed in the
+manifest under its own name, as its direct call would be, and approving it approves that tool, not `use_tool`. In a run
+nobody can approve, an `ask` tool is not offered at all.
+
 **A refused command is recorded by its first word.** Bash patterns match by prefix, so approving a deferred
 `git push origin main` approves `git`: every command starting with `git`, for the rest of that run, unless
 a `never` pattern refuses it.

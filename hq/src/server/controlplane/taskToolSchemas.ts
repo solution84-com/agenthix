@@ -30,6 +30,7 @@ export function taskToolArgSchema(arg: TaskToolArg): ZodTypeAny {
 export function taskToolSchema(d: TaskToolDeclaration): ControlPlaneTool {
   return {
     name: d.name,
+    area: d.area,
     description: d.description,
     schema: Object.fromEntries(Object.entries(d.args).map(([k, a]) => [k, taskToolArgSchema(a)])),
   }

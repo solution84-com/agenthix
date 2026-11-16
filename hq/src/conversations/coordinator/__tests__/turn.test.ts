@@ -309,7 +309,7 @@ describe('a turn that answers no person', () => {
     const h = harness(scriptedModel([[{ type: 'text', text: 'Three things are back.' }, { type: 'finish', reason: 'stop', usage: usage(1) }]]))
     const outcome = await runTurn(h.deps, h.run({ ...claimed(), trigger: 'REPORT', actingUserId: null }).running)
     expect(h.deps.mint).toHaveBeenCalledWith(expect.objectContaining({ trigger: 'REPORT', actingUserId: null }))
-    expect(h.deps.context).toHaveBeenCalledWith(expect.anything(), 'agent-1', expect.objectContaining({ trigger: 'REPORT' }))
+    expect(h.deps.context).toHaveBeenCalledWith(expect.anything(), 'agent-1', expect.objectContaining({ trigger: 'REPORT' }), [])
     expect(outcome).toEqual({ state: 'COMPLETED', error: null, text: 'Three things are back.' })
   })
 

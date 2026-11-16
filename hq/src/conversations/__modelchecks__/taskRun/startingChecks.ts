@@ -7,7 +7,8 @@
  */
 import type { Check, Grade } from '../checks'
 import type { RecordedCall, RunRecord } from '../run'
-import { KERNEL, MORNING_ROUTINE, NEXT_TASK, SHOP_PROJECT, SHOP_TASK } from './world'
+import { KERNEL, MORNING_ROUTINE, NEXT_TASK, PAGE, SHOP_PROJECT, SHOP_TASK } from './world'
+import { FOLD_CHECKS } from './foldChecks'
 
 const PASS: Grade = { passed: true }
 const fail = (why: string): Grade => ({ passed: false, why })
@@ -15,6 +16,15 @@ const argsOf = (c: RecordedCall): Record<string, unknown> => (c.input && typeof 
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '')
 const calls = (run: RunRecord): string => run.calls.map(c => c.name).join(', ') || 'no tool call'
 const names = (v: unknown, t: { id: string; key: string }) => text(v) === t.id || text(v).toUpperCase() === t.key
+
+/** The page was written: by the file tools, or by a shell command that writes to it. */
+function changedPage(run: RunRecord): boolean {
+  return run.calls.some(c => {
+    const a = argsOf(c)
+    if (c.name === 'edit_file' || c.name === 'write_file') return text(a.file_path).endsWith(PAGE)
+    return c.name === 'bash' && text(a.command).includes(PAGE) && /\bsed\b|>|tee\b|perl\b|python/.test(text(a.command))
+  })
+}
 
 /** No run_task on the run's own task, and no task created asked to start. */
 function startedNothingUnasked(run: RunRecord, allowed: { id: string; key: string } | null): Grade | null {
@@ -31,10 +41,16 @@ const ROUTINE_KEYS = new Set(['title', 'agentId', 'instructions', 'cron', 'timez
 export const STARTING_CHECKS: readonly Check[] = [
   {
     id: 'taskrun-follow-up-not-started',
-    title: 'A follow-up for later is made as a task, and nothing starts it',
-    taskRun: { openLivePreview: null, brief: 'Note a follow-up: the checkout page needs the same free-delivery banner. It can wait; do not do it now.' },
+    title: 'A person asks for a change and a follow-up for later: the change is made, the follow-up is a task, and nothing starts it',
+    taskRun: {
+      openLivePreview: null,
+      brief: "Make the banner text bold, and note a follow-up for the checkout page to get the same banner. Don't do that one now.",
+    },
     grade(run) {
-      if (!run.calls.some(c => c.name === 'create_task')) return fail(`no create_task: ${calls(run)}`)
+      const made = run.calls.find(c => c.name === 'create_task')
+      if (!made) return fail(`no create_task: ${calls(run)}`)
+      if (!/checkout/i.test(`${text(argsOf(made).title)} ${text(argsOf(made).description)}`)) return fail(`the task made is not the checkout follow-up: ${JSON.stringify(argsOf(made))}`)
+      if (!changedPage(run)) return fail(`the banner was not changed: ${calls(run)}`)
       if (run.calls.some(c => c.name === 'create_routine')) return fail(`made a routine for a one-off: ${calls(run)}`)
       return startedNothingUnasked(run, null) ?? PASS
     },
@@ -86,4 +102,6 @@ export const STARTING_CHECKS: readonly Check[] = [
       return startedNothingUnasked(run, null) ?? PASS
     },
   },
+  // A tool the run is not shown, found and used (foldChecks.ts).
+  ...FOLD_CHECKS,
 ]

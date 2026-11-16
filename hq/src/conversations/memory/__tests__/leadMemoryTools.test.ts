@@ -4,6 +4,7 @@
  * scope chosen by the caller and the deprecated arguments still read (ADR-0188);
  * used_memory recording used, unused and missed; a correction measured against what memory already held.
  */
+import { z } from 'zod'
 import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('wasp/server', () => ({ prisma: {} }))
@@ -120,6 +121,17 @@ describe('remember and forget @SC-990', () => {
     }
     expect(await tools.forget!.run(turn, { key: 'k', scope: 'person' }, { signal })).toMatchObject({ result: { forgotten: true } })
     expect(service.forget).toHaveBeenLastCalledWith(principal, 'k')
+  })
+
+  it('need only a title and a body: a memory with no kind is a fact, and only rule and fact are offered', async () => {
+    const { tools, service } = setup()
+    const outcome = await tools.remember!.run(turn, { title: 'Deploys', body: 'The person deploys on Fridays.' }, { signal })
+    expect(outcome.status).toBe('done')
+    expect(service.remember).toHaveBeenLastCalledWith(principal, expect.objectContaining({ kind: 'FACT' }))
+    const schema = z.toJSONSchema(tools.remember!.input, { io: 'input' }) as { required: string[]; properties: Record<string, unknown> }
+    expect(schema.required.sort()).toEqual(['body', 'title'])
+    expect(JSON.stringify(schema.properties.kind)).not.toMatch(/preference|decision|feedback|project/)
+    expect(schema.properties).not.toHaveProperty('scope')
   })
 
   it('mark a memory saved on the agent\'s own as not requested, and a correction as requested', async () => {

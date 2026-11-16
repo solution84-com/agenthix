@@ -12,6 +12,7 @@ import * as memoryOps from './memoryOps'
 import * as activeRunsOps from './activeRunsOp'
 import * as resultOps from './resultOps'
 import * as knowledgeOps from './knowledgeOps'
+import { findToolsOp } from './findToolsOp'
 import { WORKFLOW_TOOL_OPERATIONS } from '../../workflows/agentTools'
 import { proposeSkillOp } from '../../assets/proposals/agentTool'
 import { commitOp, mergeIntoMainOp, updateFromMainOp } from '../../branches/agentTools'
@@ -101,6 +102,8 @@ export const operations: Record<string, (ctx: CallerContext, args: any) => Promi
   update_from_main: updateFromMainOp,
   // a live preview's app tools (live preview spec section 4) — data-path-only: the live preview is the run's signed one
   ...APP_TOOL_OPERATIONS,
+  // the tool search (adr-0193) — data-path-only: a run finds the tools it was not shown
+  find_tools: findToolsOp,
 }
 
 /** Memory, which a run nobody commissioned still reaches for its place: its tools check their own principal. */

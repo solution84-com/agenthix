@@ -34,3 +34,9 @@ export function checkAccess(env: Readonly<Record<string, string | undefined>>): 
     })),
   }
 }
+
+/** Whether a run asked for the check `id`: MODEL_CHECK_ONLY names the checks to run, comma-separated; unset, all run. */
+export function checkAsked(env: Readonly<Record<string, string | undefined>>, id: string): boolean {
+  const only = (env.MODEL_CHECK_ONLY ?? '').split(',').map(s => s.trim()).filter(Boolean)
+  return only.length === 0 || only.includes(id)
+}

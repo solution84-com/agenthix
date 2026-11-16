@@ -152,6 +152,14 @@ export const TASK = { id: '0b9f6a52-3c1d-4e8a-9f27-5d6c1b2a7e40', key: 'WEB-3', 
 export const OTHER_TASK = { id: 'task-web-4', key: 'WEB-4', number: 4, title: 'Write the pricing page copy' }
 export const CURRENT_SPRINT = { id: 'sprint-web-12', number: 12, title: 'Sprint 12' }
 export const NEXT_SPRINT = { id: 'sprint-web-13', number: 13, title: 'Sprint 13' }
+/** The project's milestone, as list_milestones lists it, and an epic of the project: only an epic has a milestone (the tool search checks). */
+export const MILESTONE = { id: 'milestone-pricing', name: 'Pricing', date: '2026-12-15' }
+export const EPIC = { id: 'task-web-1', key: 'WEB-1', number: 1, title: 'Launch the pricing page' }
+/**
+ * The time every lead check is told it is: within the current sprint, as list_boards lists it, so a check reads the
+ * same on any day it runs.
+ */
+export const CHECK_NOW = new Date('2026-11-07T10:00:00Z')
 export const TASK_TYPE_COLUMNS = [
   { columnId: 'column-backlog', name: 'Backlog', state: 'BACKLOG' },
   { columnId: 'column-todo', name: 'To do', state: 'TODO' },

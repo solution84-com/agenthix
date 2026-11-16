@@ -5,7 +5,7 @@ description: Review completed tasks against their success criteria. Accept or se
 
 # Review Work
 
-Use this skill in your standing job for each task that has moved to DONE since you last looked.
+Use this skill when asked to review completed work, for each task that has moved to DONE since you last looked.
 
 ## For Each Completed Task
 
@@ -39,7 +39,7 @@ Use `get_task_details`. Read:
 
 ### Step 4: Drift Detection
 
-After reviewing all completed tasks in this run, compare against the sprint plan:
+After reviewing all completed tasks this time, compare against the sprint plan:
 - Are we on track for the sprint target?
 - Are the right deliverables being completed in the right order?
 

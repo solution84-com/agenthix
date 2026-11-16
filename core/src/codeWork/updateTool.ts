@@ -13,11 +13,13 @@
  * Written for the baseline model: what it does, when to call it, and what to do after it, in short sentences.
  */
 import type { CommitId } from '../protocol/branchWork.js'
+import type { ToolArea } from '../harness/toolAreas.js'
 
 export const UPDATE_TOOL_NAME = 'update_from_main'
 
 export type UpdateToolDeclaration = {
   name: typeof UPDATE_TOOL_NAME
+  area: ToolArea
   description: string
   args: Record<string, never>
   runIdFromCaller: true
@@ -25,13 +27,12 @@ export type UpdateToolDeclaration = {
 
 export const UPDATE_TOOL_DECLARATION: UpdateToolDeclaration = {
   name: UPDATE_TOOL_NAME,
+  area: 'code',
   description:
-    'Bring main into your branch: merges everything main has that your branch does not. Use it when you are told ' +
-    'that files clash with main, or when the person asks you to bring your branch up to date. Commit your own ' +
-    'changes first. If nothing clashes, the merge is committed for you and your branch is up to date. If files ' +
-    'clash, they are named in the answer and written in your working folder with Git\'s conflict markers ' +
-    '(<<<<<<<, =======, >>>>>>>): edit each one so it keeps both sides\' intent and has no markers left, check the ' +
-    'work still works, then call commit. That commit finishes the merge. Never merge into main yourself.',
+    'Bring main into your branch: when you are told files clash with main, or the person asks to bring it up to ' +
+    'date. Commit your own changes first. With no clash the merge is committed for you. Clashing files are named ' +
+    'and written with Git\'s conflict markers: edit each to keep both sides\' intent with no markers left, check the ' +
+    'work, then call commit to finish the merge.',
   args: {},
   runIdFromCaller: true,
 }

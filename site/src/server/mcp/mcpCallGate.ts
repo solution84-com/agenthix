@@ -11,6 +11,7 @@ import type { RunContext } from '../../agents/runtime/types'
 import { decideToolCall, recordToolCall, RUN_STOPPED_TEXT } from '../../agents/runtime/toolGate'
 import { takePass } from '../../agents/runtime/gatePasses'
 import { gateRunStopped } from '../../agents/runtime/toolGateRuns'
+import { gateCallOf } from '../../agents/runtime/toolSearchCall'
 
 /** What a call is told when no turn of its conversation is running. */
 export const NO_TURN_CALL_TEXT = 'No turn of this conversation is running, so the call was not run.'
@@ -22,9 +23,11 @@ export const NO_TURN_CALL_TEXT = 'No turn of this conversation is running, so th
 export async function refusePlatformCall(
   turn: RunContext | null,
   runId: string | null,
-  toolName: string,
-  input: unknown,
+  calledName: string,
+  asCalled: unknown,
 ): Promise<string | null> {
+  // A use_tool call is decided as the call of the tool it names, as the harness's gate decides it (toolSearchCall.ts).
+  const { toolName, input } = gateCallOf({ toolName: calledName, input: asCalled })
   if (!turn) {
     if (runId) {
       const blockReason = gateRunStopped(runId) ? 'run-stopped' : 'no-turn'
@@ -34,7 +37,7 @@ export async function refusePlatformCall(
     return NO_TURN_CALL_TEXT
   }
   if (takePass(turn.runId, toolName, input)) return null
-  const decision = await decideToolCall(turn, { toolName, input }, {})
+  const decision = await decideToolCall(turn, { toolName: calledName, input: asCalled }, {})
   if (!decision.allow) return decision.reason
   takePass(turn.runId, toolName, input)
   return null

@@ -4,7 +4,7 @@ How an Execution Site runs an agent's turn: which harness runs it, how each harn
 kept warm between turns and ended, and what ends a conversation's processes. A **harness** is the
 vendor's agent program — the Claude Code CLI or OpenCode — that runs the model loop and its tools.
 
-The gate every tool call passes is [tool-control.md](../tools/tool-control.md); how model requests reach
+What tools a run is shown, and how it finds the rest, is [tool-search.md](../tools/tool-search.md). The gate every tool call passes is [tool-control.md](../tools/tool-control.md); how model requests reach
 a provider without the key entering the container is [model-relay.md](./model-relay.md).
 
 ---

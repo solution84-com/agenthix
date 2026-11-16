@@ -111,13 +111,14 @@ describe('attach_file — file name', () => {
 })
 
 describe("get_task_details — the task's attachments @SC-1548", () => {
-  it('lists each attachment with its name, size, label and reference, oldest first, and the task key', async () => {
+  it("lists each attachment with its name, size, label and reference, oldest first, and the task's own key and reference", async () => {
     await attach(chatCtx(w.member.id), 'plan.md', 'the plan')
     await attachFileOp(chatCtx(w.member.id), { taskId: w.task.id, filename: 'shot one.png', content: 'png', label: 'evidence' })
     const project = await prisma.project.findUniqueOrThrow({ where: { id: w.project.id } })
     const key = `${project.key}-1`
     const details = await getTaskDetailsOp(chatCtx(w.member.id), { taskId: w.task.id })
     expect(details.taskKey).toBe(key)
+    expect(details.reference).toBe(`tasks/${key}`)
     expect(details.attachments).toEqual([
       { name: 'plan.md', sizeBytes: 8, label: null, reference: `attachments/${key}/plan.md` },
       { name: 'shot one.png', sizeBytes: 3, label: 'evidence', reference: `attachments/${key}/shot%20one.png` },

@@ -42,15 +42,15 @@ describe("a routine run's dispatch", () => {
       metadata: expect.objectContaining({ routineId: routine.id, routineRunId: run.id }),
     })
     expect(await prisma.routineRun.findUniqueOrThrow({ where: { id: run.id } })).toMatchObject({ sessionId: session.id, siteId: 'site-7', timeLimitMinutes: 45 })
-    expect(dispatchFake.dispatchChatRun).toHaveBeenCalledWith(session.id, routineRunInput(routine.title, routine.instructions), agent, null, {
+    expect(dispatchFake.dispatchChatRun).toHaveBeenCalledWith(session.id, routineRunInput(routine.instructions), agent, null, {
       senderId: users.member.id,
       routine: { routineId: routine.id, startedBy: 'person', pick: { providerId: 'anthropic', model: 'claude-opus' } },
     })
     expect(started).toEqual({ runId: 'run-9', sessionId: session.id, siteId: 'site-7' })
   })
 
-  it("asks the agent to do what the instructions say, under the routine's name", () => {
-    expect(routineRunInput('Weekly link check', 'Check the links.')).toBe('This is a run of the routine "Weekly link check". Do what its instructions say:\n\nCheck the links.')
-    expect(routineRunInput('Empty', '  ')).toMatch(/No instructions were given/)
+  it('asks the agent its instructions as written, and nothing else @SC-2183', () => {
+    expect(routineRunInput('Check the links.')).toBe('Check the links.')
+    expect(routineRunInput('  ')).toMatch(/No instructions were given/)
   })
 })

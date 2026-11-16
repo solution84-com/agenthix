@@ -39,6 +39,8 @@ import { createStepLog, type StepCall, type StepLog, type StepNames } from './re
 import { claimsStart, NO_START_CALL, onlyStartedWork, STARTS_WORK, startedLine } from './startedWords'
 import { runStepTools } from './stepTools'
 import { ignoringKeepListening } from './keepListening'
+import { calledName, unwrapUseTool } from '../tools/foldedTools'
+import type { FoldedName } from '@agenthix/core'
 import { KEEP_LISTENING, canHold, heldNote, readLeadStep, reasoningFor } from '../lead/voiceLogic'
 import {
   MOVED_TO_BACKGROUND, STOPPED_WITHOUT_ANSWER, canStartWork, moveToBackground, stepMode, toolChoiceFor, wordsNote,
@@ -63,7 +65,7 @@ export interface TurnDeps {
   resolveAccess: ResolveConversationAccess
   fixTalkingAccess(conversationId: string, access: ResolvedAccess): Promise<boolean>
   mint: MintTurnCapability
-  context(conversation: TurnConversation, agentId: string, turn: ContextTurn): Promise<LeadContext>
+  context(conversation: TurnConversation, agentId: string, turn: ContextTurn, foldedTools?: readonly FoldedName[]): Promise<LeadContext>
   appendMessage: AppendMessage
   updateMessage: UpdateMessage
   /** Whether the thread already shows this operation as started. */
@@ -260,10 +262,9 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
     })
     const compaction = await deps.compactAtStart?.(conversationId, access, claimed.inputIds, signal)
     if (compaction) usage = add(usage, compaction)
-    const [tools, context] = await Promise.all([
-      deps.tools.toolsFor(capability),
-      deps.context(conversation, agentId, claimed),
-    ])
+    // The area lines name what the turn finds by search, so the instructions wait for its tools.
+    const [tools, foldedTools] = await Promise.all([deps.tools.toolsFor(capability), deps.tools.foldedFor?.(capability) ?? []])
+    const context = await deps.context(conversation, agentId, claimed, foldedTools)
     const person = claimed.actingUserId ?? capability.readerUserId ?? null
     const clock = await deps.clock?.(person)
     const timezone = person && deps.timezone ? await deps.timezone(person) : null
@@ -346,7 +347,9 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
         step--
         continue
       }
-      const { text: stepText, calls, held } = reading.result()
+      const { text: stepText, calls: called, held } = reading.result()
+      // A use_tool call is the call of the tool it names from here on: its steps, its lines and its records.
+      const calls = called.map(unwrapUseTool)
       if (held) {
         // Words written before the call broke the rule: they are withdrawn with the rest, and nothing is said.
         deps.log(`turn ${turnId} held by ${KEEP_LISTENING}: ${heldNote(held, calls, text)}`)
@@ -377,9 +380,9 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
         if (stepText) messages.push({ role: 'assistant', content: stepText })
         continue
       }
-      messages.push({ role: 'assistant', content: stepText, toolCalls: calls })
+      messages.push({ role: 'assistant', content: stepText, toolCalls: called })
       const done = await runStep(calls, askedAt)
-      for (const { call, outcome } of done) messages.push({ role: 'tool', toolCallId: call.id, toolName: call.name, result: forModel(outcome) })
+      for (const { call, outcome } of done) messages.push({ role: 'tool', toolCallId: call.id, toolName: calledName(call), result: forModel(outcome) })
       if (signal.aborted) throw new ModelCallError('cancelled', 'The reply was stopped.')
       // The reply's last words came with only used_memory, or the step only started work: nothing is left to say.
       if (endsReply(stepText, calls)) {

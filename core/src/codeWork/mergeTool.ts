@@ -10,6 +10,8 @@
  * in a brief), never otherwise, and that they confirm.
  */
 
+import type { ToolArea } from '../harness/toolAreas.js'
+
 export const MERGE_TOOL_NAME = 'merge_into_main'
 
 /** The longest summary the tool takes: the new version's message. */
@@ -17,6 +19,7 @@ export const MERGE_TOOL_SUMMARY_MAX = 2000
 
 export type MergeToolDeclaration = {
   name: typeof MERGE_TOOL_NAME
+  area: ToolArea
   description: string
   args: { summary: { type: 'string'; description: string; maxLength: number; optional: true } }
   runIdFromCaller: true
@@ -24,17 +27,14 @@ export type MergeToolDeclaration = {
 
 export const MERGE_TOOL_DECLARATION: MergeToolDeclaration = {
   name: MERGE_TOOL_NAME,
+  area: 'code',
   description:
-    'Ask the person to merge your branch into main, as one new version. It does not merge by itself: it shows the ' +
-    'person a confirmation with Merge and Not now, and the merge happens only when they press Merge. Call it as ' +
-    'soon as the person asks you to merge into main, whether they ask you directly or their ask is passed on to you ' +
-    'in a brief or a message ("merge it", "merge your branch into main", "ship it to main"). Call it in that same ' +
-    'step: do not tell them to press Merge themselves, and do not ask first whether to show the confirmation. Never ' +
-    'call it because the work looks finished and nobody asked: the person reviews it and decides. Commit your work ' +
-    'first; only what is committed is merged. After calling it, tell the person the confirmation is waiting for ' +
-    'them, and do not call it again for the same work. If you are later told that files clash with main, call ' +
-    'update_from_main, resolve the clashes it names, commit, tell the person, and call this again only when they ' +
-    'ask again.',
+    'Ask the person to merge your branch into main, as one new version: it shows them a confirmation, and the merge ' +
+    'happens only when they press Merge. Call it as soon as they ask ("merge it", "ship it to main"), directly or ' +
+    'passed on to you in a brief, in that same step, without asking first. Never call it because the work looks ' +
+    'finished and nobody asked. Only what is committed is merged. Then tell them the confirmation is waiting, and do ' +
+    'not call it again for the same work. If files later clash with main: update_from_main, resolve, commit, tell ' +
+    'the person, and call this again only when they ask.',
   args: {
     summary: {
       type: 'string',

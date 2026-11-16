@@ -47,6 +47,3 @@ export function spyMailbox() {
 }
 
 export const NEVER_ABORTED = { signal: new AbortController().signal }
-
-/** What a dispatched brief asked, without the opening that goes before every brief. */
-export const briefOf = (inputText: string): string => inputText.slice(inputText.lastIndexOf('\n\n') + 2)
