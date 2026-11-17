@@ -22,6 +22,8 @@ test.describe('Home and the Chat page keep one box @SC-509', () => {
     await expect(page.getByRole('region', { name: 'Pinned projects' })).toBeVisible()
     await expect(page.getByTestId('dock')).toBeVisible()
     await expect(page.getByTestId('floating-composer')).toHaveCount(0)
+    // Kernel's first suggestions arrive with the agents and push the regions down; measure once they are drawn.
+    await expect(page.getByTestId('first-suggestions')).toBeVisible()
 
     const before = await page.getByRole('region', { name: 'Needs you' }).boundingBox()
     await state(page, 'Minimise the chat (⌘J)')
