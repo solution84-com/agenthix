@@ -1,4 +1,4 @@
-// A breaking commit, in the Conventional Commits form (docs/CONTRIBUTING.md): `type(area)!: what changed`, with a
+// A breaking commit, in the Conventional Commits form (CONTRIBUTING.md): `type(area)!: what changed`, with a
 // `BREAKING CHANGE: <what an installation must do>` footer. Either mark alone makes the commit breaking; the release
 // notes need the footer's words.
 

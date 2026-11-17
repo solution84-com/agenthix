@@ -9,7 +9,7 @@
 #   4. counts again: no table may have lost a row or gone, and every seeded row must still be there.
 # Before any of it, a new migration that drops a table or a column, changes a column's type, or makes one required
 # with no default or backfill fails the check unless the commit that made it is marked breaking
-# (scripts/migration-check/narrowing.mjs; docs/CONTRIBUTING.md): rows counted can't show a column's values lost.
+# (scripts/migration-check/narrowing.mjs; CONTRIBUTING.md): rows counted can't show a column's values lost.
 #
 #   scripts/migration-check/run.sh
 #

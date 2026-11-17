@@ -1,6 +1,6 @@
 // What in a migration loses data an installation holds: a table or column dropped, a column's type changed, or a
 // column made required with no default and no backfill before it. The migration check refuses such a migration unless
-// the commit that added it is marked breaking (docs/CONTRIBUTING.md), and the Release's break scan
+// the commit that added it is marked breaking (CONTRIBUTING.md), and the Release's break scan
 // (scripts/release/breaks.mjs) lists it.
 //
 //   node scripts/migration-check/narrowing.mjs <release>    each loss in a migration this working tree adds since
@@ -120,7 +120,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (found.length) {
     console.error(`A migration since ${release} loses data, and no commit that made it is marked breaking:`)
     for (const line of found) console.error(`  ${line}`)
-    console.error('Carry the data forward instead (add, backfill, then tighten), or mark the commit `type(area)!: …` with a\n`BREAKING CHANGE: <what an installation must do>` footer (docs/CONTRIBUTING.md).')
+    console.error('Carry the data forward instead (add, backfill, then tighten), or mark the commit `type(area)!: …` with a\n`BREAKING CHANGE: <what an installation must do>` footer (CONTRIBUTING.md).')
     process.exit(1)
   }
 }

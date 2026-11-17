@@ -125,7 +125,7 @@ What runs is what was committed. Everywhere a module is installed for CI, an ima
   workspaces under `.wasp/out`), which a clean checkout does not have yet. `npx wasp install` runs `npm install`
   before that code exists and drops those packages; the script puts the lockfile back before `npx wasp compile`, and
   fails if the lockfile differs at the end. A plain `npm install` in hq before the first compile takes them at their
-  newest. A new checkout installs as [CONTRIBUTING.md](../CONTRIBUTING.md#set-up) says.
+  newest. A new checkout installs as [CONTRIBUTING.md](../../CONTRIBUTING.md#set-up) says.
 - **The lockfile hold**: every CI job that installs runs `scripts/deps/held.sh` after its installs, which fails when an
   install changed a committed lockfile; every regression runs it too (`lockfiles-held`), after its own installs.
   Commit each lockfile from a clean install of its module.

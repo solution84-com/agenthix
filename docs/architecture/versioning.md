@@ -102,7 +102,7 @@ may break, and only with the release notes saying what to do.
 
 - **A breaking commit is marked**, in the [Conventional Commits](https://www.conventionalcommits.org) form:
   `type(area)!: what changed`, with a footer `BREAKING CHANGE: <what an installation must do>`
-  ([CONTRIBUTING.md](../CONTRIBUTING.md)).
+  ([CONTRIBUTING.md](../../CONTRIBUTING.md)).
 - **Release's first stage finds every break** since the previous release, the newest version tag in the commit's
   history below the one being released (`scripts/release/breaks.mjs`): each commit marked breaking, and each break it
   finds by comparing that tag with the commit — a protocol's major moved in `core/snapshot/`; a stored format's

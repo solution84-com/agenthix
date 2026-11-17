@@ -91,7 +91,7 @@ You need Node.js 24.22.3 or later (`.nvmrc` names that exact version, so CI and 
 ```bash
 docker compose up -d          # dev databases: hq on 4109, site on 4209
 
-hq/scripts/install.sh         # first time only, after core's build and ui's install (docs/CONTRIBUTING.md)
+hq/scripts/install.sh         # first time only, after core's build and ui's install (CONTRIBUTING.md)
 cd hq   && npx wasp start     # client 4100, server 4101
 cd site && npm run dev        # server 4201
 ```
@@ -165,7 +165,7 @@ managed service is not allowed. [`LICENSING.md`](LICENSING.md) says what you may
 
 ## Contributing
 
-Contributions are welcome: [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) says how to set up, check a change and open a
+Contributions are welcome: [`CONTRIBUTING.md`](CONTRIBUTING.md) says how to set up, check a change and open a
 pull request. Before a first contribution is merged, its author agrees to the [contributor licence agreement](CLA.md).
 
 If Agenthix is useful to you, please star the repository on GitHub: it helps others find it.

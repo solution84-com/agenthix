@@ -30,7 +30,7 @@ Use the bug report form. Agenthix is in early access and maintained by a small t
 
 There is no promised response time and no promised fix date. Early users who triage, reproduce and help others are
 what makes this project work, and are warmly welcomed. A security problem is reported privately (see
-[`SECURITY.md`](../SECURITY.md)).
+[`SECURITY.md`](SECURITY.md)).
 
 ## Pull requests
 
@@ -39,7 +39,7 @@ the pull request when it will not be merged and why.
 
 ## Moderation
 
-Everyone follows the [code of conduct](../CODE_OF_CONDUCT.md). Maintainers may edit, hide, lock or delete an issue,
+Everyone follows the [code of conduct](CODE_OF_CONDUCT.md). Maintainers may edit, hide, lock or delete an issue,
 discussion, comment or pull request that breaks it, or that is spam, advertising or off topic, and say why when they
 can do so without harming anyone. A report of conduct goes to the address in the code of conduct, never to a public
 thread; the reporter's privacy is kept. The code of conduct's four steps apply in order: a private correction, a

@@ -63,7 +63,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (problems.length) {
     console.error(`::error::${version} cannot be released as it is, against ${previous}:`)
     for (const problem of problems) console.error(problem)
-    console.error('A breaking commit is `type(area)!: …` with a `BREAKING CHANGE: <what an installation must do>` footer (docs/CONTRIBUTING.md).')
+    console.error('A breaking commit is `type(area)!: …` with a `BREAKING CHANGE: <what an installation must do>` footer (CONTRIBUTING.md).')
     process.exit(1)
   }
   const section = notesSection(lines)

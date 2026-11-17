@@ -3,7 +3,7 @@
 All notable changes to Agenthix are listed here, newest first, in the form of
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each entry is written for the people who use or run
 Agenthix, not for its developers. The rule for when an entry is written is in
-[`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md#the-changelog).
+[`CONTRIBUTING.md`](CONTRIBUTING.md#the-changelog).
 
 ## [0.1.0] - Unreleased
 
