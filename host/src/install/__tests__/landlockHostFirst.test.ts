@@ -32,7 +32,7 @@ async function runScheduled(): Promise<void> {
   await tickScheduled(m.ctx)
 }
 
-describe('an upgrade that moves the host service first', () => {
+describe('an upgrade that moves the host service first @SC-2186', () => {
   it('refuses on ABI 4 before the host service moves, asking the agent image the site runs', async () => {
     m.landlock.stdout = '4\n'
     await runScheduled()

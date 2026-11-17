@@ -36,7 +36,7 @@ describe('the operations this version does @SC-847', () => {
     ])
   })
 
-  it("stops the site with the agents it started, and stopping hq leaves the site's agents be", async () => {
+  it("stops the site with the agents it started, and stopping hq leaves the site's agents be @SC-2196", async () => {
     m.agentContainers.push('agenthix-agent-user-u1-rw')
     expect(await ask({ op: 'stop', target: 'hq' })).toMatchObject({ ok: true })
     expect(m.agentContainers).toEqual(['agenthix-agent-user-u1-rw'])

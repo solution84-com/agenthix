@@ -1,7 +1,7 @@
 ---
 name: User Stories — host
 description: Business-level requirements for the host service — what a machine admin, whoever can use Docker on a machine, needs from Agenthix on that machine. Written for business readers.
-updated: 2026-11-14
+updated: 2026-11-17
 ---
 
 # User Stories — `host/`
@@ -317,3 +317,16 @@ As the person who runs a public demo, I want one command to install it and a sch
 - AC-477c: a reset the host service missed while it was down happens at once when it is back, one that fails is said in the log with the time it will be tried again, and is tried again after 10 minutes and after each failure until one finishes, never later than the next scheduled time, and each that finishes is recorded. *(Changed 2026-11-14: a failed reset waited for the next scheduled time.)*
 - AC-477d: the demo's containers, and every front door, keep their logs in at most three files of 10 MB each, and the front door writes no access log.
 - AC-477e: a front door on the same machine serves the demo too (`front-door add-installation`) with a certificate for each of its names, and serves its files host as downloads only; installing without `--demo` writes what it wrote before.
+
+## Only where agents can work (added 2026-11-17)
+
+Written at the close of the unit *the v0.1.0 release*, from the finished code.
+
+### US-498 — Be stopped before installing where agents could not work
+
+As a machine admin, I want Agenthix to refuse a machine whose kernel cannot keep agents' commands contained before it installs, joins or upgrades anything there, so that I never end up with an installation on which no agent can work, and I know what to change.
+
+**Acceptance criteria:**
+- AC-498a: installing, joining a Fleet Console, and the site a Fleet Console starts are refused on a kernel below Linux 6.12 (Landlock 6), or one whose answer cannot be read, before anything is installed, started or written.
+- AC-498b: an upgrade of HQ or a site is refused on such a kernel before anything is stopped, backed up or started, and the version that runs stays as it was.
+- AC-498c: the refusal says what was stopped, the kernel and system found, what is needed and that nothing was changed, and gives the fix for the system: Docker Desktop, Ubuntu 24.04, Debian 12, or any other.

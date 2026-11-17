@@ -64,7 +64,7 @@ describe('console disconnect @SC-848', () => {
     expect(m.calls.some(c => c.includes('down'))).toBe(false)
   })
 
-  it("takes down the agents the site started, which nothing would end while it is stopped", async () => {
+  it("takes down the agents the site started, which nothing would end while it is stopped @SC-2196", async () => {
     expect(await managedSite()).toMatchObject({ ok: true })
     m.agentContainers.push('agenthix-agent-project-p1-project-rw')
     m.agentNetworks.push('agenthix-agent-net-1')

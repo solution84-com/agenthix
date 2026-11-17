@@ -19,7 +19,7 @@ function mounts(folders: string[], readOnly: string[]): AgentMounts {
   }
 }
 
-describe("the boundary's folders, made by the site before Docker sees them", () => {
+describe("the boundary's folders, made by the site before Docker sees them @SC-2194", () => {
   it("are the folders the prompt lists and the mount point of each bind inside the boundary's", () => {
     expect(boundaryFolderPaths(mounts(['files'], ['w1']))).toEqual(['files', path.join('workspaces', 'w1')])
   })

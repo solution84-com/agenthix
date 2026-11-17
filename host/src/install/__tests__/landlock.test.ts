@@ -44,7 +44,7 @@ const PASSES: [string, () => void][] = [['ABI 6', () => kernel('6\n')], ['ABI 8'
 
 const refusal = (p: Promise<unknown>) => p.then(() => { throw new Error('not refused') }, (e: unknown) => e as Refusal)
 
-describe('install refuses where agents cannot work', () => {
+describe('install refuses where agents cannot work @SC-2184', () => {
   const run = () => install(m.ctx, { address: 'https://hq.acme.example' }, report)
 
   for (const [what, set] of REFUSED) {
@@ -85,7 +85,7 @@ describe('install refuses where agents cannot work', () => {
   })
 })
 
-describe('a machine joining a Fleet Console refuses where agents cannot work', () => {
+describe('a machine joining a Fleet Console refuses where agents cannot work @SC-2185', () => {
   let dialled: number
   beforeEach(() => {
     dialled = 0
@@ -116,7 +116,7 @@ describe('a machine joining a Fleet Console refuses where agents cannot work', (
   }
 })
 
-describe('the site a Fleet Console starts refuses where agents cannot work', () => {
+describe('the site a Fleet Console starts refuses where agents cannot work @SC-2184', () => {
   const pin = { local: false, hqAddress: 'https://hq.acme.example' } as ConsolePin
   const add = () => installManagedSite(m.ctx, { version: '0.2.0' }, pin, report)
 
@@ -137,7 +137,7 @@ describe('the site a Fleet Console starts refuses where agents cannot work', () 
   }
 })
 
-describe('every upgrade refuses where its agents could not work', () => {
+describe('every upgrade refuses where its agents could not work @SC-2186', () => {
   /** Upgrades `target` to 0.2.1 from what `setUp` installed; the first install passed on ABI 8. */
   async function upgradeTo(target: 'hq' | 'site', setUp: () => Promise<unknown>) {
     await setUp()
@@ -193,7 +193,7 @@ describe('every upgrade refuses where its agents could not work', () => {
   })
 })
 
-describe("the refusal's words", () => {
+describe("the refusal's words @SC-2187", () => {
   const words = (system: string, abi: number | null = 4, kernelRelease = '6.8.0-48-generic') =>
     kernelRefusal({ for: 'install', abi, kernel: kernelRelease, system })
 

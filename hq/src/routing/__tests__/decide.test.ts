@@ -244,7 +244,7 @@ describe('decide: hearing, Inworld by default on its one key', () => {
   })
 })
 
-describe('decide: the last resort takes a provider\'s recommended model, never the first listed', () => {
+describe('decide: the last resort takes a provider\'s recommended model, never the first listed @SC-2197', () => {
   const recommended = (vendor: 'openrouter' | 'anthropic') => defaultModelOf(vendor, modelsReachedBy(vendor)).model
   const none = { org: NONE }
 

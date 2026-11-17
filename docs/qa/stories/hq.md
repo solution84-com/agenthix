@@ -1,9 +1,9 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-11-16
+updated: 2026-11-17
 verified: 2026-06-19
-next-us: US-498
+next-us: US-500
 ---
 
 # User Stories — `hq/`
@@ -3645,6 +3645,7 @@ As a member or an organisation admin, I want every call to a model decided by on
 - AC-359f: when a provider stops working new work goes through another and returns by itself, and a conversation fixed to it is offered the same model through another provider, never switched without my say.
 - AC-359g: my own Claude subscription serves work in my own place only and never pays for HQ's own calls.
 - AC-359h: a model picker shows each model with its provider and the ones a provider that is not working would serve are marked.
+- AC-359i: when no default can be used, a call runs on the recommended model of the first provider that has one that may run, never merely on whichever model is listed first. *(Added 2026-11-17)*
 
 ---
 
