@@ -25,3 +25,5 @@ use it.
 - **Connect your own tools:** providers, models and voice, billing and usage, Claude Code and GitHub.
 - **Run it on a server:** a domain, more machines, backups and upgrades.
 - **Looking for a word?** The [Glossary](glossary.md) lists every word Agenthix shows, where to find it and what else it is called.
+- **Something not working, or not there yet?** The [open issues](https://github.com/solution84-com/agenthix/issues) on
+  GitHub list what is known, and you can report what isn't.
