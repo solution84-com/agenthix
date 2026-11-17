@@ -79,3 +79,9 @@ then wait on a release.
 ## References
 
 ADR-0146 (superseded in part: item 5), ADR-0190, ADR-0137.
+
+> **Acted on.** *(annotated 2026-11-17)* By the unit of work
+> [`2026-11-17-v0.1.0-release`](../work/2026-11-17-v0.1.0-release/plan.md): `v0.1.0` was prepared, tagged and
+> published on `release/v0.1.0`, a push to it ran only *Checks*, and a dry run of *Release* came first. The branch
+> merged into `main` straight after the publish, before the installations were upgraded and the unit closed, so its
+> close took a branch of its own. The releasing skill now merges a release branch last, after both.
