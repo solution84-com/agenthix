@@ -29,8 +29,10 @@ tag, and no commit sets a version: every `package.json` stays at `0.0.0`
    the day it publishes (`## [0.2.0] - 2026-12-01`), and an empty `## [Unreleased]` goes above it for the next one. If
    the cut moves to another day, the date moves with it.
 4. **Cut it**: run *Release* on the branch, with the version, once *Checks* passed on its tip (below).
-5. **Merge it into `main`** after it publishes, with a merge commit, the way a unit's merge is made, so `main`'s ruleset
-   applies; the merge commit has no tag. Where `main` has rewritten the code a fix touches, port the fix by hand
+5. **Merge it into `main` last**: after it publishes, after the installations the maintainers run are upgraded to it,
+   and after the release's close (its plan's last ticks, its closing note, its open items raised) is committed on the
+   branch. Nothing after the tag changes what the release carries: the branch takes only that record. The merge has a
+   merge commit, the way a unit's merge is made, so `main`'s ruleset applies; the merge commit has no tag. Where `main` has rewritten the code a fix touches, port the fix by hand
    instead. **Then delete the branch**, locally and on GitHub.
 
 ## The Release workflow
