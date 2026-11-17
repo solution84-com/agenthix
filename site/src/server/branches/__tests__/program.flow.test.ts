@@ -48,6 +48,7 @@ describe('the commit helper, end to end on real repositories @SC-1726', () => {
     expect(await bringBack(COPY_A)).toMatchObject({ moved: false })
   })
 
+  // Many real git processes: a busy CI runner has taken over 5 seconds.
   it('brings back commits the agent made with its own git, and keeps a backup of a rewritten branch @SC-1725', async () => {
     await gitOn(owner)
     await create(COPY_A, 'login-page')
@@ -60,7 +61,7 @@ describe('the commit helper, end to end on real repositories @SC-1726', () => {
     const second = await bringBack(COPY_A)
     expect(second).toMatchObject({ moved: true, previous: first.head, backup: 'backup/login-page-2026-11-01' })
     expect(sh(owner.ws, ['rev-parse', 'backup/login-page-2026-11-01'])).toBe(first.head)
-  })
+  }, 30_000)
 
   it('reads branches, changes, commits, files, folders and versions', async () => {
     await gitOn(owner, { 'README.md': 'hello\n', 'src/app.js': 'a\n' })
