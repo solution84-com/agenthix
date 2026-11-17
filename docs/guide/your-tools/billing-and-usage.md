@@ -31,7 +31,7 @@ can see a project can read which profile it bills to.
 
 ## Usage
 
-![Usage for the month, by project, with each billing profile's cost](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/usage.png)
+![Usage for the month, by project, with each billing profile's cost](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/usage.png)
 
 **Usage** shows a month of cost. Choose the month with **‹** and **›**; **Group by** sets the rows to billing profile,
 project, agent or person, and when the organisation has two or more profiles, a second menu narrows to one. **Export

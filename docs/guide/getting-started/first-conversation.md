@@ -10,7 +10,7 @@ comes with a built-in agent, **Kernel**, which knows how Agenthix works and can 
 
 ## Start from Home
 
-![Home, with the greeting, what needs you, what is running and three ways to begin](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/home.png)
+![Home, with the greeting, what needs you, what is running and three ways to begin](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/home.png)
 
 **Home** is the first thing you see after signing in. It shows how your HQ is doing: what needs you, what's running,
 what's coming up today and the projects you pinned. It has no message box of its own, because you write in the
@@ -29,7 +29,7 @@ provider. For an admin it links to **Manage organisation › AI**: see [the AI p
 
 ## The conversation
 
-![A conversation with Kernel in Chat](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/chat-conversation.png)
+![A conversation with Kernel in Chat](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/chat-conversation.png)
 
 Your conversation opens beside the page, on the right of the screen, where it stays as you move around HQ. It belongs
 to **Your space**, your own private place, outside any project. The bar at the top shows the agent's picture and name, with the conversation's title under the name: the agent names the conversation in a few words after its first reply, and until then it is **New conversation**. A long title is cut with **…**; rest the pointer on it to read it all, and rename it from **⋯**. On the right of the same bar, where the conversation lives and what else it reads are small stacked tiles (see [Places in a conversation](#places-in-a-conversation)), with **⋯** beside them. The thread runs under the message box, which floats over its foot; the last lines fade out above it, and a round **↓** appears just above the box when you have scrolled up. The agent answers as soon as it can; keep writing in the message box to reply, and select **Stop** (the button
@@ -95,7 +95,7 @@ There is always a conversation beside the page. When none is open, such as when 
 one you last wrote in, on this or any other device; if you have not written in one yet, it opens a new conversation in
 **Your space**, ready for your first message. On a medium or narrow window it opens folded away, so the page shows first.
 
-![A conversation docked on the right while the Tasks page is open](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/docked-conversation.png)
+![A conversation docked on the right while the Tasks page is open](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/docked-conversation.png)
 
 A reply keeps arriving, and a voice call keeps going, while you move between pages. At the top of the conversation, a
 small label says where it lives: **Your space**, a project or a task. Select it to open that place on the page.
@@ -157,7 +157,7 @@ Select **＋** in the chat's bar, or **Talk about** a project (or **Talk in your
 page. A new conversation opens over the one you were in, with the rest of the app dimmed. If no conversation was open,
 it fills the conversation's place instead, headed **New conversation**, with **Cancel** at its right.
 
-![A new conversation in the dock, with the places to choose from and the project already chosen](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/new-conversation-draft.png)
+![A new conversation in the dock, with the places to choose from and the project already chosen](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/new-conversation-draft.png)
 
 The draft lists the places you can start in, under **You're here**, **Your space**, **Pinned** and **All projects**, with
 a search box at the top (**Find a place…**). The place you are on is already chosen, and the message box is ready, so

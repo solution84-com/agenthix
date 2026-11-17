@@ -20,7 +20,7 @@ The [Library](../agents/library.md) also holds ready-made teams. To make a team 
 
 ## Add people and agents
 
-![A team's page, with its people and agents and the projects it works in](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/team-page.png)
+![A team's page, with its people and agents and the projects it works in](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/team-page.png)
 
 1. On the team's page, select **＋ Add people or agents**.
 2. Search, then select **Add** beside each person or agent.
