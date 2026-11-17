@@ -121,17 +121,22 @@ never on a push. The full regression runs on the branch on the dev machine befor
 
 ### Phase 3 — The cut
 
-- [ ] 3.1 The full regression on the branch; the branch pushed; Checks pass on it.
-      *Progress:* the full regression passes: 49 steps, the images, the install, upgrade and container tests among
-      them. Its one failure was a timing race in Home's layout test, fixed and passing in both end-to-end runs. The
-      branch's history is regrouped into 11 commits. Not pushed yet.
+- [x] 3.1 The full regression on the branch; the branch pushed; Checks pass on it.
+      *Done:* the full regression passes: 49 steps, the images, the install, upgrade and container tests among them.
+      Its one failure was a timing race in Home's layout test, fixed and passing in both end-to-end runs. The branch's
+      history was regrouped into 13 commits, pushed, and *Checks* passed on it; the push started nothing else.
 - [ ] 3.2 The Release workflow run on `release/v0.1.0` with the version `0.1.0`: the gates, the screenshots captured and
       pinned, the release build, the tag and the publish.
+      *Done:* a dry run first passed every stage up to the tag. The real run passed every stage and published `v0.1.0`
+      on 17 Nov; the tag is on the screenshot-pin commit the run added to the branch.
 - [ ] 3.3 The branch merged into `main`, then deleted, locally and on GitHub.
-- [ ] 3.4 **The packages made public**: the eight image packages (`hq-server`, `hq-web`, `relay`, `site-server`,
-      `agent`, `executor`, `host`, `console`) and `@agenthix/core`, by hand in each package's settings, since nothing
-      in the workflows changes visibility; each checked with an anonymous pull, and the install run on a clean machine
-      with no registry credential.
+- [x] 3.4 **The packages made public**: the eight image packages (`hq-server`, `hq-web`, `relay`, `site-server`,
+      `agent`, `executor`, `host`, `console`), by hand in each package's settings, since nothing in the workflows
+      changes visibility; each checked with an anonymous pull, and the install run on a clean machine with no registry
+      credential.
+      *Done:* all eight are public; each pulls with no credential at `0.1.0`, for amd64 and arm64. An install from the
+      published host service, as the guide describes, passed its signature and kernel checks and came up at `0.1.0`.
+      The core package stays private (owner, 17 Nov); its name moving to the images' prefix is #300.
 - [ ] 3.5 The upgrade from `alpha.6` to `v0.1.0` tested on a machine of ours, then our installations upgraded to
       `v0.1.0`, each on a kernel that runs agents.
 
@@ -153,6 +158,7 @@ never on a push. The full regression runs on the branch on the dev machine befor
 | 1 | 1.7 (refuse below Linux 6.12) added | The two-machine walkthrough found a site on Linux 6.8 runs no agent at all; owner: no installation where agents can't work |
 | 2 | The public-repository audit added beside the QA audit | It is the gate for the repository going public |
 | 3 | Making the packages public added (3.4) | Publishing does not change a package's visibility |
+| 3 | The core package stays private; 3.4 covers the eight images | Owner, 17 Nov: core is for maintainers and contributors, who have GitHub access |
 | 2 | The public-repository audit failed on documents agents wrote against the writing-in-public rule. The history is kept as it is; the current files are cleaned against this repository's rule, and the pre-push hook now refuses new text that breaks it | Owner, 17 Nov: "accept that previous history breaks this rule"; a fresh history again would not stop it happening |
 | 2 | No known-limitations page (2.2); the changelog reviewed instead (2.4) | Owner, 17 Nov: the open issues already list what is known, and a page beside them would need keeping in step |
 
