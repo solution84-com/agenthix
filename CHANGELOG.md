@@ -7,6 +7,10 @@ Agenthix, not for its developers. The rule for when an entry is written is in
 
 ## [Unreleased]
 
+### Fixed
+
+- `agenthix status` says "today", not "last night", for a backup taken minutes before it is read in the small hours.
+
 ## [0.1.0] - 2026-11-17
 
 The first release.

@@ -31,7 +31,8 @@ const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString()
 export function when(iso: string, now: Date): string {
   const at = new Date(iso)
   const yesterday = new Date(now.getTime() - 24 * 3600_000)
-  if (sameDay(at, now)) return at.getHours() < 6 ? `${clock(at)} last night` : `today ${clock(at)}`
+  // Last night only once the night is over: read while it is still night, a backup minutes ago is today's.
+  if (sameDay(at, now)) return at.getHours() < 6 && now.getHours() >= 6 ? `${clock(at)} last night` : `today ${clock(at)}`
   if (sameDay(at, yesterday)) return `yesterday ${clock(at)}`
   return `${dayMonth(at)} ${clock(at)}`
 }
