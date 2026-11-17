@@ -113,11 +113,11 @@ never on a push. The full regression runs on the branch on the dev machine befor
       only, no pricing, legal questions asked rather than answered, no deployment details, and the old product name
       gone. gitleaks allows the fake test credentials by path.
       The same wording in product code comments and the QA contract, which the audit had not listed, is reworded too.
-- [ ] 2.4 **The changelog reviewed** against what `v0.1.0` carries: what was built after it was written (8 Nov) added,
+- [x] 2.4 **The changelog reviewed** against what `v0.1.0` carries: what was built after it was written (8 Nov) added,
       and what a release doesn't offer taken out.
       *Progress:* updated, and dated 17 Nov with an empty Unreleased section above it; the releasing skill now dates
       the changelog as each release's last commit before the cut. If the cut moves to another day, the date moves with
-      it. Waits for the owner's read.
+      it. Published with `v0.1.0`; the owner accepted the release as it is.
 
 ### Phase 3 — The cut
 
@@ -125,11 +125,11 @@ never on a push. The full regression runs on the branch on the dev machine befor
       *Done:* the full regression passes: 49 steps, the images, the install, upgrade and container tests among them.
       Its one failure was a timing race in Home's layout test, fixed and passing in both end-to-end runs. The branch's
       history was regrouped into 13 commits, pushed, and *Checks* passed on it; the push started nothing else.
-- [ ] 3.2 The Release workflow run on `release/v0.1.0` with the version `0.1.0`: the gates, the screenshots captured and
+- [x] 3.2 The Release workflow run on `release/v0.1.0` with the version `0.1.0`: the gates, the screenshots captured and
       pinned, the release build, the tag and the publish.
       *Done:* a dry run first passed every stage up to the tag. The real run passed every stage and published `v0.1.0`
       on 17 Nov; the tag is on the screenshot-pin commit the run added to the branch.
-- [ ] 3.3 The branch merged into `main`, then deleted, locally and on GitHub.
+- [x] 3.3 The branch merged into `main`, then deleted, locally and on GitHub.
 - [x] 3.4 **The packages made public**: the eight image packages (`hq-server`, `hq-web`, `relay`, `site-server`,
       `agent`, `executor`, `host`, `console`), by hand in each package's settings, since nothing in the workflows
       changes visibility; each checked with an anonymous pull, and the install run on a clean machine with no registry
@@ -137,8 +137,13 @@ never on a push. The full regression runs on the branch on the dev machine befor
       *Done:* all eight are public; each pulls with no credential at `0.1.0`, for amd64 and arm64. An install from the
       published host service, as the guide describes, passed its signature and kernel checks and came up at `0.1.0`.
       The core package stays private (owner, 17 Nov); its name moving to the images' prefix is #300.
-- [ ] 3.5 The upgrade from `alpha.6` to `v0.1.0` tested on a machine of ours, then our installations upgraded to
+- [x] 3.5 The upgrade from `alpha.6` to `v0.1.0` tested on a machine of ours, then our installations upgraded to
       `v0.1.0`, each on a kernel that runs agents.
+      *Done:* on the shared machine, `alpha.6` installed beside the others and upgraded to `0.1.0` the published way:
+      the data came through, no table lost rows, everything at `0.1.0`, then removed. The reviewers' installation, the
+      demo and the organisation's own HQ were then upgraded to `0.1.0`. Found on the way: an upgrade dropped the other
+      installation's names from a shared front door until it was added again, and a backup minutes old read as "last
+      night" (fixed for the next release).
 
 ## Decision records
 
@@ -159,7 +164,27 @@ never on a push. The full regression runs on the branch on the dev machine befor
 | 2 | The public-repository audit added beside the QA audit | It is the gate for the repository going public |
 | 3 | Making the packages public added (3.4) | Publishing does not change a package's visibility |
 | 3 | The core package stays private; 3.4 covers the eight images | Owner, 17 Nov: core is for maintainers and contributors, who have GitHub access |
+| 3 | The branch merged into `main` straight after the publish, before the installations were upgraded and the unit closed; its close is a branch of its own, `post-release/v0.1.0` | The releasing skill now merges a release branch last, after its close |
 | 2 | The public-repository audit failed on documents agents wrote against the writing-in-public rule. The history is kept as it is; the current files are cleaned against this repository's rule, and the pre-push hook now refuses new text that breaks it | Owner, 17 Nov: "accept that previous history breaks this rule"; a fresh history again would not stop it happening |
 | 2 | No known-limitations page (2.2); the changelog reviewed instead (2.4) | Owner, 17 Nov: the open issues already list what is known, and a page beside them would need keeping in step |
 
 ## Closing note
+
+*17 November 2026.* `v0.1.0` published on 17 November, the first public release, and the repository went public the
+same day. The owner accepted the release as it is.
+
+- **Every item done.** Phase 1's blockers were proven; both audits ran (2.1, 2.2) and what they found was fixed or
+  raised (2.3); the changelog was dated (2.4); the release was cut, merged and upgraded on our installations (phase 3).
+- **Open items.** Every lane report, the handover, both audits and this plan were triaged against the code. Those
+  still true were raised as issues: #298, #299, #300, #301 to #310, and a comment on #171. #308 (an upgrade drops
+  the other installations a shared front door serves) is High; none blocks a release. The older documents that still
+  hold wording of the kind the public-repository audit flagged, beyond what it reported, are followed up privately.
+- **QA.** The audit before `v0.1.0` ran (2.1). This unit's own contract was written at its close, from the code: the
+  refusal below Linux 6.12 (US-498, SC-2184 to SC-2188), breaking changes found and said (US-499, SC-2189 to
+  SC-2193), what the Linux proofs found (SC-2194 to SC-2196), and the resolver's last resort (AC-359i, SC-2197), each
+  with its tests tagged.
+- **Decision records.** ADR-0194 was written and acted on; ADR-0146 item 5 and ADR-0190 item 1 are marked superseded
+  in part by it.
+- **After the tag.** The branch merged into `main` before the installations were upgraded and before this close; the
+  close took `post-release/v0.1.0`, which also carries a fix found in the upgrade test and two test timeouts, for the
+  next release. The releasing skill now merges a release branch last.

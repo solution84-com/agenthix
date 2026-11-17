@@ -33,7 +33,7 @@ function exportedNames(): string[] {
   }).sort()
 }
 
-it("core's exported names match core/snapshot/exports.json", () => {
+it("core's exported names match core/snapshot/exports.json @SC-2193", () => {
   const now = exportedNames()
   expect(now.length).toBeGreaterThan(0)
   const text = ts.sys.readFile(FILE)

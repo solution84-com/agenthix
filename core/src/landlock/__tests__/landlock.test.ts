@@ -3,7 +3,7 @@ import {
   COMMAND_LAUNCHER_PATH, LANDLOCK_ABI_COMMAND, LANDLOCK_REQUIRED_ABI, landlockAbiSufficient, parseLandlockAbi,
 } from '../landlock.js'
 
-describe('the kernel Landlock check', () => {
+describe('the kernel Landlock check @SC-2188', () => {
   it('asks the launcher itself for the ABI', () => {
     expect(LANDLOCK_ABI_COMMAND).toEqual([COMMAND_LAUNCHER_PATH, '--abi'])
     expect(LANDLOCK_REQUIRED_ABI).toBe(6)

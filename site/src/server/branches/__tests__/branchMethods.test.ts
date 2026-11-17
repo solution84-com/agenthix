@@ -61,6 +61,7 @@ beforeEach(async () => {
 afterEach(() => { fs.rmSync(root, { recursive: true, force: true }) })
 
 describe('turning Git on, then a branch from making to merging @SC-1726', () => {
+  // Many real git processes: a busy CI runner has taken over 5 seconds.
   it('works through every method hq calls', async () => {
     const init = await call('git.init', { workspace, author: AUTHOR })
     expect(init).toMatchObject({ main: 'main', gitignoreAdded: true, version: { number: 1, author: AUTHOR } })
@@ -110,7 +111,7 @@ describe('turning Git on, then a branch from making to merging @SC-1726', () => 
     expect(await call('branch.removeCopy', { workspace, copyId: COPY_A })).toEqual({ removed: false })
     expect(fs.existsSync(copy)).toBe(false)
     expect(db.copies.has(COPY_A)).toBe(false)
-  })
+  }, 30_000)
 })
 
 describe('branch.updateFromMain @SC-1727', () => {

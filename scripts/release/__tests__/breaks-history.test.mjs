@@ -25,14 +25,14 @@ function repo(t) {
   return { git, write, commitAll, readNow }
 }
 
-test('nothing broken since the tag: no problem and no section', (t) => {
+test('nothing broken since the tag: no problem and no section @SC-2189 @SC-2191', (t) => {
   const r = repo(t)
   r.write('hq/migrations/2_more/migration.sql', 'ALTER TABLE "Run" ADD COLUMN "note" TEXT;')
   r.commitAll('feat(hq): runs take a note')
   assert.deepEqual(findBreaks({ version: '0.1.1', git: r.git, readNow: r.readNow }), { previous: 'v0.1.0', problems: [], lines: [] })
 })
 
-test('an unmarked dropped column is refused; marked, a minor carries it into the notes', (t) => {
+test('an unmarked dropped column is refused; marked, a minor carries it into the notes @SC-2189 @SC-2190 @SC-2191', (t) => {
   const r = repo(t)
   r.write('hq/migrations/2_drop/migration.sql', 'ALTER TABLE "Run" DROP COLUMN "legacy";')
   r.commitAll('feat(hq): runs lose their legacy field')
@@ -48,7 +48,7 @@ test('an unmarked dropped column is refused; marked, a minor carries it into the
   assert.match(findBreaks({ version: '0.1.1', git: r.git, readNow: r.readNow }).problems[0], /a break is released as 0\.2\.0/)
 })
 
-test('a removed command found in the snapshot is explained by the commit that changed the snapshot', (t) => {
+test('a removed command found in the snapshot is explained by the commit that changed the snapshot @SC-2189 @SC-2191', (t) => {
   const r = repo(t)
   r.write('host/snapshot/cli.json', JSON.stringify({ entries: ['backup'] }))
   r.commitAll('feat(host)!: backup export goes\n\nBREAKING CHANGE: copy the backups folder instead.')
@@ -57,7 +57,7 @@ test('a removed command found in the snapshot is explained by the commit that ch
   assert.match(lines[0], /copy the backups folder instead\. \([0-9a-f]{8}; the agenthix command or option `backup export` was removed\)/)
 })
 
-test('with no earlier release there is nothing to break', (t) => {
+test('with no earlier release there is nothing to break @SC-2189', (t) => {
   const r = repo(t)
   assert.deepEqual(findBreaks({ version: '0.1.0', git: r.git, readNow: r.readNow }), { previous: null, problems: [], lines: [] })
 })

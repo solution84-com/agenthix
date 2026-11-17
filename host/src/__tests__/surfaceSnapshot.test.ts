@@ -21,7 +21,7 @@ const SURFACES = [
   { name: 'names', what: 'The names an installation creates', entries: namesEntries },
 ]
 
-describe('the host service matches its surface snapshots', () => {
+describe('the host service matches its surface snapshots @SC-2193', () => {
   for (const surface of SURFACES) {
     it(surface.name, () => {
       const file = path.join(DIR, `${surface.name}.json`)
@@ -43,7 +43,7 @@ describe('the host service matches its surface snapshots', () => {
   }
 })
 
-describe("a help row's commands, words and options", () => {
+describe("a help row's commands, words and options @SC-2193", () => {
   const row = (usage: string, detail = '') => rowEntries({ group: 'hq', usage, does: '', detail })
 
   it('alternatives name each command, and a bracket of words are words it takes', () => {

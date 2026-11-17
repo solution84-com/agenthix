@@ -299,3 +299,16 @@ Written on 2026-11-15 from the finished code at the close of the dependency-upda
 - AC-496f: the repository itself says when the monthly dependency updates are due: from the 1st at every dev start and at the top of the full and affected regressions, and Release stops while the month isn't done (Checks does not enforce it); a dry run and a patch release never wait for them.
 - AC-496g: every security alert gets a decision — fixed, dismissed with a reason, or deferred to a named month — a critical or high one in shipped code within 7 days, reminded at every dev start and at the top of the full and affected regressions from the alert's opening, and Release stops after the 7 days (Checks does not enforce it).
 
+
+## Breaking changes, found and said (added 2026-11-17)
+
+Written at the close of the unit *the v0.1.0 release*, from the finished code ([`docs/architecture/versioning.md`](../../architecture/versioning.md), *Breaking changes*).
+
+### US-499 — Release a breaking change only with a version that may carry it, and say what to do
+
+As a maintainer, I want a release to find every breaking change since the previous one and refuse one nobody marked or one the version may not carry, so that no installation is broken by an upgrade it was not warned about, and whoever upgrades reads first what they must do.
+
+**Acceptance criteria:**
+- AC-499a: a release finds every break since the previous release: a commit marked breaking, a protocol's major moved, a stored format's number moved, a table or column dropped or narrowed by a new migration, or a name removed from core's exports, the `agenthix` commands and options, the host service's start-up settings or the names an installation creates.
+- AC-499b: the release is refused, naming each break, when a break found is explained by no commit marked breaking, when a commit marked breaking does not say what an installation must do, or when the version may not break: a patch, or a version on the previous release's line that is not an alpha. A migration that loses data fails the migration check too unless its commit is marked breaking.
+- AC-499c: the release notes open with each break and what an installation must do about it.

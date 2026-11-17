@@ -247,7 +247,7 @@ describe('pairing after hq moved (host-management spec §13)', () => {
   })
 })
 
-describe('what the site says it connected by', () => {
+describe('what the site says it connected by @SC-2195', () => {
   const resolve = vi.fn(async () => ['172.18.0.3'])
 
   it("says hq's own site paired by the pairing secret, beside hq-web by its container name", async () => {
