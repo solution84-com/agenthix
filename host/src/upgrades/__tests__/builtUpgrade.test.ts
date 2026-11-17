@@ -11,6 +11,7 @@ import { parseOwnerRequest } from '../../owner/requests'
 import { parseCommand } from '../../cli/commands'
 import { partwayLines } from '../../cli/partwayText'
 import '../operations'
+import { KERNEL_STEP } from '../../install/landlock'
 
 const PARTS = ['hq-server', 'hq-web', 'relay', 'site-server', 'agent', 'executor', 'console'] as const
 let m: FakeMachine
@@ -70,7 +71,7 @@ describe('a development build upgrades to the images built here under a tag', ()
     const outcome = await upgrade(m.ctx, 'hq', 'dev', p => { if (p.event === 'step') steps.push(p.step) }, { built: 'next' })
     expect(outcome).toEqual({ version: 'dev', rolledBack: false })
     expect(steps).toEqual([
-      'Finding the images tagged next on this machine', 'Stopping HQ and its site', 'Taking a sealed backup', 'Starting the images tagged next', 'Health check',
+      'Finding the images tagged next on this machine', KERNEL_STEP, 'Stopping HQ and its site', 'Taking a sealed backup', 'Starting the images tagged next', 'Health check',
     ])
     expect(m.checked).toEqual([])
     expect(actions()).not.toContain('pull')

@@ -34,9 +34,9 @@ rehearsal.
 - [x] 1.2 **The demo's entry says what entering agrees to**: under *Enter the demo*, one line linking the Terms and
       the Privacy Policy and saying not to type anything personal, as the demo is shared and wiped every 6 hours; the
       demo's own privacy notice linked where it fits.
-- [x] 1.3 **The guide offers no service that has not opened**: until it is announced, the guide's Cloud page and its
-      sidebar entry are left out of the published guide, and the setup table, the commands page and the demo page say
-      nothing of it beyond what the product itself shows.
+- [x] 1.3 **The guide leaves Cloud out while its flag is off**: the guide's Cloud page and its sidebar entry are left
+      out of the published guide, and the setup table, the commands page and the demo page say nothing of it beyond
+      what the product itself shows.
 - [x] 1.4 **A task's files where people look** (decided 13 Nov: keep the task's own folder): a *Files* tab beside
       Activity, Comments and Runs, with a count, holding the working files list (moved from the bottom of the side
       panel); a path in a run's result that names a file in the folder is a link that opens it beside the task.
@@ -89,7 +89,7 @@ launch; the Linux proofs left with the other proofs on real machines before 0.1.
 
 | Date | What changed | Why |
 |---|---|---|
-| 14 Nov | Added 1.7: Agenthix Cloud behind a preview flag (ADR-0189, supersedes ADR-0130) | Cloud's service does not open with the first release; the product must not offer it before it is announced |
+| 14 Nov | Added 1.7: Agenthix Cloud behind a preview flag (ADR-0189, supersedes ADR-0130) | Agenthix Cloud's parts are behind the preview flag `cloud`, off in a release |
 | 14 Nov | Phase 2 cut by one Release workflow (ADR-0190, supersedes ADR-0146's tag pushed by hand): pin, release build, tag and publish in one run; the guide capture made one script | The capture broke four times, one push at a time, from two copies of its steps; the owner wanted the release to be one button |
 | 14 Nov | 3.1 moved to agenthix#31; the host service's version lookup fixed (`b1c192b6`) | The host service read the published versions anonymously, which a private registry refuses; the running (old) version does the lookup, so no switch from alpha.3 or alpha.4 can run while the packages are private |
 | 14 Nov | Done alongside: a retried demo reset says so in the log (`2aea1ad1`) | Found while building 1.5: the retry's log line read as the scheduled reset |

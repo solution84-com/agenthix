@@ -18,10 +18,9 @@ since a session moving between them would need Agenthix to own canonical context
 
 Research (`docs/work/2026-09-27-model-vendor-independence/`) found that the proposal's argument, read
 literally, doesn't survive contact with what Claude currently offers: `ClaudeSDKRuntime` is the
-only path to Claude subscription billing — no external harness can offer it, because Anthropic
-restricts subscription login to its own harness (confirmed against OpenCode, which removed
-subscription login in v1.3.0 specifically because "Anthropic explicitly prohibits" third-party
-harnesses from using it). Subscription billing is the only affordable path to Claude for a single
+only path to Claude subscription billing — no external harness offers it: OpenCode removed
+subscription login in v1.3.0, its notes saying "Anthropic explicitly prohibits" third-party
+harnesses from using it. Subscription billing is the only affordable path to Claude for a single
 user; the alternative, metered API-key billing, is priced for organisations. Retiring
 `ClaudeSDKRuntime` in favour of any external harness would foreclose that.
 

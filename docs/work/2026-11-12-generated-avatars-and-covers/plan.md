@@ -20,7 +20,7 @@ lead decides what can reasonably be decided and records it in the report; a deci
 built the most conservative way and listed for the owner. A change of direction goes in *Deviations* below. Security,
 critical and usability issues are resolved in the unit and reported.
 
-**Lanes** (the `running-lanes` skill): one purpose each, on its own branch and worktree cut from
+**Lanes**: one purpose each, on its own branch and worktree cut from
 `feature/generated-avatars-and-covers`, merged by the lead one at a time as a single commit rebased onto the branch's
 head. Phase 1 lands first; lanes then run in parallel where their files are disjoint, in sequence where they are not.
 Lanes run only the unit tests and typechecks of what they touch, through the machine-wide lock; the lead runs the

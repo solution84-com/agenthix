@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // Finds the release build (release-build.yml) that proved a commit, and fetches an artifact of that run:
 //   node scripts/release/proven-run.mjs --commit <sha> --artifact <name> --dir <folder> [--wait-minutes <n>]
-// The run is the latest one for the commit, started by a push to a release branch or by hand from main or a release
-// branch, in this repository: a run of release-build.yml itself, or a run of Release (release.yml), which calls it, so
-// that run's artifacts are Release's. A push builds the commit pushed; a run by hand builds the commit it was given,
-// which only its candidate record names, so each such run's record is read to learn its commit. The release build must
-// have passed: one that failed refuses, and one still running is waited for. A Release run goes on to tag and publish
-// after its build, so its verdict is its job "The release bar passed", not the run's; and one that has not yet built is
-// not waited for, since it may be queued behind the Release run that is publishing. Prints the run's ID. Needs gh, with
-// GH_TOKEN, and GITHUB_REPOSITORY (owner/name).
+// The run is the latest one for the commit started by hand from main or a release branch, in this repository: a run of
+// release-build.yml itself, or a run of Release (release.yml), which calls it, so that run's artifacts are Release's.
+// A push proves nothing: pushing a release branch only saves its progress and runs Checks. A run by hand builds the
+// commit it was given, which only its candidate record names, so each run's record is read to learn its commit. The
+// release build must have passed: one that failed refuses, and one still running is waited for. A Release run goes on
+// to tag and publish after its build, so its verdict is its job "The release bar passed", not the run's; and one that
+// has not yet built is not waited for, since it may be queued behind the Release run that is publishing. Prints the
+// run's ID. Needs gh, with GH_TOKEN, and GITHUB_REPOSITORY (owner/name).
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -25,9 +25,7 @@ const BAR_JOB = 'The release bar passed'
 export function isTrusted(run, repository) {
   if (run.head_repository?.full_name !== repository) return false
   const branch = run.head_branch ?? ''
-  if (run.event === 'push') return branch.startsWith('release/')
-  if (run.event === 'workflow_dispatch') return branch === 'main' || branch.startsWith('release/')
-  return false
+  return run.event === 'workflow_dispatch' && (branch === 'main' || branch.startsWith('release/'))
 }
 
 /** Whether a run is one of Release's (release.yml), as `main` marks the runs it lists. */
@@ -45,7 +43,7 @@ export function chooseRun({ runs, commit, repository, commitOf, barOf = () => nu
   const trusted = runs.filter(r => isTrusted(r, repository))
     .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? '') || b.id - a.id)
   for (const run of trusted) {
-    const built = run.event === 'push' ? run.head_sha : commitOf(run)
+    const built = commitOf(run)
     if (built === commit) {
       // A Release run's own conclusion waits on its tag and publish; its release build's is the bar job's.
       const bar = isRelease(run) ? (barOf(run) ?? (run.status === 'completed' ? { status: 'completed', conclusion: run.conclusion } : { status: run.status })) : run

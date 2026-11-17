@@ -66,7 +66,7 @@ to end.
 
 The owner's aim is the least manual load. The lead runs the unit end to end and stops only for the hard stops below.
 
-- **Lanes, in the background:** every phase runs as lanes under the lead (`running-lanes`), each with its own branch
+- **Lanes, in the background:** every phase runs as lanes under the lead, each with its own branch
   and worktree, a brief of a few lines (the tasks by number, the spec section that is its acceptance, the files it
   owns), and the shared rules in `execution/lane-common.md`. Lanes write their report to `execution/reports/` and post
   one line.

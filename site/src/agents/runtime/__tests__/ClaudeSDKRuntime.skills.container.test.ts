@@ -132,7 +132,7 @@ describe.skipIf(!enabled)("a turn's staged skills, in a real claude process", ()
     }))
 
     standin = spawn('node', [fileURLToPath(new URL('./fixtures/standinAnthropic.mjs', import.meta.url))], {
-      env: { ...process.env, PORT: '0', LOG: path.join(dir, 'anthropic.jsonl'), BODY_LOG: path.join(dir, 'bodies.jsonl') },
+      env: { ...process.env, PORT: '0', HOST: '0.0.0.0', LOG: path.join(dir, 'anthropic.jsonl'), BODY_LOG: path.join(dir, 'bodies.jsonl') },
       stdio: ['ignore', 'pipe', 'ignore'],
     })
     port = await new Promise<string>((resolve, reject) => {

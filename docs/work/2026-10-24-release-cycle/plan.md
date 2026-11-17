@@ -54,7 +54,7 @@ tag on that commit and the publish. The unit then merges to `main` with `--no-ff
 `0.1.0-alpha.3` by default; the owner confirms it, and gives the say-so for every push, before the tag is pushed.
 Outside this unit, a release stays its own work, cut from `main` after a unit closes.
 
-**Lanes, merged by the lead.** Phases 1–5 run as lanes (`running-lanes`): one purpose, one branch and worktree, one
+**Lanes, merged by the lead.** Phases 1–5 run as lanes: one purpose, one branch and worktree, one
 agent each, merged into `feature/release-cycle` by the lead one at a time, each squashed into one commit, rebased first
 and fast-forwarded. Phase 1 is two lanes in sequence (the version out of the images and bundles, then the host
 service's own version and its switch). Phases 2 and 4 then start together; phase 3 starts when phase 2 has merged.

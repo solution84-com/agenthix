@@ -1,19 +1,24 @@
 name: Release
 
-# A release, from one button (adr-0190). Started by hand with the version, on main for a real release, or on any branch
-# with dry_run for a dry run, which does everything but push, tag and publish:
-#   gh workflow run release.yml --ref main -f version=0.1.0-alpha.4
-#   gh workflow run release.yml --ref <branch> -f version=0.1.0-alpha.4 -f dry_run=true
+# A release, from one button (adr-0190). Every release, major, minor or patch, is prepared and cut on its own release
+# branch, release/v<version>, and merged into main after it publishes (adr-0194). Started by hand with the version, on
+# that branch for a real release, or on any branch with dry_run for a dry run, which does everything but push, tag and
+# publish:
+#   gh workflow run release.yml --ref release/v0.2.0 -f version=0.2.0
+#   gh workflow run release.yml --ref <branch> -f version=0.2.0 -f dry_run=true
 # Each stage is a job, and a stage that fails stops the run; the last job names it on the run's page.
 #
-# 0. The monthly dependency updates and the security alerts. A real run on main stops, starting nothing, when this
-#    month's dependency updates aren't done (scripts/deps/taken.json, read by scripts/deps/due.mjs) or a critical or
+# 0. The monthly dependency updates and the security alerts. A real run stops, starting nothing, when this month's
+#    dependency updates aren't done (scripts/deps/taken.json, read by scripts/deps/due.mjs) or a critical or
 #    high security alert in shipped code is past its 7 days with no decision (scripts/deps/security.mjs). Both are
-#    done on the dev machine (docs/architecture/dependencies.md). A dry run, and a patch on a release branch, skip this.
-# 1. The commit is the tip of the branch the run is on, and a real run is on main or a release branch (a patch). The
+#    done on the dev machine (docs/architecture/dependencies.md). A major or minor is always checked; a dry run, and a
+#    patch version (x.y.z with z above 0) on a release branch, skip this.
+# 1. The commit is the tip of the branch the run is on, and a real run is on release/v<major.minor.patch>. The
 #    version is a release version and not yet tagged; no released flag outlives its minor release
 #    (scripts/release/flags-overdue.mjs); the Sigstore trust root hq carries is fresh enough to ship
-#    (scripts/release/trust-root.mjs). A real run also needs the commit's Checks passed.
+#    (scripts/release/trust-root.mjs). Every break since the previous release is marked by a commit, and the version
+#    may carry it: a patch, or a version on the previous release's line that is not an alpha, may not
+#    (scripts/release/breaks.mjs; docs/architecture/versioning.md). A real run also needs the commit's Checks passed.
 # 2. The guide's screenshots are captured for that commit (guide-screenshots.yml). Its set, guide-release-set, is the
 #    one the pin step reads and the tag takes: the pin commit changes only the guide's pages, so nothing captures again.
 # 3. They are pinned to the tag (hq/scripts/guide/pin-screenshots.mjs). When that changes the pages, the change is
@@ -27,11 +32,10 @@ name: Release
 #    (publish-images.yml) at the tag, then follows it to the end: a tag pushed with a workflow's own token starts no
 #    workflow, and a publish called from here would be signed as Release's branch, not the tag a host service checks.
 #
-# A run that fails is fixed on a branch, and Release is run there as a dry run until it passes; then the fix lands on
-# main as one commit, and Release runs again (the releasing skill). The pin commit is pushed with a deploy key that may
-# bypass main's ruleset (GitHub allows no workflow token as a bypass actor), held as RELEASE_PIN_DEPLOY_KEY in the
-# release-pin environment, which only main and release/* may use; creating a tag needs no bypass, the tag ruleset only
-# stops one moving or vanishing.
+# A run that fails is fixed on its release branch, and Release runs again there; the fix reaches main when the branch
+# merges back (the releasing skill). The pin commit is pushed with a deploy key that may bypass main's ruleset (GitHub
+# allows no workflow token as a bypass actor), held as RELEASE_PIN_DEPLOY_KEY in the release-pin environment, which only
+# main and release/* may use; creating a tag needs no bypass, the tag ruleset only stops one moving or vanishing.
 on:
   workflow_dispatch:
     inputs:
@@ -68,20 +72,23 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
+      # The version decides whether a run on a release branch is a patch, the one release that skips these checks.
       - name: This month's dependency updates are done
         env:
           DRY_RUN: ${{ inputs.dry_run }}
+          VERSION: ${{ inputs.version }}
         run: |
           if [ "$DRY_RUN" = true ]; then set -- --dry-run; fi
-          node scripts/deps/due.mjs --release "$@"
+          node scripts/deps/due.mjs --release --version "$VERSION" "$@"
       - name: No security alert in shipped code is past its 7 days
         if: ${{ !cancelled() }}
         env:
           DRY_RUN: ${{ inputs.dry_run }}
+          VERSION: ${{ inputs.version }}
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ "$DRY_RUN" = true ]; then set -- --dry-run; fi
-          node scripts/deps/security.mjs --release "$@"
+          node scripts/deps/security.mjs --release --version "$VERSION" "$@"
 
   preflight:
     name: "1. The commit, the version and the checks"
@@ -98,19 +105,28 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The break scan reads the history and the tags since the previous release.
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - name: The commit is the tip of its branch, and a real run is on main or a release branch
+      # The tag lands on the release's own branch, never on main (adr-0194); a dry run may run anywhere. An alpha or a
+      # release candidate is a step towards its final version, so it runs on that version's branch: 0.1.0-rc.1 on
+      # release/v0.1.0.
+      - name: The commit is the tip of its branch, and a real run is on the release's own branch
         env:
           DRY_RUN: ${{ inputs.dry_run }}
+          VERSION: ${{ inputs.version }}
         run: |
           if [[ "$GITHUB_REF" != refs/heads/* ]]; then
             echo "::error::Release runs on a branch, not $GITHUB_REF."
             exit 1
           fi
-          if [ "$DRY_RUN" != true ] && [ "$GITHUB_REF" != refs/heads/main ] && [[ "$GITHUB_REF" != refs/heads/release/* ]]; then
-            echo "::error::A release is made from main, or a patch from its release branch, not $GITHUB_REF_NAME: run it there, or run this as a dry run."
+          version="${VERSION#v}"
+          branch="release/v${version%%-*}"
+          if [ "$DRY_RUN" != true ] && [ "$GITHUB_REF" != "refs/heads/$branch" ]; then
+            echo "::error::Version $version is released only from its version's branch, $branch, not $GITHUB_REF_NAME. Run it there, or run this as a dry run."
             exit 1
           fi
           tip="$(git ls-remote origin "$GITHUB_REF" | cut -f1)"
@@ -134,6 +150,14 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
+      # Publish release makes the same scan at the tag, and opens the release notes with what it finds.
+      - name: Every break since the previous release is marked, and the version may carry it
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          node scripts/release/breaks.mjs --version "$VERSION" > "$RUNNER_TEMP/breaks.txt"
+          cat "$RUNNER_TEMP/breaks.txt"
+          { echo '### Breaking changes'; echo; cat "$RUNNER_TEMP/breaks.txt"; } >> "$GITHUB_STEP_SUMMARY"
       # A released flag lives for one minor release (adr-0172); Publish release makes the same check.
       - name: No released flag outlives its minor release
         env:

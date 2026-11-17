@@ -4759,7 +4759,7 @@ As an organisation admin, I want an agent I work with to make or change another 
 
 ## A task's files, the demo's entry and its last reset (added 2026-11-14)
 
-Written at the close of the unit *0.1.0-alpha.4*, from the finished code. A task's files are in a tab of its page and a result's paths open them (US-486, US-487), and the demo's entry says what entering agrees to and when it was last reset (US-488, US-489). A demo reset that fails is tried again soon (AC-477c in [`host.md`](host.md)), and Agenthix Cloud waits behind a flag until its service opens (US-490 in [`cross-cutting.md`](cross-cutting.md)).
+Written at the close of the unit *0.1.0-alpha.4*, from the finished code. A task's files are in a tab of its page and a result's paths open them (US-486, US-487), and the demo's entry says what entering agrees to and when it was last reset (US-488, US-489). A demo reset that fails is tried again soon (AC-477c in [`host.md`](host.md)), and Agenthix Cloud is behind a preview flag, off in a release (US-490 in [`cross-cutting.md`](cross-cutting.md)).
 
 ### US-486 — Find what a task's runs wrote, in the task's own tab
 
@@ -4826,7 +4826,7 @@ As an organisation admin, I want the providers, what agents can do and which mod
 
 **Acceptance criteria:**
 - AC-493a: Manage organisation › AI holds, in order, What agents can do, Your providers and Which models may run; Add a provider and Agenthix Cloud are in its header.
-- AC-493b: each provider is one line (name, kinds, runtime, state) that opens in place, one at a time; one that is not working stands out with its reason, and Agenthix Cloud before it opens stays quiet.
+- AC-493b: each provider is one line (name, kinds, runtime, state) that opens in place, one at a time; one that is not working stands out with its reason, and Agenthix Cloud, while it is not available to the organisation, stays quiet.
 - AC-493c: a link to a provider's line (an alert, a notification, Needs attention, Open its provider) opens that line on the AI page.
 - AC-493d: Which models may run is folded to its one line, and opens into the list editor.
 - AC-493e: the old addresses of Providers, Models and Web search open the AI page at their section, and a provider's link opens its line.

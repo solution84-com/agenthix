@@ -77,7 +77,7 @@ The Fleet Console has no accounts and no authority of its own: a fleet admin sig
 
 ## Agenthix Cloud
 
-*(Changed 2026-11-14: Agenthix Cloud is behind the `cloud` flag, at preview, until its service opens (ADR-0189, **SC-2128**); everything here holds only while the flag is on, and with it off the part says nothing of Cloud and refuses what asks for it: see **SC-2133**.)*
+*(Changed 2026-11-14: Agenthix Cloud is behind the `cloud` flag, at preview and off in a release (ADR-0189, **SC-2128**); everything here holds only while the flag is on, and with it off the part says nothing of Cloud and refuses what asks for it: see **SC-2133**.)*
 
 - **SC-1068** — On a machine Cloud runs, remote access listens with the certificate chain Cloud had issued for the key made on the machine (the key kept readable by its owner only and never leaving it), announced with its end and the addresses it admits; a connection from an address outside the allow list is closed before any TLS; a certificate for another key, for another name, or that ends before remote access would is refused; asked again while on, it replaces all of it, also on the same port; a new request makes a new key while the key in use serves until a certificate for the new one arrives; off stops it now. · fulfils AC-336a, AC-336b · tests `console/src/__tests__/remoteAccess.test.ts`
 - **SC-1069** — Remote access ends by itself at its end, ending what came through it, and after a restart comes back until its end and not after it. · fulfils AC-336a · tests `console/src/__tests__/remoteAccess.test.ts`

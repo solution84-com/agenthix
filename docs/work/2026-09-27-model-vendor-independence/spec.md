@@ -841,8 +841,8 @@ can reach. The turn's provider key was the most costly thing within reach — of
 outside Agenthix. So model requests go through the site's model relay (§6), on OpenCode and on Claude
 with an API key, and no model key enters the container: a harness holds only secrets scoped to
 Agenthix — its server's password, its key to the site, and a relay token that works only from its
-container, for its turn. A Claude subscription cannot be kept out: Anthropic's terms forbid a relay
-holding it (§6).
+container, for its turn. A Claude subscription cannot be kept out: the relay does not hold one, since
+Anthropic's terms say a product may not "collect, store, or intermediate" its credentials (§6).
 
 **At every OpenCode upgrade** — alongside the checks adr-0080 and adr-0081 require and the model list
 (§6):
@@ -960,8 +960,8 @@ adds 250–550 MB.
   to say which address to give.
 - **The relay sets no deadline** of its own below OpenCode's 300 s wait for the next streamed chunk, so a
   stalled provider holds a request that long.
-- **Stored and org-shared Claude subscriptions** may not be permitted by Anthropic's terms (blocks
-  release).
+- **Stored and org-shared Claude subscriptions**: whether Anthropic's terms permit them is Anthropic's
+  question to answer, asked in writing; the answer is recorded when it comes.
 - **An allow decided after the plugin's own deadline** is recorded as allowed although the plugin refused
   the call, so the audit row can overstate what ran.
 - **After a site restart**, processes in a container the site took over live until the container is

@@ -40,9 +40,9 @@ schedule work, so a schedule can't be used to get around these limits.
 A project's **Automation** tool shows what runs now and what will start later. Its **Rules** view shows the project's
 limits beside the organisation's, chain depth among them.
 
-![A project's Automation tool: what runs now, and what will start later](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/automation-overview.png)
+![A project's Automation tool: what runs now, and what will start later](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/automation-overview.png)
 
-![The Rules view of a project's Automation tool: its limits beside the organisation's](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/automation-rules.png)
+![The Rules view of a project's Automation tool: its limits beside the organisation's](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/automation-rules.png)
 
 ## How long a run may last
 

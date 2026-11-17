@@ -155,4 +155,25 @@ describe('a use_tool call in a turn @SC-2175', () => {
     expect(unwrapUseTool(plain)).toBe(plain)
     expect(calledName(plain)).toBe('list_tasks')
   })
+
+  it('reads the named tool\'s input when it is sent as JSON text, and the reason beside it', () => {
+    const read = unwrapUseTool(useTool('list_boards', '{"projectId":"p1"}', { reason: 'to look' }))
+    expect(read.input).toEqual({ projectId: 'p1', reason: 'to look' })
+  })
+
+  it('keeps input that is neither an object nor JSON text for one, so it is never run as {}', () => {
+    for (const bad of ['not json', '[1]', '"text"', 7, ['a']]) {
+      expect(unwrapUseTool(useTool('list_boards', bad)).input).toBe(bad)
+    }
+    expect(unwrapUseTool(useTool('list_boards', undefined)).input).toEqual({})
+  })
+
+  it('runs a tool whose fields are all optional with the input sent as JSON text, and refuses input that is no object', async () => {
+    await adapter.call(turnCapability(), useTool('add_comment', '{"taskId":"t1","content":"Approved"}'), options())
+    expect(call).toHaveBeenCalledWith('add_comment', expect.anything(), { taskId: 't1', content: 'Approved' })
+    call.mockClear()
+    const outcome = await adapter.call(turnCapability(), useTool('add_comment', 'not json'), options())
+    expect(outcome).toMatchObject({ status: 'refused', reason: expect.stringMatching(/^The input does not fit add_comment/) })
+    expect(call).not.toHaveBeenCalled()
+  })
 })

@@ -17,7 +17,7 @@ export const docker = async (...args: string[]): Promise<string> => (await run('
 /** The stand-in Anthropic API (fixtures/standinAnthropic.mjs), its log and every request body in `dir`. */
 export async function startStandinAnthropic(dir: string): Promise<{ port: string; child: ChildProcess }> {
   const child = spawn('node', [fileURLToPath(new URL('./fixtures/standinAnthropic.mjs', import.meta.url))], {
-    env: { ...process.env, PORT: '0', LOG: path.join(dir, 'anthropic.jsonl'), BODY_LOG: path.join(dir, 'bodies.jsonl') },
+    env: { ...process.env, PORT: '0', HOST: '0.0.0.0', LOG: path.join(dir, 'anthropic.jsonl'), BODY_LOG: path.join(dir, 'bodies.jsonl') },
     stdio: ['ignore', 'pipe', 'ignore'],
   })
   const port = await new Promise<string>((resolve, reject) => {

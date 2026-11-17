@@ -70,6 +70,10 @@ export type FakeMachine = {
   consoleLocalJoin: { code: string | null }
   /** What the Fleet Console's `handover-code` and `handover-status` print inside its container; a missing one fails. */
   consoleAnswers: Record<string, unknown>
+  /** What the agent image's launcher prints for `--abi` (the kernel's Landlock ABI), and its exit code; 8 by default. */
+  landlock: { stdout: string; code: number }
+  /** What `docker info` says of the system and kernel the containers run on. */
+  system: { operatingSystem: string; kernel: string }
   cleanup: () => void
 }
 
@@ -96,6 +100,8 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
   const siteReport: FakeMachine['siteReport'] = { value: null }
   const consoleLocalJoin: FakeMachine['consoleLocalJoin'] = { code: null }
   const consoleAnswers: FakeMachine['consoleAnswers'] = {}
+  const landlock: FakeMachine['landlock'] = { stdout: '8\n', code: 0 }
+  const system: FakeMachine['system'] = { operatingSystem: 'Debian GNU/Linux 13 (trixie)', kernel: '6.12.48+deb13-amd64' }
   const volumes: string[] = []
   const images: string[] = []
   const imagesInUse = new Set<string>()
@@ -138,6 +144,8 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
     if (args[0] === 'image') return missingImages.has(args[args.length - 1]) ? { code: 1, stdout: '', stderr: 'No such image' } : ok('sha256:1')
     if (args[0] === 'pull') return missingImages.has(args[args.length - 1]) ? { code: 1, stdout: '', stderr: 'not found' } : ok()
     if (args[0] === 'version') return ok('29.0.0\n')
+    if (args[0] === 'info') return ok(`${system.operatingSystem}\t${system.kernel}\n`)
+    if (args[0] === 'run' && args[args.length - 1] === '--abi') return { code: landlock.code, stdout: landlock.stdout, stderr: '' }
     if (args[0] === 'compose') {
       const project = args[args.indexOf('-p') + 1]
       const role = project.endsWith('-hq') ? 'hq' : 'site'
@@ -266,7 +274,7 @@ export function fakeMachine(ns = 'agenthix'): FakeMachine {
     // Never the real registry: a test that wants an answer gives its own.
     registryPlatformDigest: async () => null,
   }
-  return { ctx, calls, dir, hq, up, missingImages, signatures, checked, caddyRefuses, backups, tags, registryDown, agentContainers, agentNetworks, dockerNetworks, machineContainers, heldPorts, containerEnvs, siteReport, containers, consoleLocalJoin, consoleAnswers, volumes, images, imagesInUse, dockerFails, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
+  return { ctx, calls, dir, hq, up, missingImages, signatures, checked, caddyRefuses, backups, tags, registryDown, agentContainers, agentNetworks, dockerNetworks, machineContainers, heldPorts, containerEnvs, siteReport, containers, consoleLocalJoin, consoleAnswers, landlock, system, volumes, images, imagesInUse, dockerFails, cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) }
 }
 
 /** A digest that stands in for an image's, the same for the same name. */

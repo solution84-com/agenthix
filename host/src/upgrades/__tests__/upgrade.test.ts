@@ -13,6 +13,7 @@ import type { HqStatusData } from '../../hq/control'
 import { finishUnderWay, upgrade } from '../upgrade'
 import { readUpgrades, writeUpgrades } from '../settings'
 import '../operations'
+import { KERNEL_STEP } from '../../install/landlock'
 
 const REGISTRY = 'ghcr.io/solution84-com'
 const tagged = (part: string, v: string) => `${REGISTRY}/agenthix-${part}:${v}`
@@ -70,7 +71,7 @@ describe('an upgrade of HQ and its site @SC-835', () => {
     const outcome = await upgrade(m.ctx, 'hq', '0.2.1', p => { if (p.event === 'step') steps.push(p.step) })
     expect(outcome).toEqual({ version: '0.2.1', rolledBack: false })
     expect(steps).toEqual([
-      'Checking the images are signed by Agenthix', 'Pulling HQ 0.2.1 and its site', 'Stopping HQ and its site',
+      'Checking the images are signed by Agenthix', 'Pulling HQ 0.2.1 and its site', KERNEL_STEP, 'Stopping HQ and its site',
       'Taking a sealed backup', 'Starting 0.2.1', 'Health check',
     ])
     expect(m.checked.map(c => c[0])).toEqual(['hq-server', 'hq-web', 'relay', 'site-server', 'agent', 'executor', 'console'].map(p => tagged(p, '0.2.1')))

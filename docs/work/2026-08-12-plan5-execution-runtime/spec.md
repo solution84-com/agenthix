@@ -183,8 +183,8 @@ a single `primaryWorkspaceId`.
 ## C. Storage inventory
 
 Host paths are keyed by immutable id so a rename never moves a directory; container paths
-use slugs so the agent can be told about them. Production values shown — host root
-`/docker/agenthix/site` (`AGENT_SITE_PATH`, what the Docker daemon resolves), container
+use slugs so the agent can be told about them. Example values shown — host root
+`<host-root>/site` (`AGENT_SITE_PATH`, what the Docker daemon resolves), container
 root `/site` (`SITE_ROOT`, the server's own view).
 
 **Every row is a whole bind mount.** `.private/` is *not* a mount — it is a subdirectory

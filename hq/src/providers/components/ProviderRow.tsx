@@ -34,7 +34,7 @@ export function rowSummary(p: ProviderCardProvider): string {
  */
 export function ProviderRow({ provider: p, open, onToggle, children, aside, current, frame = 'border-border' }: ProviderRowProps) {
   const works = p.state === 'works'
-  // Agenthix Cloud before it opens is a fact, not a fault: its line stays quiet.
+  // Agenthix Cloud not available to the organisation is a fact, not a fault: its line stays quiet.
   const quiet = works || p.state === 'not_available'
   const panel = `${providerAnchor(p.id)}-details`
   const summary = rowSummary(p)

@@ -14,10 +14,10 @@ Thank you for wanting to help. Bug reports, fixes, documentation and ideas are a
   discussion with the idea, or a draft pull request that shows it — and the maintainers take it over as planned work,
   crediting you.
 - **The licence.** Agenthix is source-available under the Elastic License 2.0, with an additional permission;
-  [`LICENSING.md`](../LICENSING.md) says what that means. Your contributions are part of Agenthix under the same
+  [`LICENSING.md`](LICENSING.md) says what that means. Your contributions are part of Agenthix under the same
   licence.
 - **The contributor agreement.** Before your first pull request can be merged, you agree to the
-  [contributor licence agreement](../CLA.md), once. It lets Solution84 use your contribution in Agenthix Cloud and in
+  [contributor licence agreement](CLA.md), once. It lets Solution84 use your contribution in Agenthix Cloud and in
   paid features, which the Elastic License alone does not; you keep the copyright in what you wrote. On your first pull
   request, the check **Contributor licence agreement** comments with the sentence to reply with; reply with it once,
   and the check passes then and on your later pull requests.
@@ -45,6 +45,10 @@ hq/scripts/install.sh                      # hq, Wasp's own packages and the cod
 Wasp generates, which a fresh clone does not have yet, so hq is installed with its script rather than by hand: a plain
 `npm install` in hq before that code exists drops them from the lockfile.
 
+The hooks refuse a commit message that credits an AI assistant as an author, and a push that would publish a draft
+design, planning, or text the [writing-in-public](.agents/skills/writing-in-public/SKILL.md) rules forbid, such as a
+reference to a private issue (the patterns are in `.githooks/public-text-patterns`); `git push --no-verify` overrides.
+
 Then start the site and HQ, each in its own terminal:
 
 ```sh
@@ -56,9 +60,9 @@ Run Wasp as `npx wasp`, from `hq/`: it is pinned in hq's dependencies, so no glo
 
 ## How the code is arranged
 
-Read [`AGENTS.md`](../AGENTS.md) first: it holds the conventions every change follows, and points to each module's
+Read [`AGENTS.md`](AGENTS.md) first: it holds the conventions every change follows, and points to each module's
 own `AGENTS.md`. The architecture is explained, for someone new to it, in
-[`docs/architecture/`](architecture/README.md).
+[`docs/architecture/`](docs/architecture/README.md).
 
 | Folder | What it is |
 |---|---|
@@ -66,7 +70,7 @@ own `AGENTS.md`. The architecture is explained, for someone new to it, in
 | `site/` | The Execution Site — runs agents in containers |
 | `core/` | Types and the protocol HQ and sites share |
 | `ui/` | The shared component library |
-| `docs/` | Architecture, concepts, decision records, the QA contract, and the [user guide](guide/README.md) |
+| `docs/` | Architecture, concepts, decision records, the QA contract, and the [user guide](docs/guide/README.md) |
 
 ## Making a change
 
@@ -86,19 +90,25 @@ own `AGENTS.md`. The architecture is explained, for someone new to it, in
 
    `core` must be built first (`cd core && npm run build`) for every module but `core` itself; `ui` is checked with hq's
    installed React linked into `ui/node_modules`, as the *Link hq's React into ui* step of
-   [`.github/workflows/checks.yml`](../.github/workflows/checks.yml) does. Each module's `AGENTS.md` has its details.
+   [`.github/workflows/checks.yml`](.github/workflows/checks.yml) does. Each module's `AGENTS.md` has its details.
 
    In `hq/`, a bare `npx tsc --noEmit` checks nothing; use `npm run typecheck`.
-3. **If your change alters what people see or do**, update the [user guide](guide/README.md) in the same pull
+3. **If your change alters what people see or do**, update the [user guide](docs/guide/README.md) in the same pull
    request, and its screenshot recipes if a screen changed.
 4. **Title the pull request** in the form `type(area): what changed`, for example
    `fix(site): a run that times out says so`. It lands on `main` as one commit — the title is its message, the
    description its body, and you its author — so your branch's own commits can be as many and as rough as you
    like.
+5. **If your change breaks something an installation relies on** — it removes a core export, an `agenthix` command
+   or option, a `host.env` setting or a name an installation creates, moves a protocol's major or a stored format's
+   number, or has a migration that drops or narrows a column — mark the title `type(area)!: what changed` and end the
+   description with a footer saying what an installation must do: `BREAKING CHANGE: <what to do>`. A release finds
+   every such break and refuses one that no marked commit explains; the footer's words open its release notes
+   ([versioning](docs/architecture/versioning.md#breaking-changes)).
 
 ## The changelog
 
-[`CHANGELOG.md`](../CHANGELOG.md) lists what people who use or run Agenthix will notice. **A change that a user or
+[`CHANGELOG.md`](CHANGELOG.md) lists what people who use or run Agenthix will notice. **A change that a user or
 operator notices adds one line under *Unreleased*** in the same pull request, in the section that fits (Added,
 Changed, Deprecated, Removed, Fixed or Security), in plain words about what they get, with no commit hashes. A
 refactor, a test or a change to the repository's own tooling needs no entry. A security entry says only what is now
@@ -106,6 +116,7 @@ enforced.
 
 ## Pull requests
 
+- Open every pull request against `main`. The `release/…` branches are the maintainers', for preparing a release.
 - One purpose per pull request, with a description of what changed and why, and how you checked it.
 - If a user or operator would notice the change, add a line to the changelog (see above).
 - Run the checks in *Making a change* for every module you touched before you open it. The same checks run on every
@@ -117,11 +128,11 @@ enforced.
 
 Your commits keep your name. If a maintainer carries your work on — a larger change you started — their commits name
 you with `Co-authored-by:`. If your change includes anything you did not write, say where it comes from and its
-licence in the pull request; it is listed in [`LICENSING.md`](../LICENSING.md).
+licence in the pull request; it is listed in [`LICENSING.md`](LICENSING.md).
 
 ## Conduct
 
-Everyone taking part follows the [code of conduct](../CODE_OF_CONDUCT.md). Report a problem to conduct@agenthix.com,
+Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md). Report a problem to conduct@agenthix.com,
 not in a public issue.
 
 ## Reporting a security problem

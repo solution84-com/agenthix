@@ -22,6 +22,7 @@ import { deliverLeaving, leaveOutcome, noteLeaving, type Post } from './leaving'
 import { awaitJoinedRestore, takePrepared } from '../backups/joinedRestore'
 import { refuseWhereSomethingRuns } from '../backups/restore'
 import type { RestoredSite } from '../backups/siteRestore'
+import { joiningAgentImage, kernelStep } from '../install/landlock'
 
 export type ConnectResult = {
   machine: string
@@ -108,6 +109,9 @@ export async function connectConsole(
   const code = normalizeJoinCode(rawCode)
   if (!code) throw new Refusal('malformed', `That is not a code: a code is twelve letters and digits, as the Fleet Console shows it. ${NEW_CODE}`)
   if (joining) throw new Refusal('busy', `${machine} is already connecting to a Fleet Console. Wait for it to finish, or stop it.`)
+  // Before the machine is offered to a Fleet Console, and before a restore prepared for the code is taken: a machine
+  // whose kernel cannot contain agents' commands takes no site.
+  await kernelStep(ctx, progress, await joiningAgentImage(ctx), 'connect')
   // A restore prepared for this code (`restore --from … <code>`): the machine joins saying which backup it restores.
   const restoring = takePrepared(ctx, code)
   if (restoring) refuseWhereSomethingRuns(ctx)
@@ -208,7 +212,7 @@ export async function forgetConsole(ctx: Context): Promise<{ siteName: string | 
   ctx.link?.stop()
   const site = installed(ctx).site
   if (!site?.settings.hqUrl) return { siteName: null }
-  await ctx.docker.composeStop(site.project, site.file).catch(() => {})
+  await ctx.docker.stopSite(site, ctx.names.agentsProject).catch(() => {})
   return { siteName: site.settings.name }
 }
 

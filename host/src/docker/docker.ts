@@ -10,6 +10,7 @@ import { DockerRemoval } from './removal'
 import { CONTAINER_FORMAT, parseContainerInspect, type MachineContainer } from './machineContainers'
 import { mountArg } from './mountArg'
 import { publishArgs, readPublishProbe } from './publishProbe'
+import { dockerSystem, probeLandlock, type DockerSystem } from './landlockProbe'
 
 export type RunResult = { code: number; stdout: string; stderr: string }
 
@@ -92,6 +93,16 @@ export class Docker {
     if (networks.length) await this.ok(['network', 'rm', ...networks], { timeoutMs: 2 * 60_000 })
   }
 
+  /**
+   * Stops a site that stays down — suspended, stopped, or its Fleet Console gone — and takes down the agents it
+   * started: an agent's idle timer is its site's, so nothing ends one while the site is stopped. An upgrade's stop
+   * keeps them, since its site comes back to them.
+   */
+  async stopSite(site: { project: string; file: string }, agentsProject: string): Promise<void> {
+    await this.composeStop(site.project, site.file)
+    await this.removeGroup(agentsProject)
+  }
+
   /** Every network on the machine, with its IPv4 subnets (compose/subnets.ts). */
   async networks(): Promise<DockerNetwork[]> {
     const names = (await this.ok(['network', 'ls', '--format', '{{.Name}}'], { timeoutMs: 60_000 }))
@@ -126,6 +137,16 @@ export class Docker {
       this.images.set(hostContainer, image)
     }
     return readPublishProbe(await this.run(publishArgs(image, port, bind), { timeoutMs: 60_000 }))
+  }
+
+  /** The kernel's Landlock ABI, from a container of the agent image (`landlockProbe.ts`); null when unread. */
+  landlockAbi(image: string, name: string): Promise<number | null> {
+    return probeLandlock(this.run, image, name)
+  }
+
+  /** The system and kernel Docker runs containers on; null when Docker does not say. */
+  system(): Promise<DockerSystem | null> {
+    return dockerSystem(this.run)
   }
 
   async composeLogs(project: string, file: string, tail: number, service?: string, since?: string): Promise<string> {

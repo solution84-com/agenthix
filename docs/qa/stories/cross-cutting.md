@@ -1,7 +1,7 @@
 ---
 name: User Stories — cross-cutting
 description: Business-level requirements that span more than one module. Each story maps to acceptance criteria in multiple modules' scenarios files.
-updated: 2026-11-14
+updated: 2026-11-17
 ---
 
 # User Stories — cross-cutting
@@ -259,11 +259,11 @@ As the person who installs Agenthix for an organisation, I want everything the d
 
 ## Agenthix Cloud waits behind a flag (added 2026-11-14)
 
-Written at the close of the unit *0.1.0-alpha.4*, from the finished code (ADR-0189, which supersedes ADR-0130). A release ships before Agenthix Cloud's service opens, so every part that offers or uses it is behind one flag at preview.
+Written at the close of the unit *0.1.0-alpha.4*, from the finished code (ADR-0189, which supersedes ADR-0130). Agenthix Cloud's parts are behind the preview flag `cloud`, off in a release.
 
-### US-490 — Be offered no service that has not opened
+### US-490 — Be offered nothing of Agenthix Cloud while its flag is off
 
-As the person who installs Agenthix for an organisation, I want a release to offer, name and call nothing of Agenthix Cloud until its service opens, so that no one in my organisation is shown a service they cannot use.
+As the person who installs Agenthix for an organisation, I want a release to offer, name and call nothing of Agenthix Cloud while its flag is off, so that no one in my organisation is shown a part the release has not turned on.
 
 **Acceptance criteria:**
 - AC-490a: one flag, `cloud`, holds Agenthix Cloud back in every part; at preview it is off in a released build whatever an organisation's switch says, and on in development.
@@ -293,7 +293,7 @@ Written on 2026-11-15 from the finished code at the close of the dependency-upda
 **Acceptance criteria:**
 - AC-496a: a change that breaks a dependency rule — an exact version off the allowed list, a switched-off peer check, two versions of TypeScript, esbuild or Prisma, Node's types off Node's major, TypeScript's range wider than patches, an outside image without a digest — fails Checks, naming the module, the file and the rule.
 - AC-496b: the month's minor and patch updates are made together, within each package's ranges, moving only lockfiles, digests and action commits, and reach main only once Checks pass on them.
-- AC-496c: *Retired 2026-11-15*: Release no longer starts the updates on GitHub; the monthly dependency updates are made on the dev machine (AC-496f).
+- ~~AC-496c: Release starts the monthly dependency updates on GitHub.~~ *(Retired 2026-11-15 — Release no longer starts the updates on GitHub; the monthly dependency updates are made on the dev machine, AC-496f)*
 - AC-496d: every install, in CI, the images and a new checkout, installs exactly the committed lockfile, and CI fails when one changes it.
 - AC-496e: a dev start stops when the branch is behind GitHub and installs a module whose lockfile changed, without pulling.
 - AC-496f: the repository itself says when the monthly dependency updates are due: from the 1st at every dev start and at the top of the full and affected regressions, and Release stops while the month isn't done (Checks does not enforce it); a dry run and a patch release never wait for them.

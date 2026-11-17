@@ -3,8 +3,8 @@ name: Guide screenshots
 # Captures the user guide's screenshots from the sample organisation and compares each with the one its page links, in
 # the release that holds it (hq/scripts/guide/compare.mjs). Called twice by Release (release.yml): first for the
 # commit it starts from, whose set the pin step reads (docs/guide/README.md), then by Release build (release-build.yml)
-# for the commit it proves, which release-build also calls for every push to a release branch and every run of it by
-# hand, so the screenshots are part of the release bar before the tag. Such a run keeps the release set, from which
+# for the commit it proves, which release-build also calls for every run of it by hand, so the screenshots are part of
+# the release bar before the tag. Such a run keeps the release set, from which
 # Publish release (publish-images.yml) attaches to the tag's release the screenshots the pages link to that tag. The tag
 # captures nothing. Also a run by hand on any branch. main and pull requests do not run it.
 on:
@@ -108,12 +108,12 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      # The set a tag on this commit takes its screenshots from: from a release build started by hand or on a release
-      # branch, and only when it all passed.
+      # The set a tag on this commit takes its screenshots from: from a release build, by hand or called by Release, and
+      # only when it all passed.
       - name: Keep the release set
         # A run called for a commit (by Release or the release build) keeps it whatever started its caller: a called
         # workflow sees its caller's event.
-        if: (startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch' || inputs.commit != '') && success()
+        if: (github.event_name == 'workflow_dispatch' || inputs.commit != '') && success()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: guide-release-set

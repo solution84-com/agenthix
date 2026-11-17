@@ -28,7 +28,7 @@ Agents are stored as a top-level Firestore collection (`orgs/{orgId}/agents/{hqA
 The workspace path simplifies to:
 
 ```
-$AGENTHESIS_DEPLOY_ROOT/kernel/workspaces/<hqAgentId>/
+$AGENTHIX_DEPLOY_ROOT/kernel/workspaces/<hqAgentId>/
 ```
 
 No `/<projectId>/` subdirectory is needed — the board binding already implies the project. The workspace is the agent's permanent home for that board's work.

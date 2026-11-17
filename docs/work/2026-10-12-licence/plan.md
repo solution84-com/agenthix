@@ -18,8 +18,8 @@ it, the contributing guide, a bug-report template, and the old issue links. The 
 repository *settings* — the agreement check, Discussions, branch protection — move to the clean public repository,
 because settings do not travel with the code.
 **Out of scope:** the
-website's licence page — the website's, from the summary written here; the hosted service's own terms and Anthropic's
-commercial terms for it — decided at product line level, outside this repository; trademark registration and policy —
+website's licence page — the website's, from the summary written here; a hosted service's own terms, outside this
+repository; trademark registration and policy —
 the business's.
 
 ## Approach
@@ -27,8 +27,7 @@ the business's.
 **The choice is made, so the work is applying it.** The owner chose ELv2 on 2026-10-12, from a comparison of the
 source-available licences against the direction set on 2026-10-08: self-hosting free for any organisation's own use,
 companies included; offering Agenthix to others as a hosted or managed service, or reselling it, forbidden; an agency
-may run a client's own instance. ELv2's restriction is almost that direction in its own words, it never expires, and
-its licence-key clause protects paid features kept in the same code. The owner will decide later, case by case,
+may run a client's own instance. ELv2's restriction is almost that direction in its own words, and it never expires. The owner will decide later, case by case,
 whether anything becomes open source.
 
 **One licence for everything, `core` included.** `core` is MIT today; the owner keeps it consistent with the rest, so
@@ -38,7 +37,7 @@ the protocol between HQ and its sites carries the same terms.
 instance for a fee. `LICENSING.md` carries an additional permission that allows it, with a plain summary of what the
 licence allows and forbids. ELv2's text in `LICENSE` stays verbatim, so it is recognisable to anyone who knows it.
 
-**Reviewed by a lawyer once Agenthix earns revenue** — the owner's call, 2026-10-12. The notice, the additional
+**Reviewed by a lawyer later** — the owner's call, 2026-10-12. The notice, the additional
 permission and the agreement contributors sign are drafted here and published as they are; the review is queued as an
 issue, not a release blocker.
 
@@ -76,7 +75,7 @@ One phase, 16 tasks.
 - [x] 4. The README: "source-available" in place of "open-source", and a short licence section
 - [x] 5. The unused `@anthropic-ai/claude-agent-sdk` removed from hq, which brings in an LGPL library
 - [x] 6. Private places removed from the public issues that name them
-- [x] 7. An issue: a lawyer reviews the notice, the additional permission and the contributor agreement once Agenthix earns revenue
+- [x] 7. An issue: a lawyer reviews the notice, the additional permission and the contributor agreement
 - [x] 8. The website's licence page handed over: the summary and the worked examples, where the website plans its work
 - [x] 9. The licence choice recorded at product line level, and its open decision closed
 - [x] 10. The contributor agreement, for individuals and for companies, granting rights to Solution84 and its successors and assigns
@@ -91,7 +90,7 @@ One phase, 16 tasks.
 
 | What changed | Why |
 |---|---|
-| The lawyer's review is an ordinary issue, not a release blocker | The owner's call: review once Agenthix earns revenue |
+| The lawyer's review is an ordinary issue, not a release blocker | The owner's call: the review comes later |
 | *Ready for outside users and contributors* folded into this unit: tasks 10–16 | The owner's call: the contributor agreement belongs with the licence, and the work is small |
 | The pull-request checks (task 13) taken out of this unit and moved to the clean public repository | The owner's call, 2026-10-12: on GitHub's clean machines, 26 hq unit tests and 3 hq integration tests fail that pass locally, and fixing them is not licence work. The workflow, with a fix that installs the OpenCode plugin's packages, is kept for the clean public repository. There is no linter to run; adding one is its own issue |
 | The agreement check (task 11) is the CLA Assistant GitHub App (cla-assistant.io), set up in the clean public repository, not a workflow | The workflow action for it is archived; the App is maintained and is a repository setting, and settings do not travel with the code |

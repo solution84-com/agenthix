@@ -67,7 +67,7 @@ Then the owner walks it.
 
 ### How the work is carried out
 
-- **Lanes** (`running-lanes`): one purpose, one agent, one branch and worktree each, briefed from this plan and the
+- **Lanes**: one purpose, one agent, one branch and worktree each, briefed from this plan and the
   spec. Each lane lands as one commit onto the unit's branch, one at a time.
 - **Order:**
   1. Lane A, the shared pieces, and lane D, the run path, start together.

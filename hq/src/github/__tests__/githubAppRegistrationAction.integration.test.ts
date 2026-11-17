@@ -63,9 +63,9 @@ describe('startGithubAppRegistration (R-166) @SC-1307', () => {
 
   it('refuses an organisation GitHub does not know, or that is a person, before leaving HQ (400)', async () => {
     githubSays(404, {})
-    await expect(startGithubAppRegistration({ owner: 'organisation', org: 'solution84-tst' }, ctx())).rejects.toMatchObject({ statusCode: 400, message: expect.stringMatching(/no organisation called "solution84-tst"/) })
+    await expect(startGithubAppRegistration({ owner: 'organisation', org: 'example-tst' }, ctx())).rejects.toMatchObject({ statusCode: 400, message: expect.stringMatching(/no organisation called "example-tst"/) })
     githubSays(200, { type: 'User' })
-    await expect(startGithubAppRegistration({ owner: 'organisation', org: 'lhengl' }, ctx())).rejects.toMatchObject({ statusCode: 400, message: expect.stringMatching(/person's GitHub account/) })
+    await expect(startGithubAppRegistration({ owner: 'organisation', org: 'avery-chen' }, ctx())).rejects.toMatchObject({ statusCode: 400, message: expect.stringMatching(/person's GitHub account/) })
   })
 
   it('goes on when GitHub cannot be asked, leaving the check to GitHub\'s own page', async () => {

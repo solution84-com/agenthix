@@ -3,10 +3,13 @@
 // writes the month it ran into scripts/deps/taken.json; a month is done when that is the current month, due from the
 // 1st of a month that is not, and overdue from the 8th. One clock: the current month in Australia/Sydney, wherever
 // this runs, so the dev machine and GitHub's runners (UTC) agree on when the 1st is.
-//   node scripts/deps/due.mjs --line                 one line when due or overdue, nothing when done; always exits 0
-//   node scripts/deps/due.mjs --release [--dry-run]  Release's stage 0: fails while the month is not done
-// A release branch (a patch), and a pull request into one, are never failed, and a dry run of Release is not stopped.
-// For tests: DEPS_NOW (an ISO time) and DEPS_TAKEN_FILE.
+//   node scripts/deps/due.mjs --line                                   one line when due or overdue, nothing when
+//                                                                      done; always exits 0
+//   node scripts/deps/due.mjs --release --version <version> [--dry-run]  Release's stage 0: fails while the month is
+//                                                                      not done
+// Every release is cut on its own release branch (adr-0194). A major or minor is checked wherever it is cut; only a
+// patch version on a release branch (GITHUB_REF), which holds fixes only, is not, and a dry run of Release is not
+// stopped. For tests: DEPS_NOW (an ISO time) and DEPS_TAKEN_FILE.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -46,9 +49,21 @@ export function lineFor({ state, name }) {
   return ''
 }
 
-/** A patch on a release branch, or a pull request into one, is never held up by the month. */
-export function exempt(env) {
-  return (env.GITHUB_REF ?? '').startsWith('refs/heads/release/') || (env.GITHUB_BASE_REF ?? '').startsWith('release/')
+/** A patch version: x.y.z with z above 0, or a pre-release of one, as Release's stage 1 accepts versions. */
+export function isPatch(version) {
+  const m = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-(alpha|beta|rc)\.\d+)?$/.exec(version ?? '')
+  return m !== null && m[3] !== '0'
+}
+
+/** A patch version released from a release branch, the one release the gate is skipped for. */
+export function patchOnReleaseBranch(version, ref) {
+  return isPatch(version) && (ref ?? '').startsWith('refs/heads/release/')
+}
+
+/** The value given after `--version`, or null. */
+export function versionArg(args) {
+  const i = args.indexOf('--version')
+  return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : null
 }
 
 export function releaseProblem(due, { dryRun, exempt: isExempt }) {
@@ -79,17 +94,22 @@ function main() {
     return 0
   }
   if (args.includes('--release')) {
+    const version = versionArg(args)
+    if (!version) {
+      console.error('--release needs --version <version>: only a patch version on a release branch skips the check.')
+      return 2
+    }
     const dryRun = args.includes('--dry-run')
-    const problem = releaseProblem(due, { dryRun, exempt: exempt(process.env) })
+    const problem = releaseProblem(due, { dryRun, exempt: patchOnReleaseBranch(version, process.env.GITHUB_REF) })
     if (problem) {
       console.error(actions ? `::error::${problem}` : problem)
       return 1
     }
-    if (due.state !== 'done') console.log('The monthly dependency updates are not checked: a dry run, or a patch on a release branch.')
+    if (due.state !== 'done') console.log(`The monthly dependency updates are not checked: a dry run, or ${version}, a patch on a release branch.`)
     else console.log(`Dependency updates for ${due.name} are done.`)
     return 0
   }
-  console.error('Usage: node scripts/deps/due.mjs --line | --release [--dry-run]')
+  console.error('Usage: node scripts/deps/due.mjs --line | --release --version <version> [--dry-run]')
   return 2
 }
 

@@ -13,7 +13,7 @@ the admin area. Under your own name it has **Your settings** and **Sign out**.
 
 At the top is the organisation's identity: its name, its @handle, its vision and its mission. Agents read the vision and mission to understand the direction. Administrators also have **Edit** and **Manage** here.
 
-![The Organisation page: its identity and the workplace](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/organisation-page.png)
+![The Organisation page: its identity and the workplace](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/organisation-page.png)
 
 Everyone sees **The workplace**, a card each for:
 

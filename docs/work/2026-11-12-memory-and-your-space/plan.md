@@ -44,7 +44,7 @@ menu, Settings and Overview, with what concerns other people left out. This touc
 runs beside the memory phases.
 
 **How the work is carried out.** Unattended, to the end (the owner's instruction, 12 Nov). The lead runs the phases
-with lane agents (`running-lanes`): each lane one purpose, its own worktree and branch cut from the unit's branch,
+with lane agents: each lane one purpose, its own worktree and branch cut from the unit's branch,
 merged by the lead one at a time as one commit rebased onto the head. The lead decides what can reasonably be
 decided and records it in the running report; a decision with no obvious answer is built the most conservative way
 and listed for the owner. A change of direction goes in *Deviations* and corrects the spec in place. Security,

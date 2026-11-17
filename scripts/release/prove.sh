@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The release rehearsal on this machine, for its own architecture: what the release build (release-build.yml) runs on
-# the release branch, except the registry and the other architecture.
+# The release rehearsal on this machine, for its own architecture: what the release build (release-build.yml) runs for
+# a release, except the registry and the other architecture.
 #   scripts/release/prove.sh [<part> ...]
 #   RELEASE_VERSION=0.3.0 scripts/release/prove.sh   names the version to be tagged, so the rehearsal also refuses while a
 #   flag released in an earlier minor release is still listed in core (scripts/release/flags-overdue.mjs, adr-0172).

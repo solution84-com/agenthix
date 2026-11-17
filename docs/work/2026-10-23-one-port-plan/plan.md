@@ -55,7 +55,7 @@ running, and only their stand-in model moves. The cross-app suite's fakes alread
 **Clean slate.** Nothing reads `namespace.json`, the console's old 4300 or the old defaults once this lands; an
 installation made before it is uninstalled and installed again (spec, *Versioning and old state*).
 
-**Lanes, merged by the lead.** Each phase runs as lanes (`running-lanes`): one purpose, one branch and worktree, one
+**Lanes, merged by the lead.** Each phase runs as lanes: one purpose, one branch and worktree, one
 agent each, merged into `feature/one-port-plan` by the lead one at a time, each squashed into one commit, rebased
 first and fast-forwarded. Phase 2's lanes run in sequence where they touch the same install path (2.1–2.3, then
 2.4–2.7) and beside it where they do not (2.8–2.9). The lead runs the suites lanes may not: the integration suites,

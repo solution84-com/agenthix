@@ -35,8 +35,7 @@ export type ClaudeStart = {
    * an API key or Agenthix Cloud, in a container (spec §6). The process is given a one-use
    * ticket at start (claudeKeyTickets.ts), which its `apiKeyHelper` trades
    * for a relay token; the key itself never enters the container. A
-   * subscription is never relayed: Anthropic's terms forbid a relay holding
-   * its credential, so it stays in the client.
+   * subscription is never relayed: its credential stays in the client.
    */
   relayed: boolean
 }

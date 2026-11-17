@@ -2035,16 +2035,13 @@ error when they run something. Derived from state each time, not stored.
 - **Status:** closed
 - **Resolution:** raised as its own issue
 
-Needed before a public release. Anthropic's legal page (fetched 2026-09-25) says a product may not
-"collect, store, or intermediate Claude.ai credentials or session tokens", and does not prevent "an end
-user from signing in to the unmodified Claude Code binary with their own Claude subscription, including
-where a platform hosts Claude Code". The design has the person sign in themselves on Anthropic's page,
-but hq stores the resulting login and relays the short authorization code. Enforcement is real: in 2026
-Anthropic blocked third-party clients using subscription tokens, clarified its terms in February, and its
-page ends with the right to enforce "without prior notice" and an invitation to contact sales. The
-question to ask should be specific: a self-hosted org where the person signs in through the unmodified
-binary and their own hq stores the login for their own use, in an org with one person for the org and
-project cases.
+Anthropic's legal page (fetched 2026-09-25) says a product may not "collect, store, or intermediate
+Claude.ai credentials or session tokens", and does not prevent "an end user from signing in to the
+unmodified Claude Code binary with their own Claude subscription, including where a platform hosts Claude
+Code". In the design the person signs in themselves on Anthropic's page; hq stores the resulting login and
+relays the short authorization code. The question, for Anthropic to answer: may a self-hosted organisation's
+own hq store the login a person made through the unmodified binary, for that person's own use — for an
+organisation of one person, and for a project shared with others? The answer is recorded when it comes.
 
 ### R-176 · A site hq no longer recognises is refused as if hq were down, and retries forever
 

@@ -18,6 +18,7 @@ import type { ConsolePin } from '../link/pin'
 import { makeSiteCredential, siteComposeProject } from './siteCompose'
 import { installSubnets } from '../compose/subnets'
 import { keepAgentSlice, pickAgentSlice } from '../compose/agentSlice'
+import { kernelStep } from './landlock'
 
 let busy = false
 
@@ -52,6 +53,7 @@ async function run(ctx: Context, request: { version: string }, pin: ConsolePin, 
   const { pins } = await checkImages(ctx, siteImagesWanted(version))
   await fetchImages(ctx, [POSTGRES_IMAGE, ...siteRefs(pins, version)])
   progress({ event: 'stepDone', outcome: 'passes' })
+  await kernelStep(ctx, progress, pins.agent!, 'install')
 
   const site: StoredSite = {
     name: ctx.machine.name,

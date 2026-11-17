@@ -92,4 +92,6 @@ const server = http.createServer((req, res) => {
     res.end()
   })
 })
-server.listen(Number(process.env.PORT ?? 9300), '127.0.0.1', () => console.log(server.address().port))
+// HOST: 0.0.0.0 when a container reaches it straight, as host.docker.internal; on Linux that is the bridge's
+// gateway, not this machine's loopback.
+server.listen(Number(process.env.PORT ?? 9300), process.env.HOST ?? '127.0.0.1', () => console.log(server.address().port))

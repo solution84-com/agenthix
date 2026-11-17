@@ -146,7 +146,7 @@ Screenshots are taken by the release, never by hand. A release is one run of the
 names (or, where that release does not hold it yet, with the one the last release's pages linked), and reports what is
 new, changed or removed. Release pins the links from that set and keeps it as the set the tag takes the release's
 screenshots from: the pin commit changes only the guide's pages, so the release build doesn't capture them again. A
-release build started on its own (by hand, or by a push to a release branch) captures them itself. The tag captures
+release build started on its own (by hand) captures them itself. The tag captures
 nothing.
 
 **One script takes them everywhere**: `node scripts/guide/capture.mjs` builds hq, starts hq and a site on free ports
@@ -160,16 +160,16 @@ fails before a release does. Run it yourself after changing a recipe or a screen
 live site reads GitHub's *latest release*, which is never a pre-release, so nothing a pre-release publishes reaches
 it. A staging copy of the site pins the pre-release's tag to review the guide before launch.
 
-1. **Release** starts it all, with the version (`gh workflow run release.yml --ref main -f version=0.1.0-alpha.4`, or
+1. **Release** starts it all, with the version (`gh workflow run release.yml --ref release/v0.1.0 -f version=0.1.0`, or
    the VS Code task *[release] Release*). It captures the screenshots on GitHub's runners, where the released pictures
    were taken: a set taken on another operating system can draw text differently and show every screenshot as changed.
-2. **It pins the screenshots to the upcoming tag**, as `npm run guide:pin -- --tag v0.1.0-alpha.4 --captures <folder>`
+2. **It pins the screenshots to the upcoming tag**, as `npm run guide:pin -- --tag v0.1.0 --captures <folder>`
    in `hq/` does. That points every link to a new or changed screenshot, in the guide's pages and the root `README.md`,
    at the upcoming tag, moves an unchanged one back to the release that holds it, and writes the comparison's report
    to `hq/e2e/guide/.report/` (`index.html` shows the old beside the new). It refuses a tag that is not a release tag
    or is already tagged, links the name check would refuse, and a set that lacks a linked screenshot. When the pages
-   changed, the workflow commits the edit (`docs(guide): pin the screenshots to v0.1.0-alpha.4`) and pushes it to
-   `main`, and that commit is the one proved and tagged. The pinned pages are on the run's page.
+   changed, the workflow commits the edit (`docs(guide): pin the screenshots to v0.1.0`) and pushes it to
+   the release branch, and that commit is the one proved and tagged. The pinned pages are on the run's page.
 3. **The release build proves that commit.** It doesn't capture the screenshots again: the set Release captured in
    step 1 is the one the tag takes. Read its screenshot report on the run's page in the repository's **Actions** tab.
 4. **The workflow tags that commit** and starts *Publish release* at the tag, which publishes the images and
@@ -180,10 +180,11 @@ it. A staging copy of the site pins the pre-release's tag to review the guide be
 5. **The GitHub release page** is made by *Publish release* once everything is published, with those screenshots and
    the release record attached: a pre-release for an alpha or a release candidate, with notes from the commits since
    the last release. Edit its notes there if they need it.
-6. **If something fails**, the fix is proved on a branch by a dry run of *Release* (`-f dry_run=true`, which pins and
-   proves but pushes, tags and publishes nothing) and lands on `main`, and *Release* runs again. If the tag was already
-   made, the tag and whatever that attempt published (its release page and the screenshots on it too) are deleted
-   first, and the same version runs again: the links already name it. Once a release is out its screenshots are never
+6. **If something fails**, the fix is made on the release branch and *Release* runs again there; it reaches `main`
+   when the branch merges back. A dry run of *Release* (`-f dry_run=true`, which pins and proves but pushes, tags and
+   publishes nothing) proves a fix first when that is wanted. If the tag was already made, the tag and whatever that
+   attempt published (its release page and the screenshots on it too) are deleted first, and the same version runs
+   again: the links already name it. Once a release is out its screenshots are never
    replaced: a fix is a new version (`-alpha.2`), pinned again.
 
 To see what a release would pin without one, run the pin step yourself on a local capture

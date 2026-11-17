@@ -68,7 +68,7 @@ project's conversations goes with it. A task's session and a conversation's work
 stay as they are. Doing this first means every later phase builds one shell for one kind of conversation, with no
 branch for a flag that is off.
 
-**How the work is carried out.** Each phase runs as lanes from short briefs (`running-lanes`), each lane in its own
+**How the work is carried out.** Each phase runs as lanes from short briefs, each lane in its own
 worktree on a branch cut from `feature/desktop-shell`, merged into it one at a time, rebased first. Lanes run the
 typecheck and the unit tests for what they touch; the lead runs hq's integration and e2e suites, the guide recipes
 and the cross-app suite after each merge, because they need the shared test databases and fixed ports. Phases run

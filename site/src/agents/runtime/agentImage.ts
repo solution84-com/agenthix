@@ -7,7 +7,10 @@
  * Paths are inside the container. Unit tests hold the versions and the secret
  * list to the Dockerfile and the launcher's own list, so the two cannot drift.
  */
-import { HARNESS_SERVER_KEY_ENV } from '@agenthix/core'
+import { COMMAND_LAUNCHER_PATH, HARNESS_SERVER_KEY_ENV } from '@agenthix/core'
+
+// The launcher's interface is core's, since the host service asks the kernel the same way before it installs.
+export { COMMAND_LAUNCHER_PATH, LANDLOCK_ABI_COMMAND, LANDLOCK_REQUIRED_ABI, landlockAbiSufficient, parseLandlockAbi } from '@agenthix/core'
 
 /** The agent image's name when nothing names another: a local build. */
 export const LOCAL_AGENT_IMAGE = 'agenthix-agent'
@@ -37,14 +40,12 @@ export const OPENCODE_VERSION = '1.18.32'
 
 const AGENT_LIB_DIR = '/usr/local/lib/agenthix'
 
-/**
- * The launcher every agent command runs through. `<launcher> <program> [args…]`
- * runs the program in a Landlock sandbox that cannot reach the harness: no
- * access to the harness home, signals and tracing only within the sandbox, and
- * the harness's secrets (`HARNESS_SECRET_ENV`) removed. It exits 126 without
- * running anything when the kernel's Landlock ABI is below `LANDLOCK_REQUIRED_ABI`.
+/*
+ * `COMMAND_LAUNCHER_PATH` is the launcher every agent command runs through. `<launcher> <program> [args…]` runs the
+ * program in a Landlock sandbox that cannot reach the harness: no access to the harness home, signals and tracing
+ * only within the sandbox, and the harness's secrets (`HARNESS_SECRET_ENV`) removed. It exits 126 without running
+ * anything when the kernel's Landlock ABI is below `LANDLOCK_REQUIRED_ABI`.
  */
-export const COMMAND_LAUNCHER_PATH = `${AGENT_LIB_DIR}/bin/agenthix-contain`
 
 /** OpenCode's `shell` configuration value: a `bash` that runs through the launcher. */
 export const OPENCODE_COMMAND_SHELL = `${AGENT_LIB_DIR}/shell/bash`
@@ -93,9 +94,6 @@ export const CONTAINED_GIT_PATH = '/usr/local/bin/git'
  */
 export const HARNESS_GIT_CONFIG: readonly string[] = ['core.hooksPath=/dev/null', 'core.fsmonitor=false']
 
-/** The Landlock ABI the launcher requires (Linux 6.12): below it, signal scoping is missing. */
-export const LANDLOCK_REQUIRED_ABI = 6
-
 /** The home the launcher gives every command (`HOME`), since commands cannot reach the harness home. */
 export const COMMAND_HOME = '/home/agent'
 
@@ -142,25 +140,6 @@ export const HARNESS_SECRET_ENV: readonly string[] = [
   'GEMINI_API_KEY',
   'EXA_API_KEY',
 ]
-
-/**
- * The command that asks the kernel's Landlock ABI, run in any container of the
- * image (`docker exec <container> …`, or `docker run --rm <image> …`). Its
- * output is read with `parseLandlockAbi`. The ABI is the host kernel's, so one
- * answer holds for every container on the machine.
- */
-export const LANDLOCK_ABI_COMMAND: readonly string[] = [COMMAND_LAUNCHER_PATH, '--abi']
-
-/** The ABI the launcher printed, 0 when Landlock is missing; null for anything else. */
-export function parseLandlockAbi(stdout: string): number | null {
-  const text = stdout.trim()
-  return /^\d{1,4}$/.test(text) ? Number(text) : null
-}
-
-/** Whether commands can run contained on a kernel reporting this ABI. */
-export function landlockAbiSufficient(abi: number | null): boolean {
-  return abi !== null && abi >= LANDLOCK_REQUIRED_ABI
-}
 
 /** OpenCode's model catalogue in the image, for `OPENCODE_MODELS_PATH`: read-only, the pinned binary's own. */
 export const OPENCODE_MODELS_FILE = `${AGENT_LIB_DIR}/opencode/models.json`

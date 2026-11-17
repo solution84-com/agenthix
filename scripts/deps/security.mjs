@@ -4,18 +4,19 @@
 // scripts/deps/deferred.json, which leaves it out until that month. A critical or high alert in shipped code (a runtime
 // dependency of a module an image installs) is decided within 7 days of GitHub opening it; any other waits for the
 // next monthly dependency updates.
-//   node scripts/deps/security.mjs --line                 one line when something needs attention; silent when the
-//                                                         alerts can't be read (no login, no network); always exits 0
-//   node scripts/deps/security.mjs --release [--dry-run]  Release's stage 0: fails past the 7 days, or unread
-//   node scripts/deps/security.mjs --triage               every open alert, by package and module, in Markdown
+//   node scripts/deps/security.mjs --line              one line when something needs attention; silent when the
+//                                                      alerts can't be read (no login, no network); always exits 0
+//   node scripts/deps/security.mjs --release --version <version> [--dry-run]
+//                                                      Release's stage 0: fails past the 7 days, or unread
+//   node scripts/deps/security.mjs --triage            every open alert, by package and module, in Markdown
 // The alerts are read with `gh api`: the person's own login on the dev machine, the token given (GH_TOKEN) in CI. A
-// release branch (a patch), and a pull request into one, are never failed. For tests: DEPS_NOW, DEPS_ALERTS_FILE (the
-// API's answer, as JSON) and DEPS_DEFERRED_FILE.
+// major or minor is checked wherever it is cut; only a patch version on a release branch (GITHUB_REF) is not
+// (adr-0194), nor a dry run. For tests: DEPS_NOW, DEPS_ALERTS_FILE (the API's answer, as JSON) and DEPS_DEFERRED_FILE.
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { dueState, exempt, nextUpdatesName, sydneyMonth, takenMonth } from './due.mjs'
+import { dueState, nextUpdatesName, patchOnReleaseBranch, sydneyMonth, takenMonth, versionArg } from './due.mjs'
 
 const DAY = 24 * 60 * 60 * 1000
 const DECIDE_WITHIN_DAYS = 7
@@ -175,12 +176,18 @@ function main() {
   const now = env.DEPS_NOW ? new Date(env.DEPS_NOW) : new Date()
   const actions = env.GITHUB_ACTIONS === 'true'
   const mode = ['--line', '--release', '--triage'].find(m => args.includes(m))
-  if (!mode) { console.error('Usage: node scripts/deps/security.mjs --line | --release [--dry-run] | --triage'); return 2 }
+  if (!mode) { console.error('Usage: node scripts/deps/security.mjs --line | --release --version <version> [--dry-run] | --triage'); return 2 }
+  const version = versionArg(args)
+  if (mode === '--release' && !version) {
+    console.error('--release needs --version <version>: only a patch version on a release branch skips the check.')
+    return 2
+  }
+  const exempt = mode === '--release' && patchOnReleaseBranch(version, env.GITHUB_REF)
 
   const due = dueState(takenMonth(path.join(root, 'scripts/deps/taken.json')), now)
   const next = nextUpdatesName(due)
-  if (mode === '--release' && (args.includes('--dry-run') || exempt(env))) {
-    console.log('Security alerts are not checked: a dry run, or a patch on a release branch.')
+  if (mode === '--release' && (args.includes('--dry-run') || exempt)) {
+    console.log(`Security alerts are not checked: a dry run, or ${version}, a patch on a release branch.`)
     return 0
   }
   let assessment
@@ -200,7 +207,7 @@ function main() {
     return 0
   }
   if (mode === '--triage') { process.stdout.write(triage(assessment, next)); return 0 }
-  const problem = releaseProblem(assessment, { dryRun: args.includes('--dry-run'), exempt: exempt(env) })
+  const problem = releaseProblem(assessment, { dryRun: args.includes('--dry-run'), exempt })
   if (problem) { console.error(actions ? `::error::${problem}` : problem); return 1 }
   console.log('No security alert in shipped code is past its 7 days.')
   return 0

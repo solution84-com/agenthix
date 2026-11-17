@@ -64,6 +64,15 @@ describe('console disconnect @SC-848', () => {
     expect(m.calls.some(c => c.includes('down'))).toBe(false)
   })
 
+  it("takes down the agents the site started, which nothing would end while it is stopped", async () => {
+    expect(await managedSite()).toMatchObject({ ok: true })
+    m.agentContainers.push('agenthix-agent-project-p1-project-rw')
+    m.agentNetworks.push('agenthix-agent-net-1')
+    await disconnectConsole(m.ctx, async () => { throw new Error('unreachable') })
+    expect(m.agentContainers).toEqual([])
+    expect(m.agentNetworks).toEqual([])
+  })
+
   it('is what HQ’s revoke does too', async () => {
     await forgetConsole(m.ctx)
     expect(readPin(m.ctx.state)).toBeNull()

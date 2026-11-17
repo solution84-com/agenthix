@@ -103,8 +103,8 @@ was missing. Each is one issue and one pull request — no plan or design docume
   units of work.
 - **In the pull request:** tests that fail without your change, the typecheck and tests of every module you touched
   (the `testing-a-change` skill), the user guide updated if what people see or do changed, and commits in the form
-  `type(area): what changed`. [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) has the setup and the contributor
-  agreement.
+  `type(area): what changed`, a breaking one `type(area)!: …` with a `BREAKING CHANGE:` footer.
+  [`CONTRIBUTING.md`](CONTRIBUTING.md) has the setup and the contributor agreement.
 
 ## For maintainers
 

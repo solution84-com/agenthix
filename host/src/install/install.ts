@@ -33,6 +33,7 @@ import { chooseHqPort, choosePorts, refuseOtherPort, type PortChoice } from './p
 import { readInstallation, recordDemo, recordPorts } from '../state/installation'
 import { checkPorts, CONSOLE_BIND } from './portCheck'
 import { refuseWhileReceiving } from '../move/record'
+import { kernelStep } from './landlock'
 
 async function step<T>(progress: (p: Progress) => void, name: string, run: () => Promise<{ value: T; outcome: string }>): Promise<T> {
   progress({ event: 'step', step: name })
@@ -175,6 +176,8 @@ async function run(ctx: Context, ask: InstallAsk, progress: (p: Progress) => voi
   const keptSite: StoredSite = { ...(before.site?.settings ?? { version, installedAt: at }), name: ctx.machine.name }
   // Before anything is written: an image that fails its check leaves the machine as it was.
   const images = await getImages(progress, ctx, keptHq, keptSite, !demo, ask.imageTag)
+  // Nothing is installed where no agent could work: asked of the agent image just fetched, before anything is written.
+  await kernelStep(ctx, progress, images.site.agent!, 'install')
   const hq: StoredHq = { ...keptHq, images: images.hq }
   const site: StoredSite = { ...keptSite, images: images.site }
 

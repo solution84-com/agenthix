@@ -113,8 +113,8 @@ Australia/Sydney, wherever the check runs, so the dev machine and GitHub's runne
 
 A reminder never fails a dev start or a regression. **Release's stage 0 is the only enforcement**: Checks does not
 check the month, since a failing Checks on `main` would only stop Release, which stage 0 already does, and would hold
-up contributors' pull requests for something not theirs. A patch on a release branch is not stopped, and neither is a
-Release dry run.
+up contributors' pull requests for something not theirs. A patch version (`x.y.z` with `z` above 0) on a release
+branch is not stopped, and neither is a Release dry run; a major or minor always is.
 
 ## Exact installs
 
@@ -125,7 +125,7 @@ What runs is what was committed. Everywhere a module is installed for CI, an ima
   workspaces under `.wasp/out`), which a clean checkout does not have yet. `npx wasp install` runs `npm install`
   before that code exists and drops those packages; the script puts the lockfile back before `npx wasp compile`, and
   fails if the lockfile differs at the end. A plain `npm install` in hq before the first compile takes them at their
-  newest. A new checkout installs as [CONTRIBUTING.md](../CONTRIBUTING.md#set-up) says.
+  newest. A new checkout installs as [CONTRIBUTING.md](../../CONTRIBUTING.md#set-up) says.
 - **The lockfile hold**: every CI job that installs runs `scripts/deps/held.sh` after its installs, which fails when an
   install changed a committed lockfile; every regression runs it too (`lockfiles-held`), after its own installs.
   Commit each lockfile from a clean install of its module.

@@ -53,7 +53,9 @@ installation, instead of walking all of it themselves.
   the context.
 - **A contributor's pull request is squash-merged**: one commit on `main`, its message the pull request's title
   (`type(area): what changed`) and description, its author the contributor. Edit the title before merging if it does
-  not read that way.
+  not read that way. A breaking commit is `type(area)!: what changed` with a `BREAKING CHANGE: <what an installation
+  must do>` footer, kept through any regroup: Release refuses a break no marked commit explains, and the footer opens
+  the release notes ([versioning.md](../../../docs/architecture/versioning.md#breaking-changes)).
 - **Taking over a contribution:** every commit built on a contributor's work carries a `Co-authored-by:` line for them,
   and the merge names their pull request. Anything copied in from elsewhere is listed with its licence in
   `LICENSING.md`.
@@ -67,6 +69,12 @@ installation, instead of walking all of it themselves.
   `main` without waiting for it, after the unit's regression (`testing-a-change`); when a run on such a push fails, the
   fix is the next push. That is the only way a commit with failing checks reaches `main`.
 - A change that also needs another repository updated is a separate commit there; there is no cross-repository commit.
+- **A push checks the text it adds.** `.githooks/pre-push` refuses a push whose added lines or commit messages match
+  `.githooks/public-text-patterns` or, on a maintainer's clone, the maintainers' private pattern list. Symlink that
+  list into each clone once, from the main checkout (its worktrees share it):
+  `ln -s <the maintainers' private pattern list> .git/info/private-patterns`. It is never committed; a clone without
+  it checks the public patterns only. A refused push is fixed by rewording the commit; `--no-verify` is for a false
+  positive, and the pattern is then made more precise where the list is kept.
 
 ## Working with agents
 

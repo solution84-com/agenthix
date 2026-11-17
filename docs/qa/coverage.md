@@ -1,7 +1,7 @@
 ---
 name: User-journey coverage map
 description: For each kind of person who uses Agenthix, the journeys that matter to them, what "works" means, which scenarios cover each, and whether a test backs them. Written from users' expectations, not from the code.
-updated: 2026-11-12
+updated: 2026-11-17
 ---
 
 # User-journey coverage map
@@ -220,6 +220,25 @@ These are not yet counted in the summary below; the full audit before the first 
 | **OPR-56** Open lists of pictures quickly | Important | Lists, cards and notifications ask for the small copy and the inspect view for the full one; the limit on saving pictures keeps one person from slowing hq. | SC-2013, SC-2018 | 2 of 2 | Covered by a scenario and a test |
 
 SC-2022 (a person's page and profile card showing their cover, and *Settings › Profile* opening the picker) has no citing test yet, and nor has the part of SC-2005 that gives a demo visitor a random cover on joining. SC-2017's start and daily run is not asserted, only the sweep it runs.
+
+### Journeys added at the audit before v0.1.0 (2026-11-17)
+
+The journey map had not followed the scenarios written from 13 to 16 Nov (SC-2117 to SC-2183: the memory and Your space units' later scenarios, the demo, Agenthix Cloud's flag, *What agents can do*, web search, the tool search); this audit maps them. These are not yet counted in the summary below. Citations were found by searching the tests for the `@SC` tags on 2026-11-17; the audit re-reads them.
+
+| Journey | Weight | What "works" means | Scenarios | Tests cite | Status |
+|---|---|---|---|---|---|
+| **OPR-57** Keep my own work in Your space and in a personal project | Important | Your space is drawn as a project place and shares one menu with a personal project; its settings say it cannot be renamed; its Overview shows what needs me, what runs, what is next and what finished; *Vault* holds its secrets and variables; no place has a Memory section, since what a place knows is its Knowledge. | SC-2114 to SC-2118 | 5 of 5 | Covered by a scenario and a test |
+| **OPR-58** See a task's files where I asked for the work | Important | A task's page has a Files tab, kept in the address, holding the task's own folder; a path a run's result writes into that folder opens in the viewer. | SC-2119, SC-2120 | 2 of 2 | Covered by a scenario and a test |
+| **OPR-59** Try the demo knowing it is shared and when it was last reset | Important | The demo's entry says it is shared and what to leave out of it, hq says when the demo was last reset, and a reset that fails is said in the log with when it is tried again. | SC-2121, SC-2122, SC-2131 | 3 of 3 | Covered by a scenario and a test |
+| **ADM-32** Agenthix Cloud is closed everywhere while its flag is off | Critical | Every server entry point of Cloud refuses as not available before it does anything, the screens say nothing of it, hq's own Cloud work and start-up settings do nothing, the model relay and the host service refuse what Cloud asks, and the Fleet Console's Cloud routes and reads are closed. | SC-2123 to SC-2130, SC-2133, SC-2134 | 10 of 10 | Covered by a scenario and a test |
+| **MCH-19** Read what versions of the images are published | Important | The published versions of each image part are read from the registry's own API, with the machine's registry credential when it has one. | SC-2132 | 1 of 1 | Covered by a scenario and a test |
+| **ADM-33** See what agents can do and set it right on one AI page | Important | *What agents can do* always lists Thinking, Hearing, Speaking and Web search, each marked in words; a default whose provider stopped working is marked; providers are one line each that opens in place and has an address to link to; the same words are used wherever a kind shows; setup draws the same list; the old admin addresses open the AI page. | SC-2135, SC-2136, SC-2138 to SC-2140, SC-2144 to SC-2151 | 13 of 13 | Covered by a scenario and a test |
+| **ADM-34** Agents search the web only where a person has allowed it | Critical | Web search is worked out by runtime from working providers that offer it; its key is checked with its vendor when saved and never shown back; fetching and searching start at Ask for every agent; an agent that cannot search is told why and says so; the wording is checked on the baseline model. | SC-2137, SC-2141 to SC-2143, SC-2154 to SC-2159 | 10 of 10 | Covered by a scenario and a test |
+| **OPR-60** Be told plainly when a press fails | Important | A failed press says *HQ did not answer.* when hq could not be reached, and otherwise says the server's own words, in one place that every press uses. | SC-2152, SC-2153 | 2 of 2 | Covered by a scenario and a test |
+| **OPR-61** Have an agent find the tool it needs without a long list | Important | A conversation or a run is shown its must-have tools and finds the rest with `find_tools` and calls them with `use_tool`, in a conversation, in a run and in an agent's container on a real harness; hq's own MCP server lists every tool in full; conversations edit a task with two lean tools; a background brief is sent alone. | SC-2171, SC-2172, SC-2175, SC-2177 to SC-2180, SC-2182, SC-2183 | 9 of 9 | Covered by a scenario and a test |
+| **ADM-35** A tool that is off for an agent is never found or run, however it is asked | Critical | A search finds only tools the caller may use; a `use_tool` call is decided under the name of the tool it names, in hq and on the site; a run's search is answered only to a run; a call that cannot run runs nothing and says to search. | SC-2173, SC-2174, SC-2176, SC-2181 | 4 of 4 | Covered by a scenario and a test |
+
+SC-2160 to SC-2170 (the dependency checks and updates, the development start, the migration check, the snapshot baseline, the Fleet Console's version) serve the maintainers and no journey, as SC-1857 to SC-1864 do. SC-2164 (every install is `npm ci`) has no citing test; SC-2166 and SC-2167 are now tagged on the tests that assert them. SC-2162 and SC-2163 are retired.
 
 ## Viewer
 

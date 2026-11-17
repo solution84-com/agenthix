@@ -36,6 +36,15 @@ describe('the operations this version does @SC-847', () => {
     ])
   })
 
+  it("stops the site with the agents it started, and stopping hq leaves the site's agents be", async () => {
+    m.agentContainers.push('agenthix-agent-user-u1-rw')
+    expect(await ask({ op: 'stop', target: 'hq' })).toMatchObject({ ok: true })
+    expect(m.agentContainers).toEqual(['agenthix-agent-user-u1-rw'])
+    expect(await ask({ op: 'stop', target: 'site' })).toMatchObject({ ok: true, result: { state: 'stopped' } })
+    expect(m.up.has('agenthix-site')).toBe(false)
+    expect(m.agentContainers).toEqual([])
+  })
+
   it('reads logs of one named part, and refuses a part that does not exist', async () => {
     expect(await ask({ op: 'logs.read', target: 'hq', service: 'hq-server' })).toMatchObject({
       ok: true, result: { lines: [{ service: 'hq-server', at: '2026-10-14T09:00:00Z', message: 'started' }] },

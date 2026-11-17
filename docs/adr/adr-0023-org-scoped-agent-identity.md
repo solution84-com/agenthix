@@ -24,7 +24,7 @@ The key insight: **the security boundary is the workspace directory, not the age
 HQ-managed agents (`hqAgentId IS NOT NULL`) are created at the org level and can be assigned to tasks across any project. Each project gets its own isolated workspace:
 
 ```
-$AGENTHESIS_DEPLOY_ROOT/kernel/workspaces/<hqAgentId>/<projectId>/
+$AGENTHIX_DEPLOY_ROOT/kernel/workspaces/<hqAgentId>/<projectId>/
 ```
 
 `workspaceDir` is derived at **task dispatch time** (not agent sync time) since `projectId` is only known when a task arrives.

@@ -26,6 +26,7 @@ beforeEach(() => {
   mockHqFindFirst.mockResolvedValue(null)
   delete process.env.HQ_URL
   delete process.env.HQ_PAIRING_SECRET
+  delete process.env.HOST_NAMESPACE
   logs = []
   const capture = (...args: unknown[]) => { logs.push(args.map(a => (a instanceof Error ? a.message : String(a))).join(' ')) }
   vi.spyOn(console, 'log').mockImplementation(capture)
@@ -36,6 +37,7 @@ afterEach(() => {
   vi.restoreAllMocks()
   delete process.env.HQ_URL
   delete process.env.HQ_PAIRING_SECRET
+  delete process.env.HOST_NAMESPACE
 })
 
 function configure(hqUrl = 'http://localhost:4101', secret = SECRET) {
@@ -242,5 +244,48 @@ describe('pairing after hq moved (host-management spec §13)', () => {
     expect(await connectFromPairingSecretIfConfigured()).toBe('connected')
     const { update } = mockHqUpsert.mock.calls[0][0]
     expect(update).toMatchObject({ hqUrl: 'http://192.168.1.30:4100', pairedHqUrl: 'http://192.168.1.30:4100', movingTo: null })
+  })
+})
+
+describe('what the site says it connected by', () => {
+  const resolve = vi.fn(async () => ['172.18.0.3'])
+
+  it("says hq's own site paired by the pairing secret, beside hq-web by its container name", async () => {
+    process.env.HOST_NAMESPACE = 'ns'
+    configure('http://ns-hq-web:4100')
+    expect(await connectFromPairingSecretIfConfigured({ resolve })).toBe('connected')
+    expect(logs.join('\n')).toContain('Paired with hq at http://ns-hq-web:4100 by HQ_PAIRING_SECRET.')
+  })
+
+  it('says a development site paired by the pairing secret, with no host service naming it', async () => {
+    configure('http://localhost:4101')
+    expect(await connectFromPairingSecretIfConfigured()).toBe('connected')
+    expect(logs.join('\n')).toContain('Paired with hq at http://localhost:4101 by HQ_PAIRING_SECRET.')
+  })
+
+  it('says a site the Fleet Console added connected with its own credential, never the pairing secret', async () => {
+    process.env.HOST_NAMESPACE = 'ns'
+    configure('https://hq.example.com')
+    expect(await connectFromPairingSecretIfConfigured()).toBe('connected')
+    const said = logs.join('\n')
+    expect(said).toContain("Connected to hq at https://hq.example.com with this site's credential.")
+    expect(said).not.toMatch(/Paired|HQ_PAIRING_SECRET/)
+  })
+
+  it("names another installation's hq-web as a further site's hq, not as its own", async () => {
+    process.env.HOST_NAMESPACE = 'ns'
+    configure('http://other-hq-web:4100')
+    expect(await connectFromPairingSecretIfConfigured({ resolve })).toBe('connected')
+    expect(logs.join('\n')).toContain("Connected to hq at http://other-hq-web:4100 with this site's credential.")
+  })
+
+  it('says where it moved from, in either wording', async () => {
+    process.env.HOST_NAMESPACE = 'ns'
+    configure('http://192.168.1.20:4100')
+    mockHqFindFirst.mockResolvedValue({ hqUrl: 'http://192.168.1.30:4100', pairedHqUrl: 'http://192.168.1.20:4100' })
+    expect(await connectFromPairingSecretIfConfigured()).toBe('connected')
+    expect(logs.join('\n')).toContain(
+      "Connected to hq at http://192.168.1.30:4100, where it moved from http://192.168.1.20:4100, with this site's credential.",
+    )
   })
 })

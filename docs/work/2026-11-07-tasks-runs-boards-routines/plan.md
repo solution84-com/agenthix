@@ -42,7 +42,7 @@ timezone instead of rounds, and start a run through the same path as any other.
 screen (phase 2) needs no code, so it runs in parallel with phase 1; the owner reviews the UX, and the lead owns visual
 quality. Screen lanes start only when their design is approved.
 
-**How the phases are carried out.** By lanes (`running-lanes`): one purpose, one branch and worktree, one agent, a short
+**How the phases are carried out.** By lanes: one purpose, one branch and worktree, one agent, a short
 brief citing the task numbers below and the spec section as acceptance, with shared rules in `execution/lane-common.md`
 (carried from the previous unit together with the design-check process). Lanes of one phase that share no files run in
 parallel, and never more than five agents run an app at once. The lead merges lanes one at a time, each squashed to one

@@ -10,10 +10,11 @@
  * daemon not up). Until it is known to be enough, nothing is started: a failed
  * check refuses, it never assumes.
  */
+import { LANDLOCK_ABI_COMMAND, LANDLOCK_REQUIRED_ABI, landlockAbiSufficient, parseLandlockAbi } from '@agenthix/core'
 import { Logger } from '../../server/utils/logger'
 import { dockerWithin } from './containerLifecycle'
 import { siteIdLabelArgs, siteNamespace } from './containerLabels'
-import { LANDLOCK_ABI_COMMAND, LANDLOCK_REQUIRED_ABI, agentImageName, landlockAbiSufficient, parseLandlockAbi } from './agentImage'
+import { agentImageName } from './agentImage'
 
 const logger = new Logger('landlockCheck')
 

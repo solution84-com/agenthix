@@ -84,10 +84,55 @@ nothing complete was published.
 A version is therefore always backed by the signature the host service checked for it: the number travels beside the
 image rather than inside it. A build made on a machine rather than by the release workflow reports `dev`.
 
+**Every release is cut on its own branch**, `release/v<version>`, then merged into `main`
+([ADR-0194](../adr/adr-0194-every-release-is-prepared-and-cut-on-its-own-release-branch.md)): a major or minor is cut
+from `main`, a patch from the tag it fixes, so a patch carries nothing that was merged after it. The tag lands on the
+branch's last commit; the `releasing` skill has the steps.
+
 **At most two lines are maintained.** A *line* is the releases of one `major.minor`. Fixes, security fixes included, go
 to the newest minor of the current major and the newest minor of the major before it; two majors back gets nothing,
 and its users upgrade. Before `1.0.0` only the newest release gets fixes: under `0.x` every minor may break, so there
 is no earlier major. This matches the rule that protocol peers one major apart still talk.
+
+## Breaking changes
+
+A breaking change is one an installation of the previous release must act on: something removed that it relies on,
+data a migration cannot carry, a protocol's major or a stored format's number moved. It ships only in a version that
+may break, and only with the release notes saying what to do.
+
+- **A breaking commit is marked**, in the [Conventional Commits](https://www.conventionalcommits.org) form:
+  `type(area)!: what changed`, with a footer `BREAKING CHANGE: <what an installation must do>`
+  ([CONTRIBUTING.md](../../CONTRIBUTING.md)).
+- **Release's first stage finds every break** since the previous release, the newest version tag in the commit's
+  history below the one being released (`scripts/release/breaks.mjs`): each commit marked breaking, and each break it
+  finds by comparing that tag with the commit — a protocol's major moved in `core/snapshot/`; a stored format's
+  number moved ([Stored data](#stored-data); the list is `FORMATS` in `scripts/release/breaks/found.mjs`); a new
+  migration that drops a table or a column, changes a column's type, or makes one required with no default or backfill
+  (`scripts/migration-check/narrowing.mjs`); an entry gone from a surface snapshot (below).
+- **It refuses** a break it found that no marked commit explains (one of the commits since the tag that changed the
+  break's file is marked), a marked commit with no footer, and any break in a version that may not carry one: a version
+  on the previous release's line — the same `0.minor`, or from `1.0.0` the same major — that is not an alpha. So a
+  patch never breaks, from `1.0.0` a minor never breaks, and a release never breaks what its own release candidate
+  or, as `v0.1.0` after `0.1.0-alpha.6`, its last alpha installed.
+- **Otherwise the release notes open with *Breaking changes, and what to do***, one line per marked commit with its
+  footer's words and the breaks it explains; Publish release makes the same scan at the tag and puts it before the
+  notes GitHub writes.
+
+### The release's surface snapshots
+
+What an installation relies on beyond the protocols has a committed snapshot each, a sorted list of entries the break
+scan compares with the previous release's. An entry added is no break; an entry gone is one.
+
+| Snapshot | What it holds | Its test |
+|---|---|---|
+| `core/snapshot/exports.json` | Every name each of `@agenthix/core`'s entry points exports | `core/src/__tests__/exportsSnapshot.test.ts` |
+| `host/snapshot/cli.json` | The `agenthix` commands, the words they take and their options, from the help rows (Agenthix Cloud's, behind its preview flag, are not listed) | `host/src/__tests__/surfaceSnapshot.test.ts` |
+| `host/snapshot/settings.json` | The start-up settings the host service reads from its own environment: `host.env` and its `docker run` | the same |
+| `host/snapshot/names.json` | The names an installation creates from its namespace: projects, containers, volumes, networks, labels and databases | the same |
+
+Each test fails when the code differs from its snapshot. To change one deliberately, change the code, run
+`npm run snapshot:update` in `core/` or `host/`, and commit the code and the snapshot together; a removal is a commit
+marked breaking.
 
 ## An image's content key
 
@@ -297,7 +342,8 @@ What one release writes, a later one reads: the databases, sealed backups and ag
 - **The databases.** Each app's migrations start from one initial migration (`hq/migrations/`,
   `site/migrations/`), made before `v0.1.0` from the reviewed schema; installations from before it are installed
   again, not upgraded. From it on, every schema change is a new migration that carries an installation's data
-  forward, and the migration check (`scripts/migration-check/`) proves no row is lost. That is a rule for the build,
+  forward, and the migration check (`scripts/migration-check/`) proves no row is lost and refuses a migration that
+  drops or narrows a column unless its commit is marked breaking. That is a rule for the build,
   not a guarantee to users: an upgrade that cannot carry data forward is a breaking change, and the changelog says so
   before it ships, with what to do. The `database-migrations` skill (`.agents/skills/`) has the commands.
 - **Formats carry a whole number, starting at 1**: the agent package's contents (`PACKAGE_FORMAT_VERSION`,
@@ -334,6 +380,8 @@ hq). Where the product's name appears on a machine, it comes from the recorded n
 | This document | The rule as it stands, and how to move a version. Edited as the rule changes |
 | `core/src/protocol/compatibility.ts` | The one compatibility function every connection asks |
 | `core/snapshot/` and its test | Version moves, deprecation marks, and removals at the right major |
+| `scripts/release/breaks.mjs`, the surface snapshots and their tests | Every break since the previous release marked, a patch carrying none, and the release notes saying what to do |
+| `scripts/migration-check/` | No row lost by an upgrade, and no column dropped or narrowed by a migration not marked breaking |
 | `scripts/images/parts.json` and `scripts/__tests__/image-parts.test.mjs` | The image parts and their inputs, held to what each Dockerfile copies, so a content key cannot miss an input |
 | `.github/workflows/publish-images.yml`, `scripts/release/verify-candidate.mjs` | The tag's checks: its form, *Checks* and the release build passed for the commit, each image's attestation and recomputed content key, the index annotation, the signature as a host service checks it |
-| [ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md) and the `releasing` skill | How a release is made: a tag on a proven commit, the version given at publish |
+| [ADR-0146](../adr/adr-0146-a-release-is-a-proven-build-given-a-name.md), [ADR-0194](../adr/adr-0194-every-release-is-prepared-and-cut-on-its-own-release-branch.md) and the `releasing` skill | How a release is made: a tag on a proven commit of its release branch, the version given at publish |

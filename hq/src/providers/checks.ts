@@ -24,8 +24,8 @@ const TIMEOUT_MS = 10_000
 type Probe = { url: string; headers: Record<string, string> }
 
 /**
- * `llm` is whether Inworld counts as a model provider (its flag): then the probe is the model list (the check also asks
- * the voice list when that fails, `checkInworldBoth`); otherwise it is the voice list.
+ * `llm` picks Inworld's model list as the probe (`checkInworldBoth` asks it first, then the voice list when that
+ * fails); otherwise Inworld's probe is the voice list.
  */
 export function probeFor({ vendor, key, baseUrl }: CheckTarget, llm = false): Probe {
   const k = key ?? ''

@@ -55,7 +55,7 @@ Its changes are small and named: every speech event carries the reply's id; a ca
 was heard (it already does); and an agent's update during voice is marked as a raised hand instead of taking the next
 turn.
 
-**How the work is carried out.** Phases 1 and 2 run as lanes (`running-lanes`): one purpose, one agent, one branch and
+**How the work is carried out.** Phases 1 and 2 run as lanes: one purpose, one agent, one branch and
 worktree per lane, briefed from this plan and the spec part it builds. The lead writes the event contract and the
 settings object itself at the start of phase 1 and commits them first, so lanes that build components against them
 never guess an interface. Lanes run in the background in parallel where their files do not overlap, each on the model

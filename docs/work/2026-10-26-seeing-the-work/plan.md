@@ -68,7 +68,7 @@ that needs a ticket, a read or a renderer calls the module.
 
 ### How the work is carried out
 
-- **Lanes**, under the lead (`running-lanes`): one purpose, one branch and worktree, a brief naming the tasks by number,
+- **Lanes**, under the lead: one purpose, one branch and worktree, a brief naming the tasks by number,
   the spec section that is its acceptance, and the files it owns, with one set of shared rules every lane follows.
 - **In parallel where they don't meet:** in phase 1, `core` contracts land first, then the relay service and hq's side
   run side by side. In phase 3, renderers run as parallel lanes once the registry and frame are merged. Phase 4's three

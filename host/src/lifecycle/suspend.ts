@@ -69,7 +69,7 @@ export function resumeCheck(ctx: Context, target: HostTarget): void {
 
 export async function suspend(ctx: Context, target: HostTarget): Promise<void> {
   const here = present(ctx, target)
-  if (here.site) await ctx.docker.composeStop(here.site.project, here.site.file)
+  if (here.site) await ctx.docker.stopSite(here.site, ctx.names.agentsProject)
   if (target === 'hq' && here.hq) await ctx.docker.composeStop(here.hq.project, here.hq.file)
   record(ctx, { ...suspended(ctx), [target]: ctx.now().toISOString() })
 }

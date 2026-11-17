@@ -151,6 +151,7 @@ export async function hostOperation(ctx: Context, request: HostRequest, progress
     case 'stop': {
       const p = project(ctx, request.target)
       if (request.op === 'start') await ctx.docker.composeStart(p.project, p.file)
+      else if (request.target === 'site') await ctx.docker.stopSite(p, ctx.names.agentsProject)
       else await ctx.docker.composeStop(p.project, p.file)
       return { state: request.op === 'start' ? 'started' : 'stopped' }
     }

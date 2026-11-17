@@ -7,6 +7,9 @@
 #   2. puts rows in it (seed-<app>.sql) and counts every table's rows (counts.sql);
 #   3. applies this working tree's migrations on top, as an upgrade does;
 #   4. counts again: no table may have lost a row or gone, and every seeded row must still be there.
+# Before any of it, a new migration that drops a table or a column, changes a column's type, or makes one required
+# with no default or backfill fails the check unless the commit that made it is marked breaking
+# (scripts/migration-check/narrowing.mjs; CONTRIBUTING.md): rows counted can't show a column's values lost.
 #
 #   scripts/migration-check/run.sh
 #
@@ -36,6 +39,7 @@ command -v docker >/dev/null || fail 'Docker is not on this machine.'
 [ -n "$FROM" ] || fail 'no release tag (v*) is in this history to start from: fetch the tags (git fetch --tags), or set MIGRATION_CHECK_FROM.'
 [[ "$NS" =~ ^[a-z][a-z0-9-]{0,30}$ ]] || fail "\"$NS\" cannot be a namespace."
 git -C "$ROOT" rev-parse --verify --quiet "$FROM^{commit}" >/dev/null || fail "$FROM is not a commit here; fetch its tag first (git fetch --tags)."
+node "$HERE/narrowing.mjs" "$FROM" || fail 'a new migration loses data and is not marked breaking (above).'
 docker inspect "$DB" >/dev/null 2>&1 && fail "a container $DB is here already; nothing was touched."
 # The Postgres an installation runs, fixed by its digest where the host service names it.
 POSTGRES="$(sed -n "s/^export const POSTGRES_IMAGE = '\(.*\)'$/\1/p" "$ROOT/host/src/images/published.ts")"

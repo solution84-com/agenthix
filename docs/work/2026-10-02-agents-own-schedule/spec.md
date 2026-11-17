@@ -497,10 +497,9 @@ deployment guide how to size it for a machine.
 A run the pulse or a schedule starts uses the boundary's own credential, exactly as any other run in that boundary does —
 subscriptions included. There is no separate key for automated work.
 
-Whether a model vendor's subscription terms allow unattended runs on a subscription is an open legal question for
-Anthropic's terms in particular. It belongs to the subscription redesign, which waits on the model vendor's written confirmation
-and which the owner has scheduled last; this milestone
-does not try to settle it.
+Whether a model vendor's subscription terms allow unattended runs on a subscription is a question for that vendor —
+Anthropic, in particular — to answer in writing. It belongs to the subscription redesign, which the owner has scheduled
+last; this milestone does not try to settle it.
 
 ## 10. A person's own connections to hq
 

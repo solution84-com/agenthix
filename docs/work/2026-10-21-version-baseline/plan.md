@@ -38,7 +38,7 @@ events; a test compares that with the committed copy and classifies the differen
 declarations are read (the TypeScript compiler's own API is the likely route) is the lane's to settle; the table it
 enforces is not.
 
-**Lanes, merged by the lead.** Phases 1–4 run as lanes (`running-lanes`): one purpose, one branch and worktree, one
+**Lanes, merged by the lead.** Phases 1–4 run as lanes: one purpose, one branch and worktree, one
 agent each, merged into `feature/version-baseline` by the lead, one at a time, rebased first. Phase 5 is the lead's,
 by hand, since every step is the owner's to approve. The lead runs the suites lanes may not, and the full regression
 once, before phase 5's tag.

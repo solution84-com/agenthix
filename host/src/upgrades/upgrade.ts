@@ -35,6 +35,7 @@ import { refuseUnwritable } from './preflight'
 import { againCommand, builtPins, builtText, checkBuiltUpgrade, type BuiltImages } from './builtUpgrade'
 import { DEVELOPMENT } from '../images/ownVersion'
 import { consoleFollowsHq, moveConsoleWithHq } from './consoleFollows'
+import { KERNEL_STEP, refuseWithoutLandlock } from '../install/landlock'
 
 export type UpgradeOutcome =
   | { version: string; rolledBack: false }
@@ -204,6 +205,8 @@ async function run(ctx: Context, target: Target, version: string, builtTag: stri
     await step(progress, log, target === 'hq' ? `Pulling HQ ${version} and its site` : `Pulling the site ${version}`, () =>
       fetchImages(ctx, parts.map(part => pins[part]!)))
   }
+  // A version is never started where its agents could not work: asked of its agent image, before anything stops.
+  await step(progress, log, KERNEL_STEP, () => refuseWithoutLandlock(ctx, pins.agent!, 'upgrade'), () => 'passes')
 
   const before = installed(ctx)
   const who = whoText(ctx, target, true)

@@ -536,10 +536,9 @@ everywhere, so it belongs with whoever administers agents. A boundary's own adju
   sends checks that the claimed person's storage is placed on that site, which a shared boundary has no
   equivalent of.
 - **How credentials are encrypted at rest**, and the rotation questions in §5.8.
-- **Whether hq holding a subscription login is within the provider's terms** for a self-hosted install.
-  The provider's page says a product may not "collect, store, or intermediate" these credentials, and
-  allows a person signing in to the unmodified binary on a platform that hosts it. A written answer is
-  needed before a public release.
+- **Whether hq may hold a subscription login** for a self-hosted install. The provider's page says a
+  product may not "collect, store, or intermediate" these credentials, and allows a person signing in to
+  the unmodified binary on a platform that hosts it. The question is the provider's to answer, in writing.
 - **Whether a project may hold more than one attachment to the same repository**, and what a
   person-owned attachment means once runs in a person's own storage act as that person.
 

@@ -40,7 +40,7 @@ describe('a provider\'s line @SC-2146 @SC-2138', () => {
     expect(screen.getByRole('listitem').className).not.toContain('danger')
   })
 
-  it('stays quiet for Agenthix Cloud before it opens, which is not a fault', () => {
+  it('stays quiet for Agenthix Cloud while it is not available, which is not a fault', () => {
     render(<Row p={{ ...provider('cloud', 'not_available'), credential: 'none' }} />)
     expect(screen.getByRole('button').textContent).toContain('Not available yet')
     expect(screen.getByRole('listitem').className).not.toContain('danger')

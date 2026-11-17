@@ -11,11 +11,12 @@
  *   (part 1, *When a provider fails*).
  * - **Defaults** fall through: for work a conversation hands off, the model the conversation talks on first, so the
  *   lead and its workers run on one model; then the agent's own default model, then the organisation's. Each falls to
- *   the same model via another provider first, then the next layer, then any model that may run. `fellBack` says
- *   what was not used, once.
+ *   the same model via another provider first, then the next layer, then the last resort: for a model call, the first
+ *   provider's recommended model (ADR-0184) that may run, and only when none has one, the first model that may run.
+ *   `fellBack` says what was not used, once.
  */
 import {
-  modelPricesMicros, providerStateWorks, providerTypesOf, sttPricePerHourMicros,
+  defaultModelOf, modelPricesMicros, providerStateWorks, providerTypesOf, sttPricePerHourMicros,
   ttsPricePerMillionCharsMicros,
   type AiProviderCredentialKind, type AiProviderState, type AiProviderType, type AiProviderVendor, type CostBasis,
   type ModelViaProvider, type ResolveAnswer, type ResolvedFrom, type ResolveProblem, type ResolveProblemCode,
@@ -158,6 +159,15 @@ export function usableModels(req: ResolveRequest, snap: Snapshot, typed: Readonl
   return out
 }
 
+/** The last resort for a model call: the first provider's recommended model that may run, else the first model that may run. */
+function lastResortModel(req: ResolveRequest, snap: Snapshot): ModelViaProvider | null {
+  for (const p of snap.providers) {
+    const model = defaultModelOf(p.vendor, modelsReachedBy(p.vendor)).model
+    if (model && !whyUnusable({ providerId: p.id, model }, req, snap)) return { providerId: p.id, model }
+  }
+  return usableModels(req, snap)[0] ?? null
+}
+
 function anyVoice(req: ResolveRequest, snap: Snapshot): (ModelViaProvider & { voice?: string }) | null {
   const type = typeOf(req.purpose)
   const p = voiceOrder(type, snap.providers)
@@ -207,7 +217,7 @@ export function decide(req: ResolveRequest, snap: Snapshot): ResolveAnswer {
     if (same) return { ok: true, resolution: resolution(req, snap, same, layer.from, missed) }
   }
 
-  const fallback = type === 'llm' ? usableModels(req, snap)[0] ?? null : anyVoice(req, snap)
+  const fallback = type === 'llm' ? lastResortModel(req, snap) : anyVoice(req, snap)
   if (fallback) return { ok: true, resolution: resolution(req, snap, fallback, 'organisation', missed) }
   if (type !== 'llm' || !ofType.some(p => providerStateWorks(p.state))) return fail('no_provider', req, snap)
   return fail(defaults.some(l => l.choice) ? 'no_allowed_model' : 'no_default', req, snap)

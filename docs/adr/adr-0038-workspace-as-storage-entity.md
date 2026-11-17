@@ -102,7 +102,7 @@ Because Agenthix is **filesystem-native** (Claude Code / Codex model, not ChatGP
 - **Storage path** → `workspaces/{slug}-{shortid}`; `slug` is a display label, uniqueness/refs by `id`. (§4)
 - **Personal Workspace** → provisioned **lazily** on first need. (§9)
 - **Preview** → decoupled, path-based, not a Workspace field. (§2)
-- **Credential** → PAT baseline (the per-repo deploy key is the agent's push credential); the connection stays **pluggable**; a GitHub App is the future **managed-hosting** option (a single App can't serve self-hosted sites — see [ADR-0037](./adr-0037-connectors-environments-and-scripts.md)).
+- **Credential** → PAT baseline (the per-repo deploy key is the agent's push credential); the connection stays **pluggable**; a GitHub App is a later option (a single App can't serve self-hosted sites — see [ADR-0037](./adr-0037-connectors-environments-and-scripts.md)).
 
 ## Open Questions
 - **Concurrency resolution** for same-path writes — file-grained, mechanism deferred (optimistic conflict detection / git-merge where git-backed / last-write-wins early).

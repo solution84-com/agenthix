@@ -64,7 +64,7 @@ via another provider, else the model a new conversation would get, and nothing c
 that comes back switches nobody back.
 
 A **default** falls through when it cannot run: first the same model via another provider that works (Anthropic's own
-key first), then the next layer, then any model that may run. For work a conversation hands off, the model the
+key first), then the next layer, then, as a last resort, the first provider's recommended model that may run (the first model that may run only when no provider has one). For work a conversation hands off, the model the
 conversation is on is the first default: the work runs on it unless it may not be used there — a list of the place the
 work is in rules it out, or its provider is not working — and then on the next allowed. The call says once what was not
 used and why; for handed-off work the run's page says it under **Model**, as *Ran on DeepSeek V3.2 · via OpenRouter:

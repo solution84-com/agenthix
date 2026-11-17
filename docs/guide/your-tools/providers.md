@@ -32,7 +32,7 @@ under **Models and billing**. It has three sections: **What agents can do** firs
 and **Which models may run** (folded, because most organisations never open it; it is on
 [Models](models.md#which-models-may-run)).
 
-![The AI page, with What agents can do and Your providers, one provider opened](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.5/providers.png)
+![The AI page, with What agents can do and Your providers, one provider opened](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/providers.png)
 
 ## Your providers
 

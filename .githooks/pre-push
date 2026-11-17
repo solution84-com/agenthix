@@ -1,0 +1,119 @@
+#!/bin/sh
+# Refuses a push to this public repository that would publish a draft design, planning, or text it must not hold.
+#
+#   - A unit of work's spec.md, when that unit has no plan.md yet: its design is not approved.
+#   - Planning files: a roadmap, a delivery record, epics or milestones under docs/.
+#   - Text the push adds — the added lines of its commits' diffs, and their messages — that matches a pattern of
+#     .githooks/public-text-patterns or, when a maintainer has it, of the maintainers' private pattern list at
+#     .git/info/private-patterns (never committed). Only what the push adds is read, never the history already pushed.
+#     The pattern list and the writing-in-public skill, which quote what they forbid, are not checked.
+#
+# A push to the remote named "private" (the private mirror) is never checked.
+# Override deliberately with: git push --no-verify
+# Activated per clone by: git config core.hooksPath .githooks
+
+remote_name="$1"
+[ "$remote_name" = "private" ] && exit 0
+
+zero=0000000000000000000000000000000000000000
+status=0
+
+public_patterns="$(dirname "$0")/public-text-patterns"
+private_patterns="$(git rev-parse --git-common-dir)/info/private-patterns"
+
+# Reads `git log -p -U0` with each commit headed by \001<sha> and its message ended by \002, and prints every added
+# line or message line that matches a pattern: where it is and why, never the text itself, which may hold a secret.
+# Perl, because the maintainers' list is written in the regular-expression syntax of their audit tooling.
+scan_added_text() {
+  perl -e '
+    use strict; use warnings; no warnings "utf8";
+    binmode STDIN, ":encoding(UTF-8)"; binmode STDERR, ":encoding(UTF-8)";
+    my @rules;
+    for my $file (grep { -f } @ARGV) {
+      open my $fh, "<:encoding(UTF-8)", $file or die "pre-push: cannot read $file\n";
+      while (my $line = <$fh>) {
+        chomp $line; $line =~ s/\r$//;
+        next if $line =~ /^\s*(#|$)/;
+        my ($rx, $why) = split /\t/, $line, 2;
+        my $re = eval { qr/$rx/ };
+        if (!$re) { print STDERR "pre-push: invalid pattern at $file:$.; fix it, or push with --no-verify.\n"; exit 2 }
+        push @rules, [$re, $why // "matches a pattern of $file"];
+      }
+    }
+    my ($sha, $in_msg, $msg_line, $file, $in_hunk, $line_no, $found) = ("", 0, 0, undef, 0, 0, 0);
+    my $skip = qr{^(\.githooks/public-text-patterns|\.agents/skills/writing-in-public/SKILL\.md|scripts/__tests__/pre-push\.test\.mjs|docs/work/[^/]+/execution/.*)$};
+    sub check {
+      my ($where, $text) = @_;
+      for my $r (@rules) {
+        next unless $text =~ $r->[0];
+        my $in = $where =~ /^commit / ? "" : " (commit " . substr($sha, 0, 12) . ")";
+        print STDERR "pre-push: $where: $r->[1]$in\n" if ++$found <= 50;
+      }
+    }
+    while (my $l = <STDIN>) {
+      chomp $l;
+      if ($l =~ /^\x01([0-9a-f]+)/) { ($sha, $in_msg, $msg_line, $in_hunk) = ($1, 1, 0, 0); next }
+      if ($in_msg) {
+        if ($l =~ /^\x02/) { $in_msg = 0 } else { check("commit " . substr($sha, 0, 12) . " message:" . ++$msg_line, $l) }
+        next;
+      }
+      if ($l =~ /^diff --git /) { ($file, $in_hunk) = (undef, 0); next }
+      if ($l =~ /^@@ -\S+ \+(\d+)/) { ($line_no, $in_hunk) = ($1, 1); next }
+      if (!$in_hunk) {
+        if ($l =~ /^\+\+\+ "?b\/(.*?)"?$/) { $file = $1 }
+        next;
+      }
+      next unless defined $file && $file !~ $skip;
+      if ($l =~ /^\+(.*)/) { check("$file:$line_no", $1); $line_no++ }
+      elsif ($l =~ /^ /) { $line_no++ }
+    }
+    print STDERR "pre-push: ... and ", $found - 50, " more\n" if $found > 50;
+    exit($found ? 1 : 0);
+  ' "$public_patterns" "$private_patterns"
+}
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # A deleted ref publishes nothing.
+  case "$local_sha" in *[!0]*) ;; *) continue ;; esac
+
+  # The commits this push makes public: everything not already on the remote.
+  # A remote tip this clone never fetched (a force push over someone's commit) is no base for a range.
+  case "$remote_sha" in
+    *[!0]*) if git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then range="$remote_sha..$local_sha"
+            else range="$local_sha --not --remotes=$remote_name"; fi ;;
+    *)      range="$local_sha --not --remotes=$remote_name" ;;
+  esac
+  # shellcheck disable=SC2086
+  added=$(git log --format= --name-only --diff-filter=A $range 2>/dev/null | sort -u)
+
+  # Draft specs: a spec this push adds whose unit has no plan at the pushed tip. A spec already public was approved.
+  for spec in $(printf '%s\n' "$added" | grep -E '^docs/work/[^/]+/spec\.md$'); do
+    unit=${spec%/spec.md}
+    if git cat-file -e "$local_sha:$spec" 2>/dev/null && ! git cat-file -e "$local_sha:$unit/plan.md" 2>/dev/null; then
+      echo "pre-push: $spec has no plan.md beside it, so its design is not approved." >&2
+      echo "          Push this branch to the private mirror until it is: git push private ${local_ref#refs/heads/}" >&2
+      status=1
+    fi
+  done
+
+  # Planning files present at the pushed tip.
+  planning=$(git ls-tree -r --name-only "$local_sha" -- docs 2>/dev/null |
+    grep -E '^docs/(product/|roadmap\.md$|delivery\.md$|[^/]*-roadmap\.md$|[^/]*-delivery\.md$|epics/|milestones/)')
+  if [ -n "$planning" ]; then
+    echo "pre-push: ${local_ref#refs/heads/} carries planning, which this public repository never holds:" >&2
+    # shellcheck disable=SC2086
+    printf '          %s\n' $planning >&2
+    status=1
+  fi
+
+  # Text the push adds.
+  if [ -f "$public_patterns" ] || [ -f "$private_patterns" ]; then
+    # shellcheck disable=SC2086
+    git -c core.quotePath=false log --no-color --no-ext-diff --no-textconv -M -p -U0 \
+        --src-prefix=a/ --dst-prefix=b/ --format='%x01%H%n%B%x02' $range |
+      scan_added_text || status=1
+  fi
+done
+
+[ "$status" -ne 0 ] && echo "pre-push: refused. Use --no-verify only if you mean to publish this." >&2
+exit $status

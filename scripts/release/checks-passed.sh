@@ -17,7 +17,7 @@ for (( ; ; )); do
   echo "All checks passed, for $commit: ${states:-none yet}"
   if [[ " $states " == *" completed:success "* ]]; then exit 0; fi
   if [ -n "$states" ] && [[ "$states" != *queued* ]] && [[ "$states" != *in_progress* ]]; then
-    echo "::error::Checks did not pass for $commit. Fix it on a branch, land the fix on main, and start Release again."
+    echo "::error::Checks did not pass for $commit. Fix it on the release branch, push the fix, and start Release again."
     exit 1
   fi
   if [ "$(date +%s)" -ge "$deadline" ]; then

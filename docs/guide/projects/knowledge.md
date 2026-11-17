@@ -12,7 +12,7 @@ one-sentence description, tags, and text. A section is a folder of pages, and ca
 A page can also have properties of your own, such as a decision's **status** and **date**. Agenthix lists them, shows them
 and searches them; what they mean is up to you.
 
-![A project's Knowledge, with its sections beside the pages of the decisions section](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/project-knowledge.png)
+![A project's Knowledge, with its sections beside the pages of the decisions section](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/project-knowledge.png)
 
 ## What belongs in Knowledge
 
@@ -71,7 +71,7 @@ Select a page to read it. It shows its title, description, tags and properties, 
 conversation or run it happened in), and the text. **On this page** lists its headings. Under the text, **Linked from**
 lists the pages that link here.
 
-![A knowledge page open, with its properties, its text and On this page](https://github.com/solution84-com/agenthix/releases/download/v0.1.0-alpha.6/knowledge-page.png)
+![A knowledge page open, with its properties, its text and On this page](https://github.com/solution84-com/agenthix/releases/download/v0.1.0/knowledge-page.png)
 
 A link to another page opens that page. A link to an organisation page opens it in the organisation's Knowledge. A link to a
 page that no longer exists is shown as a problem, and the page is listed under **Needs fixing**.
