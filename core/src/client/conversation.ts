@@ -261,10 +261,14 @@ export type StartConversationResult = { conversationId: string; messageId: strin
 
 /**
  * `spoken`: the words came from speech to text in voice mode; recorded on the message for the lead, never shown.
- * `trailedOff`, on a spoken message: it ended on a long pause while the person seemed mid-thought.
  */
 export type SendConversationMessageArgs = {
-  conversationId: string; clientMessageId: string; text: string; spoken?: boolean; trailedOff?: boolean
+  conversationId: string; clientMessageId: string; text: string; spoken?: boolean
+  /**
+   * On a spoken message: it ended on a long pause while the person seemed mid-thought.
+   * @deprecated since 1.1; stops working in 3.0. Use `listen` instead.
+   */
+  trailedOff?: boolean
   skill?: PickedSkill
   /** The photos and files added to the message, each first kept with `shareConversationFile`. */
   shared?: SharedFile[]

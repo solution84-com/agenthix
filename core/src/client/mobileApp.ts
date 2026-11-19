@@ -26,6 +26,7 @@ import {
   type VoiceEndPayload, type VoiceErrorEvent, type VoiceInterruptPayload, type VoiceInvitePayload, type VoicePhraseEvent,
   type VoiceSentenceEvent, type VoiceServices, type VoiceSilenceWarningEvent, type VoiceStartPayload,
   type VoiceStateEvent, type VoiceTurnHeldEvent, type VoiceTurnSpokenEvent, type VoiceUpdateEvent,
+  type VoiceHeardPrefixEvent, type VoiceLineEvent, type VoiceLinePlayedPayload, type VoiceListenedEvent, type VoiceListenPayload,
 } from './voice.js'
 import {
   RUN_CLIENT_SOCKET as R,
@@ -194,6 +195,8 @@ export type MobileClientToHqEvents = {
   [V.activity]: VoiceActivityPayload
   [V.invite]: VoiceInvitePayload
   [V.continue]: VoiceContinuePayload
+  [V.listen]?: VoiceListenPayload
+  [V.linePlayed]?: VoiceLinePlayedPayload
 }
 
 /** What hq sends the app, by event name: a conversation's room, voice to its holder, and the run and task events. */
@@ -210,7 +213,11 @@ export type MobileHqToClientEvents = {
   [V.sentence]: VoiceSentenceEvent
   [V.audio]: VoiceAudioEvent
   [V.turnSpoken]: VoiceTurnSpokenEvent
+  [V.heardPrefix]?: VoiceHeardPrefixEvent
+  /** @deprecated since 1.1; stops working in 3.0. Use `listened` instead. */
   [V.turnHeld]?: VoiceTurnHeldEvent
+  [V.listened]?: VoiceListenedEvent
+  [V.line]?: VoiceLineEvent
   [V.phrase]: VoicePhraseEvent
   [V.silenceWarning]: VoiceSilenceWarningEvent
   [V.ended]: VoiceEndedEvent
@@ -230,11 +237,12 @@ const CLIENT_TO_HQ: Record<keyof MobileClientToHqEvents, true> = {
   [C.subscribe]: true, [C.unsubscribe]: true,
   [Room.subscribeToTask]: true, [Room.subscribeToBoard]: true, [Room.subscribeToSession]: true,
   [V.start]: true, [V.end]: true, [V.interrupt]: true, [V.activity]: true, [V.invite]: true, [V.continue]: true,
+  [V.listen]: true, [V.linePlayed]: true,
 }
 const HQ_TO_CLIENT: Record<keyof MobileHqToClientEvents, true> = {
   [C.delta]: true, [C.message]: true, [C.messageUpdated]: true, [C.turn]: true, [C.steps]: true,
   [C.operation]: true, [C.operationLines]: true, [C.replay]: true,
-  [V.state]: true, [V.sentence]: true, [V.audio]: true, [V.turnSpoken]: true, [V.turnHeld]: true, [V.phrase]: true,
+  [V.state]: true, [V.sentence]: true, [V.audio]: true, [V.turnSpoken]: true, [V.heardPrefix]: true, [V.turnHeld]: true, [V.listened]: true, [V.line]: true, [V.phrase]: true,
   [V.silenceWarning]: true, [V.ended]: true, [V.error]: true, [V.update]: true,
   [R.runStatus]: true, [R.streamDelta]: true, [R.taskSessionStarted]: true, [R.manifestPendingApproval]: true,
   [T.taskUpdated]: true, [T.taskCommentAdded]: true, [T.manifestRejected]: true,

@@ -17,6 +17,7 @@ export const ALLOWED: Record<string, string> = {
   'hq/src/conversations/long/windows.ts': 'a context window is a fact about a model family, not a choice of model',
   'hq/src/conversations/model/leastReasoning.ts': "OpenAI's least-reasoning setting is defined per GPT version",
   'hq/src/conversations/model/anthropicThinking.ts': "Anthropic's thinking rule is defined per Sonnet version",
+  'hq/src/routing/listener.ts': "the light model's short list of fast models, measured for listening, in order",
 }
 
 const MODEL_ID = new RegExp(
