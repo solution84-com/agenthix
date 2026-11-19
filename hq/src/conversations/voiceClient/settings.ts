@@ -4,6 +4,18 @@
  * values are the spec's starting values, with those the recordings measured; measurement replaces them.
  */
 
+import { BACKCHANNEL_SETTINGS, type BackchannelSettings } from './backchannel/settings'
+import { LISTENER_TIMING, type ListenerTiming } from './listener/settings'
+import { PACING_SETTINGS, type PacingSettings } from './pacing/settings'
+import { TONE_SETTINGS, type ToneSettings } from './tone/settings'
+
+/** The light model listens: the flag `voiceListener` and Adaptive voice on. */
+export const lightModelOn = (s: Pick<VoiceSettings, 'voiceListener' | 'adaptiveVoice'>) => s.voiceListener && s.adaptiveVoice
+
+/** The backchannel may hum: its switch on and the flag `voiceListener`, with Adaptive voice on unless `backchannelAlone`. */
+export const backchannelOn = (s: Pick<VoiceSettings, 'voiceListener' | 'adaptiveVoice' | 'backchannelAlone' | 'backchannel'>) =>
+  s.voiceListener && (s.adaptiveVoice || s.backchannelAlone) && s.backchannel.on
+
 export type VoiceSettings = {
   version: number
   /**
@@ -13,6 +25,25 @@ export type VoiceSettings = {
    * telling the person's voice from the agent's (the echo handling) do not depend on it.
    */
   adaptiveVoice: boolean
+  /**
+   * The flag `voiceListener`, given as voice starts. On, with Adaptive voice on, the light model listens (`listener/`):
+   * no timed listening family, standard acknowledgement or trailed-off note; on with Adaptive voice off, plain voice.
+   */
+  voiceListener: boolean
+  listener: ListenerTiming
+  /** The backchannel's rules: the hums played while the person talks. */
+  backchannel: BackchannelSettings
+  /**
+   * The backchannel's own switch alone says whether it hums, the light model on or off (the voice playground, where
+   * Adaptive voice is the light model's switch). Off, as in the product (where Hums sits under Adaptive voice), it hums only
+   * with Adaptive voice on, so a person who turned Adaptive voice off hears no listening sounds. Either way it needs the
+   * flag `voiceListener`. With the light model off it hums on the sound model alone.
+   */
+  backchannelAlone: boolean
+  /** Adaptive pacing and the listening style, with the light model listening: the finish wait and hum window learned. */
+  pacing: PacingSettings
+  /** Tone (`tone/`): its switch, and the voice profile's bars for the voice hint and the laugh back. */
+  tone: ToneSettings
   /** Acoustic: silence detection's settings in a quiet room, and while the agent speaks. */
   detector: { onThreshold: number; offThreshold: number; minVoiceMs: number; minSilenceMs: number }
   detectorWhileAgentSpeaks: { onThreshold: number; minVoiceMs: number }
@@ -137,6 +168,12 @@ export type VoiceSettings = {
     duckRampMs: number
     confirmWindowMs: number
     unclearExtraMs: number
+    /**
+     * The person's voice in the window, summed, past which a window closing in silence with no words yet waits for
+     * them, up to `wordsWaitMs` more, rather than resuming: they said something, and its words come about a second late.
+     */
+    wordsVoiceMs: number
+    wordsWaitMs: number
     resumeRampMs: number
     ownWordsToStop: number
     stopWords: string[]
@@ -206,6 +243,12 @@ export type VoiceSettings = {
 export const VOICE_SETTINGS: VoiceSettings = {
   version: 1,
   adaptiveVoice: true,
+  voiceListener: false,
+  listener: LISTENER_TIMING,
+  backchannel: BACKCHANNEL_SETTINGS,
+  backchannelAlone: false,
+  pacing: PACING_SETTINGS,
+  tone: TONE_SETTINGS,
   detector: { onThreshold: 0.5, offThreshold: 0.35, minVoiceMs: 250, minSilenceMs: 150 },
   detectorWhileAgentSpeaks: { onThreshold: 0.7, minVoiceMs: 250 },
   gate: {
@@ -243,6 +286,8 @@ export const VOICE_SETTINGS: VoiceSettings = {
     duckRampMs: 50,
     confirmWindowMs: 1_500,
     unclearExtraMs: 1_000,
+    wordsVoiceMs: 500,
+    wordsWaitMs: 1_500,
     resumeRampMs: 300,
     ownWordsToStop: 2,
     stopWords: ['stop', 'wait', 'hold on', 'hang on', 'no'],

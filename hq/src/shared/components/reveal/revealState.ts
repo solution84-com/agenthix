@@ -32,8 +32,9 @@ export type Aim = {
 }
 
 /** A reveal of `text`: from its start while it is arriving, or already whole (a message loaded whole shows at once). */
-export function startReveal(text: string, arriving: boolean): RevealState {
-  const at = arriving ? 0 : text.length
+/** `settled`: how much of an arriving text was already on screen elsewhere, so it does not reveal again. */
+export function startReveal(text: string, arriving: boolean, settled = 0): RevealState {
+  const at = arriving ? Math.min(Math.max(0, settled), text.length) : text.length
   return { text, x: at, v: 0, goal: at, last: null, base: at, passed: [] }
 }
 

@@ -33,8 +33,8 @@ export type SenderDeps<T> = {
   clock: Clock
   settings: () => VoiceSettings
   getToken: () => Promise<T>
-  /** The speech service on one token. */
-  service: (token: T) => SpeechToText
+  /** The speech service on one token, with the settings as it connects. */
+  service: (token: T, settings: VoiceSettings) => SpeechToText
   publish: (event: VoiceEventInput) => void
   /** The speech service could not be reached again: voice cannot go on. */
   failed?: (message: string) => void
@@ -160,7 +160,7 @@ export function createSender<T>(deps: SenderDeps<T>) {
   const open = (from: number, state: SttState) => {
     const mine = connectLink(nextId++, {
       clock, timeoutMs: inbound().connectTimeoutMs, current: () => link,
-      token: () => tokens.take().then(deps.service),
+      token: () => tokens.take().then(t => deps.service(t, deps.settings())),
     }, {
       words(l, text, service, committed, turn) {
         if (muted) return
@@ -175,6 +175,9 @@ export function createSender<T>(deps: SenderDeps<T>) {
         lag.heard(l, service, now())
         checkLag()
         checkWaiting()
+      },
+      voiceProfile(_l, profile, final) {
+        if (!muted) deps.publish({ kind: 'tone.voice', ...profile, final, t: now() })
       },
       opened() {
         pace = { budgetMs: wakeGrantMs, at: null }

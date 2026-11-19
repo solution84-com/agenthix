@@ -14,13 +14,16 @@ import { JumpToLatest } from './JumpToLatest'
 import { WorkflowRunCard } from './WorkflowRunRow'
 import { ThreadRequestCard } from './approvals/ThreadRequestCard'
 import type { WorkContext } from './WorkContext'
-import { revealedText } from '../voiceClient/reveal'
+import { openLinesOf, revealedText } from '../voiceClient/reveal'
 import { cutLimit, useHeardCut } from '../voiceClient/heardCut'
 import { Nudge, ReadNudgesHeld } from '@agenthix/ui/attention'
 import type { ThreadNudge } from '../hooks/useThreadNudges'
 
 /** How close to the top of the thread counts as scrolling up to older messages, in pixels. */
 const NEAR_TOP = 120
+/** The key the open lines' bubble reveals under until a turn has them. */
+const OPEN_LINES = 'open-lines'
+const NO_WORDS: Pick<TurnBlock, 'cards' | 'words' | 'set'> = { cards: [], words: [], set: [] }
 
 /**
  * The thread: messages oldest to newest, older pages loaded as the person scrolls up (their place kept), each
@@ -83,9 +86,14 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
   // While voice speaks it, the streamed text is laid out to the sentence being revealed and revealed ahead of the voice.
   // Since voice stopped it, only as far as it was heard, until the record holds the cut.
   const cut = useHeardCut()
-  const streamLimit = stream ? reply?.limitFor(stream.turnId, stream.text) ?? cutLimit(cut, stream.turnId, stream.text) : null
-  const streamTarget = stream ? reply?.targetFor?.(stream.turnId, stream.text) ?? null : null
-  const streamShown = stream ? revealedText(stream.text, streamLimit) : ''
+  // Under the light model, the lines heard head the reply's bubble from the turn's start, before any of its text.
+  const headedTurnId = turnId ?? steps?.turnId ?? null
+  const headed = !stream && running && headedTurnId && reply?.textFor ? reply.textFor(headedTurnId, '') : ''
+  const written = stream ?? (headed ? { turnId: headedTurnId!, text: '' } : null)
+  const shownStream = written && { ...written, text: reply?.textFor?.(written.turnId, written.text) ?? written.text }
+  const streamLimit = shownStream ? reply?.limitFor(shownStream.turnId, shownStream.text) ?? cutLimit(cut, shownStream.turnId, shownStream.text) : null
+  const streamTarget = shownStream ? reply?.targetFor?.(shownStream.turnId, shownStream.text) ?? null : null
+  const streamShown = shownStream ? revealedText(shownStream.text, streamLimit) : ''
   const liveTurnId = turnId ?? steps?.turnId ?? stream?.turnId ?? null
   // A run that ended before the oldest message loaded waits for its page, so it is never drawn out of order.
   const oldestAt = hasMore && messages[0] ? Date.parse(messages[0].createdAt) : -Infinity
@@ -108,6 +116,12 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
   // What the person is saying, in their bubble, kept once sent until their message lands in its place.
   const newestOfTheirs = [...messages, ...waiting].reverse().find((m) => m.role === 'PERSON' && m.kind === 'TEXT')
   const said = useLiveWords(listening, sentKey(newestOfTheirs && { id: newestOfTheirs.id, text: newestOfTheirs.kind === 'TEXT' ? newestOfTheirs.body.text : '' }))
+  // Under the light model, the lines said while the person's turn is open, until the bubble of the turn they head is drawn:
+  // a bubble of their own after the words said before the first of them. With no turn running it is the live block itself,
+  // so it becomes the reply's bubble in place.
+  const open = openLinesOf(reply?.heading, (id) => messages.some((m) => m.role === 'AGENT' && m.turnId === id) || (!!live && liveTurnId === id), said?.text)
+  const openStream = open && { turnId: reply?.heading?.turnId ?? OPEN_LINES, text: open.lines, limit: null, target: null }
+  const openAlone = open && !live
 
   // Not following: the round ↓ shows, with a dot once a new answer has arrived since.
   const [arrived, setArrived] = useState(false)
@@ -146,7 +160,7 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
       heightBefore.current = null
     }
     follow.wake()
-  }, [oldestId, messages.length, waiting.length, streamShown, said?.text, running, steps?.steps.length, floatingHeight])
+  }, [oldestId, messages.length, waiting.length, streamShown, said?.text, open?.lines, running, steps?.steps.length, floatingHeight])
 
   // A thread that fits the screen has nothing to scroll: fetch further back until it fills.
   useEffect(() => {
@@ -190,18 +204,26 @@ export function ThreadMessages({ messages, waiting, stream, running, turnId, tur
               />
             </div>
           ))}
-        {live && (
+        {openAlone && open.before && <LivePersonBubble text={open.before} since={said!.since} />}
+        {(live || openAlone) && (
           <div data-turn>
             <TurnBlockView
-              block={live}
+              block={live ?? NO_WORDS}
               agent={agent}
               work={work}
               reply={reply}
-              live={{ thinking: liveSteps ?? { since: liveSince, steps: [] }, stream: stream ? { ...stream, limit: streamLimit, target: streamTarget } : null }}
+              live={live
+                ? { thinking: liveSteps ?? { since: liveSince, steps: [] }, stream: shownStream ? { ...shownStream, limit: streamLimit, target: streamTarget } : null }
+                : { thinking: null, stream: openStream }}
             />
           </div>
         )}
-        {said && <LivePersonBubble text={said.text} since={said.since} />}
+        {open && !openAlone && <>
+          {open.before && <LivePersonBubble text={open.before} since={said!.since} />}
+          <div data-turn><TurnBlockView block={NO_WORDS} agent={agent} work={work} reply={reply} live={{ thinking: null, stream: openStream }} /></div>
+        </>}
+        {open ? open.after && <LivePersonBubble text={open.after} since={said!.since} />
+          : said && <LivePersonBubble text={said.text} since={said.since} />}
         {waiting.map((m) => m.kind === 'TEXT' && (
           <PersonBubble key={m.id} message={m} waiting busy={busy} onSendNow={() => onSendNow(m.id)} onCancel={() => onCancel(m.id)} />
         ))}

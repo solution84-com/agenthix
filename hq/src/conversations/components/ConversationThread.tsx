@@ -9,7 +9,7 @@ import { AuthedAgentAvatar } from '../../shared/components/AuthedAgentAvatar'
 import { splitShownParts, type ShownPart } from '../../shared/conversations/shownParts'
 import { useVoiceCall } from '../../shared/providers/VoiceCallProvider'
 import { useFloatingRoom } from '../hooks/useFloatingRoom'
-import { spokenReveal } from '../voiceClient/reveal'
+import { headShown, replyTextOf, spokenReveal } from '../voiceClient/reveal'
 import { REVEAL } from '../../shared/components/reveal/pace'
 import { useConversationThread } from '../hooks/useConversationThread'
 import { useFailureControls } from '../hooks/useFailureControls'
@@ -130,12 +130,17 @@ export function ConversationThread({ conversationId, listPath, agentsById, onSee
   const voiceNudge = voiceNudgeOf(conversationId, voiceCall, view?.agent ?? null)
   // While voice speaks a reply, its text is laid out to the sentence being revealed and revealed a little ahead of the voice.
   const spoken = inVoice ? voiceCall.voice.reveal : null
+  // Under the light model, the lines heard head the reply's bubble before hq stores them.
+  const heading = inVoice ? voiceCall.voice.heading ?? null : null
   const reply = useMemo<ReplyView>(() => ({
     inVoice,
-    limitFor: (turnId, text) => spokenReveal(spoken, turnId, text, REVEAL.leadMs / 1000)?.layout ?? null,
-    targetFor: (turnId, text) => spokenReveal(spoken, turnId, text, REVEAL.leadMs / 1000)?.target ?? null,
+    textFor: (turnId, text) => replyTextOf({ reveal: spoken, heading }, turnId, text),
+    limitFor: (turnId, text) => spokenReveal(spoken, turnId, text, REVEAL.leadMs / 1000, heading)?.layout ?? null,
+    targetFor: (turnId, text) => spokenReveal(spoken, turnId, text, REVEAL.leadMs / 1000, heading)?.target ?? null,
+    settledFor: (turnId, text) => headShown({ reveal: spoken, heading }, turnId, text),
+    heading,
     onOpenPart: (key, index) => { setOpenedSkill(null); setOpened({ key, index }) },
-  }), [inVoice, spoken])
+  }), [inVoice, spoken, heading])
 
   // Data before error: a thread on screen stays when a re-read of it fails.
   if (!view && viewRead.failedWithoutData) return <>{viewRead.nudge}</>

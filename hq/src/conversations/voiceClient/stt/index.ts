@@ -9,6 +9,8 @@ import { sttInbound, type SttInboundDeps } from '../adapters/sttInbound'
 import type { Clock } from '../clock'
 import type { AnyComponent } from '../runtime/types'
 import { echoFilter } from './echoFilter'
+import type { VoiceSettings } from '../settings'
+import { toneOn } from '../tone/settings'
 
 /** `provider`: the service the token is for; AssemblyAI when absent. */
 export type SttToken = { token: string; provider?: string; config?: SttConfig; ticket?: string }
@@ -19,9 +21,23 @@ export const assemblyAiService = (t: SttToken) => assemblyAi({ token: t.token, c
 /** The services voice can hear through, for hq to choose among (`getSpeechToken`'s `hears`), the default first. */
 export const VOICE_HEARS = ['inworld', 'assemblyai'] as const
 
-/** The service the token was minted for: Inworld's adapter or AssemblyAI's, the same behind the port. */
-export const speechService = (t: SttToken) =>
-  t.provider === 'inworld' ? inworldHearing({ token: t.token, config: t.config }) : assemblyAiService(t)
+/**
+ * The service the token was minted for: Inworld's adapter or AssemblyAI's, the same behind the port. Inworld is asked for
+ * the voice profile with Adaptive voice and its switch on (`../tone/settings`), read as each connection opens.
+ */
+export const speechService = (t: SttToken, settings?: VoiceSettings) =>
+  t.provider === 'inworld'
+    ? inworldHearing({ token: t.token, config: inworldConfig(t.config, settings), voiceProfile: !!settings && voiceProfileOn(settings) })
+    : assemblyAiService(t)
+
+/** hq's config for Inworld, told the person speaks English unless hq names a language or the settings say detect it. */
+export function inworldConfig(config: SttConfig | undefined, settings?: VoiceSettings): SttConfig {
+  if (typeof config?.language === 'string' && config.language) return config
+  return (settings?.tone.speechLanguage ?? 'en') === 'en' ? { ...config, language: 'en' } : { ...config }
+}
+
+/** With the light model listening (the flag `voiceListener` and Adaptive voice), as the backchannel runs. */
+export const voiceProfileOn = (s: VoiceSettings) => toneOn(s)
 
 export type SttPartsDeps = Omit<SttInboundDeps<SttToken>, 'service'> & { clock: Clock; service?: SttInboundDeps<SttToken>['service'] }
 

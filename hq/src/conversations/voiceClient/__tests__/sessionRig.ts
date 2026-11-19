@@ -13,6 +13,7 @@ import { fakeClock } from '../clock'
 import type { VoiceEvent } from '../events'
 import type { Playback, Playhead } from '../playback'
 import type { SpeechToText, TurnModel, VoiceActivityModel } from '../ports'
+import { forgetPaces } from '../pacing/memory'
 import { VOICE_SETTINGS } from '../settings'
 import { transcribing, type TranscribingOptions } from '../stt/__tests__/transcribing'
 import { createVoiceSession, type LooseSocket, type VoiceDeps } from '../voiceSession'
@@ -67,6 +68,8 @@ export type RigOptions = {
 const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve() }
 
 export function rig(opts: RigOptions = {}) {
+  // Each rig is a fresh page: no pace or listening style held from another rig's conversation (the same id).
+  forgetPaces()
   const clock = fakeClock(100_000)
   const s = fakeSocket()
   const pb = fakePlayback()

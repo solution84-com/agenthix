@@ -4,7 +4,7 @@ import { CARD_CLICKABLE } from '@agenthix/ui/primitives'
 import { splitShownParts, type ShownPart } from '../../shared/conversations/shownParts'
 import { MarkdownMessage, type MarkdownEmbedContext } from '../../shared/components/MarkdownMessage'
 import { useConversationEmbed } from './conversationFiles'
-import { revealedText } from '../voiceClient/reveal'
+import { revealedText, type Heading } from '../voiceClient/reveal'
 import { useReveal } from '../../shared/components/reveal/useReveal'
 import type { RevealMarks } from '../../shared/components/reveal/rehypeReveal'
 
@@ -16,8 +16,14 @@ export type ReplyView = {
    * null for all of it.
    */
   limitFor: (turnId: string | undefined, text: string) => number | null
+  /** The text a streaming reply draws while voice is on: under the light model, the lines heard first. Its own text when absent. */
+  textFor?: (turnId: string | undefined, text: string) => string
   /** Where a reply's reveal heads while voice speaks it: a little ahead of the voice. Null: the end of what is laid out. */
   targetFor?: (turnId: string | undefined, text: string) => number | null
+  /** How much of a reply's text was already on screen, in the bubble of the lines said while its turn was open: not revealed again. */
+  settledFor?: (turnId: string | undefined, text: string) => number
+  /** Under the light model, the lines heard: those no reply's bubble draws yet are a bubble of their own. */
+  heading?: Heading | null
   /** Opens the `index`-th shown part of the reply named `key`. */
   onOpenPart: (key: string, index: number) => void
 }
@@ -74,8 +80,10 @@ function offsetsIn(whole: string, texts: string[]): (number | null)[] {
  * reply, so it does not change word by word while the reply is revealed. In a conversation, paths and images are read
  * in its place.
  */
-export function ReplyBody({ text, limit = null, target = null, replyKey, view, writtenAt, live = false }: {
+export function ReplyBody({ text, limit = null, target = null, replyKey, view, writtenAt, live = false, settled }: {
   text: string
+  /** How much of it was already on screen elsewhere when this first draws it. */
+  settled?: number
   limit?: number | null
   target?: number | null
   replyKey: string
@@ -89,7 +97,7 @@ export function ReplyBody({ text, limit = null, target = null, replyKey, view, w
   const visible = revealedText(text, limit)
   // Text arriving reveals from its first words: streaming, or revealed with the voice. The stored reply that takes a
   // stream's place, under the same key, carries on from where the reveal was.
-  const reveal = useReveal({ text: visible, target, arriving: live || limit !== null, live, handOver: replyKey })
+  const reveal = useReveal({ text: visible, target, arriving: live || limit !== null, live, handOver: replyKey, settled })
   const segments = useMemo(() => splitShownParts(visible), [visible])
   // Each piece's marks, by its place in the reply's text, made again only when the text or what it reveals changes.
   const marks = useMemo(() => {

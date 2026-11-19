@@ -8,7 +8,7 @@
  * call's provider.
  */
 import { useSyncExternalStore } from 'react'
-import { revealedChars } from './reveal'
+import { revealedCharsAfter } from './reveal'
 import type { Reveal } from './voiceSnapshot'
 
 let cut: Reveal | null = null
@@ -41,5 +41,5 @@ export function useHeardCut(): Reveal | null {
 /** How much of a reply's `text` may show under the cut: null when the cut is not this reply's, or the record holds it. */
 export function cutLimit(at: Reveal | null, turnId: string | null | undefined, text: string, interrupted = false): number | null {
   if (!at || !turnId || at.turnId !== turnId || interrupted) return null
-  return revealedChars(text, at.sentences, at.head)
+  return revealedCharsAfter(text, at.sentences, at.head, at.heardPrefix)
 }

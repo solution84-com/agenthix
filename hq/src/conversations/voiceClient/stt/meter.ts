@@ -29,14 +29,16 @@ export function meterConnection(ticket: string | undefined, report: SpeechReport
   }
 }
 
-/** A speech service on a token, reporting each connection it makes under that token's ticket. */
-export function meteredService<T extends { ticket?: string }>(
-  service: (token: T) => SpeechToText, report: SpeechReport | undefined,
-): (token: T) => SpeechToText {
-  if (!report) return service
-  return (token) => {
+/** A speech service on a token, reporting each connection it makes under that token's ticket; `settings` passed through. */
+export function meteredService<T extends { ticket?: string }, S = undefined>(
+  service: (token: T, settings: S) => SpeechToText, report: SpeechReport | undefined,
+): (token: T, settings?: S) => SpeechToText {
+  // A service that takes no settings is called with none.
+  const call = (token: T, settings?: S) => service(token, settings as S)
+  if (!report) return call
+  return (token, settings) => {
     const meter = meterConnection(token.ticket, report)
-    const inner = service(token)
+    const inner = call(token, settings)
     return { connect: (handlers) => inner.connect(meter.handlers(handlers)).then(meter.connection) }
   }
 }

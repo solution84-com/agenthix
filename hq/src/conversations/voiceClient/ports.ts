@@ -4,6 +4,8 @@
  * knows which it has.
  */
 
+import type { VoiceProfile } from './tone/voiceProfile'
+
 /** A word as the speech service times it: ms into the audio sent on one connection. */
 export type ServiceWord = { text: string; start: number; end: number }
 
@@ -13,6 +15,8 @@ export type SpeechToTextHandlers = {
   /** The connection closed without being asked to. */
   onClose: (reason: string) => void
   onError: (message: string) => void
+  /** How the person sounds (Inworld's voice profile, when asked for): `final`, it came on a final transcript. */
+  onVoiceProfile?: (profile: VoiceProfile, final: boolean) => void
 }
 
 export type SpeechToTextConnection = {
