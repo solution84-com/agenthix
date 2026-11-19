@@ -25,6 +25,10 @@ export const FEATURE_WORDS: Record<FeatureFlag, { title: string; line: string }>
     title: 'Voice bridge',
     line: 'In a voice conversation, the agent keeps listening when a person has not finished, and opens a slow reply with one short sentence.',
   },
+  voiceListener: {
+    title: 'Adaptive voice listening',
+    line: 'In a voice conversation, a fast model listens as the person speaks: it hums, acknowledges, answers small things itself, and hands everything else to the agent with a short hold line.',
+  },
 }
 
 /** One line per stage, shown above the list: production explains only the stages it lists. */

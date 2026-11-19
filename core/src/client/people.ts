@@ -22,6 +22,10 @@ export type UserSettingsView = {
    * on by default. Off, the agent says nothing until its reply starts; how it notices you have finished does not change.
    */
   adaptiveVoice?: boolean
+  /** Under Adaptive voice: the listening sounds (hums), on by default. Off, nothing else changes. */
+  voiceHums?: boolean
+  /** Under Adaptive voice: Expressive tone, on by default. Off, every layer speaks with no steering and no voice hint. */
+  voiceExpressiveTone?: boolean
   /**
    * The person's voice sounds: the short sounds of a call (voice on and off, mute, a lost connection),
    * on by default.

@@ -4,6 +4,7 @@ import { InfoButton } from '../../shared/components/InfoButton'
 import { WorkflowSwitch } from '../../workflows/components/WorkflowSwitch'
 import { ShowAttention } from '@agenthix/ui/attention'
 import { pressFailureWords } from '../../shared/failureWords'
+import { useFeature } from '../../features/useFeature'
 
 const NOW = {
   on: 'On. The agent makes listening sounds while you talk and opens with a short sentence when a reply will take a while.',
@@ -19,14 +20,18 @@ export function AdaptiveVoiceSection() {
   const update = useAction(updateUserSettings)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Hums and Expressive tone belong to adaptive voice listening: shown only while its flag is on, where they act.
+  const listening = useFeature('voiceListener')
   if (!settings) return null
   const on = settings.adaptiveVoice ?? true
+  const hums = settings.voiceHums ?? true
+  const tone = settings.voiceExpressiveTone ?? true
 
-  async function toggle() {
+  async function toggle(change: { adaptiveVoice: boolean } | { voiceHums: boolean } | { voiceExpressiveTone: boolean }) {
     setSaving(true)
     setError(null)
     try {
-      await update({ adaptiveVoice: !on })
+      await update(change)
       await refetch()
     } catch (err) {
       setError(pressFailureWords(err, 'That did not work.'))
@@ -36,6 +41,7 @@ export function AdaptiveVoiceSection() {
   }
 
   return (
+    <div className="space-y-4">
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
         <div className="flex items-center gap-1.5">
@@ -56,7 +62,35 @@ export function AdaptiveVoiceSection() {
         <p className="mt-0.5 text-small text-text-secondary">{on ? NOW.on : NOW.off}</p>
         <ShowAttention kind="alert" text={error} title="Adaptive voice was not changed" onClose={() => setError(null)} />
       </div>
-      <WorkflowSwitch on={on} label="Adaptive voice" busy={saving} onToggle={() => void toggle()} />
+      <WorkflowSwitch on={on} label="Adaptive voice" busy={saving} onToggle={() => void toggle({ adaptiveVoice: !on })} />
+    </div>
+    {listening && <>
+    <ChildSwitch
+      title="Hums" on={hums} parentOn={on} busy={saving}
+      line="The listening sounds (“mm-hm”) while you talk. Off, nothing else changes."
+      onToggle={() => void toggle({ voiceHums: !hums })}
+    />
+    <ChildSwitch
+      title="Expressive tone" on={tone} parentOn={on} busy={saving}
+      line="The agent changes its tone to suit what you say. Off, it speaks plainly."
+      onToggle={() => void toggle({ voiceExpressiveTone: !tone })}
+    />
+    </>}
+    </div>
+  )
+}
+
+/** A switch under Adaptive voice: shown disabled while Adaptive voice is off, its own value kept. */
+function ChildSwitch({ title, line, on, parentOn, busy, onToggle }: {
+  title: string; line: string; on: boolean; parentOn: boolean; busy: boolean; onToggle: () => void
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-l border-border pl-4">
+      <div className="min-w-0">
+        <span className="text-body font-medium text-text-primary">{title}</span>
+        <p className="mt-0.5 text-small text-text-secondary">{parentOn ? line : `${line} Turn on Adaptive voice to change it.`}</p>
+      </div>
+      <WorkflowSwitch on={on} label={title} busy={busy || !parentOn} onToggle={onToggle} />
     </div>
   )
 }

@@ -133,4 +133,4 @@ key can talk to agents in HQ, but not by voice in the mobile app, until Assembly
 ## Settings
 
 Speech is set up by an administrator, and a pause is what ends your turn. Two settings are your own, in
-[Settings](your-settings.md#voice): **Adaptive voice** and **Voice sounds**.
+[Settings](your-settings.md#voice): **Adaptive voice** (with **Hums** and **Expressive tone** under it) and **Voice sounds**.

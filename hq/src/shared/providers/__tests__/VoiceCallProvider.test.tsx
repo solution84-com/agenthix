@@ -12,7 +12,7 @@ vi.mock('wasp/client/webSocket', () => ({ useSocket: () => ({ socket }) }))
 vi.mock('wasp/client/auth', () => ({ useAuth: () => ({ data: { id: 'u1' } }) }))
 const getSpeechToken = vi.hoisted(() => vi.fn(async (_args?: { agentId: string }) => ({ token: 't' })))
 vi.mock('wasp/client/operations', () => ({
-  getSpeechToken, sendConversationMessage: vi.fn(), getUserSettings: 'getUserSettings', getDemoInfo: 'getDemoInfo', useQuery: () => ({ data: { adaptiveVoice: true } }),
+  getSpeechToken, sendConversationMessage: vi.fn(), getUserSettings: 'getUserSettings', getFeatures: 'getFeatures', getDemoInfo: 'getDemoInfo', useQuery: () => ({ data: { adaptiveVoice: true } }),
 }))
 vi.mock('react-router', () => ({ useLocation: () => ({ pathname: h.path, search: '' }) }))
 

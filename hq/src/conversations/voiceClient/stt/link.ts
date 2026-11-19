@@ -6,6 +6,7 @@
 import type { Clock } from '../clock'
 import type { ServiceWord, SpeechToText, SpeechToTextConnection } from '../ports'
 import { createStreamClock, type StreamClock } from '../streamClock'
+import type { VoiceProfile } from '../tone/voiceProfile'
 
 export type Link = {
   id: number
@@ -24,6 +25,8 @@ export type LinkEvents = {
   lost: (link: Link, why: string) => void
   /** It could not be opened. */
   failed: (link: Link, why: string) => void
+  /** How the person sounds, when the service was asked (`../tone/voiceProfile`). */
+  voiceProfile?: (link: Link, profile: VoiceProfile, final: boolean) => void
 }
 
 export type LinkDeps = {
@@ -44,6 +47,7 @@ export function connectLink(id: number, deps: LinkDeps, on: LinkEvents): Link {
       onWords(text, words, committed, turn) { if (live()) on.words(mine, text, words, committed, turn) },
       onClose: reason => { if (live()) on.lost(mine, reason) },
       onError: message => { if (live()) on.lost(mine, message) },
+      onVoiceProfile: (profile, final) => { if (live()) on.voiceProfile?.(mine, profile, final) },
     }))
     .then((conn) => {
       timeout.cancel()

@@ -21,7 +21,7 @@ const SPEAKING: ReadonlySet<FloorState> = new Set(['agent-speaking', 'ducked'])
 export const floor: Component<State> = {
   name: 'floor',
   accepts: ['acoustic.silence', 'orchestration.send', 'playback.at', 'orchestration.playback', 'reply.spoken',
-    'reply.held', 'orchestration.handRaise', 'clock.tick'],
+    'reply.held', 'orchestration.handRaise', 'listen.turn', 'clock.tick'],
   init: () => ({ floor: 'open', silent: true, hand: false, pausingSince: null }),
   step(state, event, settings) {
     const rest: FloorState = state.hand ? 'hand-raised' : 'open'
@@ -56,6 +56,9 @@ export const floor: Component<State> = {
         return event.sentences === 0 && state.floor === 'agent-thinking' ? go(rest) : stay()
       case 'reply.held':
         return state.floor === 'agent-thinking' ? go(rest) : stay()
+      case 'listen.turn':
+        // The light model kept the turn open, or closed it alone: no reply is coming.
+        return event.state !== 'handedOver' && state.floor === 'agent-thinking' ? go(rest) : stay()
       case 'orchestration.handRaise': {
         const hand = event.state === 'raised'
         if (event.state === 'invited' && !SPEAKING.has(state.floor)) return go('agent-thinking', { hand })

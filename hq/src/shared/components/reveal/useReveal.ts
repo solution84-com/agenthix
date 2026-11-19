@@ -55,15 +55,17 @@ export type RevealInput = {
   live: boolean
   /** The key the reveal is handed over under. */
   handOver?: string
+  /** How much of the text was already on screen elsewhere when this first draws it: its reveal starts there. */
+  settled?: number
 }
 
-export function useReveal({ text, target, arriving, live, handOver }: RevealInput): { ref: (el: HTMLElement | null) => void; marks: RevealMarks | null } {
+export function useReveal({ text, target, arriving, live, handOver, settled }: RevealInput): { ref: (el: HTMLElement | null) => void; marks: RevealMarks | null } {
   const state = useRef<RevealState | null>(null)
   if (!state.current) {
     const carried = takenOver(handOver, text)
     // A reveal left under this key that this reply does not carry on is forgotten: this reply has the key now.
     if (!carried && handOver) handedOver.delete(handOver)
-    state.current = carried ?? startReveal(text, arriving)
+    state.current = carried ?? startReveal(text, arriving, settled)
   }
   const s = state.current
   relayOut(s, text)

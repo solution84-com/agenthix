@@ -30,9 +30,12 @@ export type PhraseDeps = { synthesize?: Synthesize; dir?: () => string; random?:
 export const PHRASE_DIRECTION = '[relaxed, low voice, thinking]'
 const DIRECTED_MODELS: ReadonlySet<string> = new Set(['inworld-tts-2'])
 
+/** The speech model takes a spoken direction in square brackets. */
+export const takesDirection = (voice: Pick<AgentVoice, 'model'>): boolean => DIRECTED_MODELS.has(voice.model)
+
 /** What the speech service is asked to say for a phrase: with its direction where the model takes one. */
 export function spokenAs(text: string, voice: AgentVoice, direction: string = PHRASE_DIRECTION): string {
-  return DIRECTED_MODELS.has(voice.model) && direction ? `${direction} ${text}` : text
+  return takesDirection(voice) && direction ? `${direction} ${text}` : text
 }
 
 async function streamed(text: string, voice: AgentVoice): Promise<Buffer> {
@@ -42,8 +45,8 @@ async function streamed(text: string, voice: AgentVoice): Promise<Buffer> {
   return Buffer.concat(parts)
 }
 
-function fileOf(dir: string, voice: AgentVoice, text: string, direction?: string): string {
-  const hash = crypto.createHash('sha1').update(`${voice.model}|${spokenAs(text, voice, direction)}`).digest('hex').slice(0, 16)
+function fileOf(dir: string, voice: AgentVoice, said: string): string {
+  const hash = crypto.createHash('sha1').update(`${voice.model}|${said}`).digest('hex').slice(0, 16)
   return path.join(dir, 'phrases', voice.voiceId.replace(/[^a-zA-Z0-9_-]/g, '_'), `${hash}.pcm`)
 }
 
@@ -61,22 +64,65 @@ export function withoutTail(audio: Buffer, keepMs = 80): Buffer {
   return end === 0 ? audio : audio.subarray(0, keep * 2)
 }
 
-async function clipOf(
-  { text, tier, use, direction }: { text: string; tier: number; use: PhraseUse; direction?: string }, voice: AgentVoice, synthesize: Synthesize, dir: string,
-): Promise<PhraseClip | null> {
-  const file = fileOf(dir, voice, text, direction)
+/** A phrase is its words with its direction. */
+type Wanted = { text: string; tier: number; use: PhraseUse; direction?: string }
+
+/** A backchannel sound without the silence the speech service leaves before and after it: it plays at once, and ends when it sounds like it does. PCM16 mono at 24 kHz. */
+export function withoutSilence(audio: Buffer, leadMs = 20, keepMs = 80): Buffer {
+  const window = 480
+  const samples = new Int16Array(audio.buffer, audio.byteOffset, Math.floor(audio.length / 2))
+  let start = -1
+  for (let i = 0; i + window <= samples.length && start < 0; i += window) {
+    let sum = 0
+    for (let j = 0; j < window; j++) sum += samples[i + j]! * samples[i + j]!
+    if (Math.sqrt(sum / window) / 32768 > 0.01) start = i
+  }
+  if (start < 0) return audio
+  const from = Math.max(0, start - Math.round((leadMs / 1000) * 24_000))
+  const tail = withoutTail(audio.subarray(from * 2), keepMs)
+  return tail
+}
+
+/** The recordings being made now, by file: voice start and the warming both reach for the same ones at once, and each is made once. */
+const making = new Map<string, Promise<Buffer | null>>()
+
+async function made(file: string, said: string, wanted: Wanted, voice: AgentVoice, synthesize: Synthesize): Promise<Buffer | null> {
   try {
-    return { text, tier, use, audio: await fs.promises.readFile(file) }
-  } catch { /* not made yet */ }
-  try {
-    const made = await synthesize(spokenAs(text, voice, direction), voice)
-    if (!made.length) return null
-    const audio = use === 'filler' ? made : withoutTail(made)
+    const raw = await synthesize(said, voice)
+    if (!raw.length) return null
+    const audio = wanted.use === 'filler' ? raw : withoutTail(raw)
     await fs.promises.mkdir(path.dirname(file), { recursive: true })
     await fs.promises.writeFile(file, audio)
-    return { text, tier, use, audio }
+    return audio
   } catch {
     return null
+  }
+}
+
+async function clipOf(wanted: Wanted, voice: AgentVoice, synthesize: Synthesize, dir: string, fresh = false): Promise<PhraseClip | null> {
+  const { text, tier, use, direction } = wanted
+  const said = spokenAs(text, voice, direction)
+  const file = fileOf(dir, voice, said)
+  const clip = (audio: Buffer): PhraseClip => ({ text, tier, use, audio })
+  const pending = making.get(file)
+  if (pending) {
+    const audio = await pending
+    return audio ? clip(audio) : null
+  }
+  const kept = async () => {
+    try {
+      if (!fresh) return await fs.promises.readFile(file)
+    } catch { /* not made yet */ }
+    return made(file, said, wanted, voice, synthesize)
+  }
+  // Set before anything is awaited, so a second ask for the same file waits for this one.
+  const audio = kept()
+  making.set(file, audio)
+  try {
+    const ready = await audio
+    return ready ? clip(ready) : null
+  } finally {
+    making.delete(file)
   }
 }
 
@@ -113,11 +159,10 @@ export function listeningPhrases(): { text: string; tier: number; use: Listening
   })
 }
 
-/** Everything to make as voice starts: the shortest filler phrases, then the listening family's clips, then the rest. */
-export function storedPhrases(random: () => number = Math.random): { text: string; tier: number; use: PhraseUse; direction?: string }[] {
+/** Everything to make as voice starts: the shortest filler phrases, the listening family's clips, then the other fillers. */
+export function storedPhrases(random: () => number = Math.random): Wanted[] {
   const phrases = fillerPhrases(random).map(p => ({ ...p, use: 'filler' as const }))
-  const listening = listeningPhrases()
-  return [...phrases.filter(p => p.tier === 0), ...listening, ...phrases.filter(p => p.tier !== 0)]
+  return [...phrases.filter(p => p.tier === 0), ...listeningPhrases(), ...phrases.filter(p => p.tier !== 0)]
 }
 
 /** Each clip as it is ready, the shortest first, until `stillWanted` says voice has ended. */
@@ -135,3 +180,75 @@ export async function phraseClips(
     if (clip && stillWanted()) onClip(clip)
   }
 }
+
+/**
+ * The stored hold phrases (adaptive voice listening, spec §When a turn ends): only the fallback, when the light model
+ * gave no usable answer in time, so the heavy model has the turn and the person hears that it does. Generic, the same
+ * for every agent, short, in the agent's voice; none promises, answers or names what was asked.
+ */
+export const HOLD_PHRASES: readonly string[] = [
+  'Okay, bear with me.', 'One moment.', 'Give me a second.', 'Let me think.', 'Just a sec.', 'On it.',
+  "Okay, let me see.", 'Right, one moment.', 'Mm, let me think about that.', "Okay, I'm on it.",
+  'Let me work that out.', 'Hmm, give me a moment.', 'Okay, thinking it through.', "Won't be long.",
+  'Let me pull that together.', 'Right, let me look.', 'Okay, just a moment.', 'Bear with me a second.',
+  'Let me have a look.', 'Okay, one sec.', 'Hmm, let me see.', 'Right, give me a moment.', 'Let me check.',
+  'Okay, let me think about that.', 'Just a moment.', 'Mm, one moment.', 'Let me sort that out.', 'Okay, hang on.',
+  'Right, let me think.', 'Give me a moment.', 'Let me just check.', 'Okay, give me a second.', 'Hmm, one sec.',
+  'Let me figure that out.', 'Okay, working on it.', 'Right, bear with me.', 'Let me see what I can do.',
+  'Okay, a moment.', 'Hmm, let me look.', 'Let me get that together.',
+]
+
+/**
+ * The stored closing lines (adaptive voice listening, spec §When a turn ends): only at the "not yet" limit, when the
+ * pause had an invitation nobody answered, so the turn closes without the heavy model and the person hears that the
+ * agent is still there. Generic, short, in the agent's voice; none asks a question or says anything went wrong.
+ */
+export const CLOSING_PHRASES: readonly string[] = [
+  "I'll be here when you're ready.", "No rush, I'm here when you're ready.", "Take your time, I'll be here.",
+  "I'm here whenever you're ready.", 'No rush, just say when.', "Okay, I'll be right here.",
+  "Whenever you're ready, I'm here.", "No hurry, I'm right here.",
+]
+
+/** The stored phrases hq plays on its own: the fallback's hold phrases, or the closing lines at the "not yet" limit. */
+export type StoredPool = 'hold' | 'closing'
+
+const POOLS: Record<StoredPool, readonly string[]> = { hold: HOLD_PHRASES, closing: CLOSING_PHRASES }
+
+/** Each hold phrase's and closing line's clip, made one at a time and kept on disk: each then plays at once. */
+export async function warmHoldPhrases(voice: AgentVoice, stillWanted: () => boolean = () => true, deps: PhraseDeps = {}): Promise<void> {
+  const synthesize = deps.synthesize ?? streamed
+  const dir = (deps.dir ?? getVoiceCacheDir)()
+  const stored = [...HOLD_PHRASES, ...CLOSING_PHRASES].map(text => ({ text, tier: 0, use: 'filler' as const }))
+  for (const wanted of stored) {
+    if (!stillWanted()) return
+    await clipOf(wanted, voice, synthesize, dir)
+  }
+}
+
+/**
+ * A stored phrase of `pool` none of `avoid` repeats, at random among those already made, so it plays at once; one is
+ * made now only when none is. Null when none can be.
+ */
+export async function storedPhraseClip(
+  voice: AgentVoice, pool: StoredPool, avoid: readonly string[], deps: PhraseDeps = {},
+): Promise<{ text: string; audio: Buffer } | null> {
+  const random = deps.random ?? Math.random
+  const dir = (deps.dir ?? getVoiceCacheDir)()
+  const all = POOLS[pool]
+  const fresh = all.filter(p => !avoid.includes(p))
+  const choices = shuffled(fresh.length ? fresh : [...all], random)
+  for (const text of choices) {
+    try {
+      return { text, audio: await fs.promises.readFile(fileOf(dir, voice, spokenAs(text, voice))) }
+    } catch { /* not made yet */ }
+  }
+  for (const text of choices.slice(0, 3)) {
+    const clip = await clipOf({ text, tier: 0, use: 'filler' }, voice, deps.synthesize ?? streamed, dir)
+    if (clip) return { text, audio: clip.audio }
+  }
+  return null
+}
+
+/** A stored hold phrase none of `avoid` repeats (`storedPhraseClip`). */
+export const holdPhraseClip = (voice: AgentVoice, avoid: readonly string[], deps: PhraseDeps = {}) =>
+  storedPhraseClip(voice, 'hold', avoid, deps)

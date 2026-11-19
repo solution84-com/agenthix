@@ -3,14 +3,18 @@ import type { SendConversationMessageArgs } from '../../shared/conversations/pro
 import type { LooseSocket } from './adapters/hqSocket'
 import type { Clock } from './clock'
 import type { Playback, Playhead } from './playback'
-import type { TimedSentence } from './reveal'
+import type { Heading, TimedSentence } from './reveal'
 import type { VoiceRuntimeHandle } from './runtime/types'
 import type { SttToken } from './stt'
 import type { SpeechReport } from './stt/meter'
 import type { VoiceOutside } from './voiceParts'
 
 /** A reply held back so its text is shown only as far as it has been heard. */
-export type Reveal = { turnId: string; head: Playhead | null; sentences: TimedSentence[] }
+export type Reveal = {
+  turnId: string; head: Playhead | null; sentences: TimedSentence[]
+  /** The lines already heard that start the reply's message under the light model; they show whole, and the sentences place the reply after them. */
+  heardPrefix?: string
+}
 
 export type VoicePhase = 'off' | 'starting' | 'listening' | 'thinking' | 'speaking'
 
@@ -24,6 +28,8 @@ export type VoiceSnapshot = {
   /** What the person is saying now, before it is sent. */
   partial: string
   reveal: Reveal | null
+  /** Under the light model, the lines heard that will head the reply awaited, shown in its bubble as each begins. */
+  heading?: Heading | null
   /** When voice ends unless someone speaks. */
   warningEndsAt: number | null
   /** One line: why voice ended, or what failed. */
@@ -56,6 +62,12 @@ export type VoiceDeps = VoiceOutside & {
   chime?: () => void
   /** The person's own Adaptive voice, read each time voice starts; on when not given. */
   adaptiveVoice?: () => boolean
+  /** The person's Hums switch under Adaptive voice, read each time voice starts: the backchannel's `on`; the session's own when not given. */
+  voiceHums?: () => boolean
+  /** The person's Expressive tone switch under Adaptive voice, read each time voice starts: tone's `on`; the session's own when not given. */
+  voiceExpressiveTone?: () => boolean
+  /** The flag `voiceListener` (adaptive voice listening), read each time voice starts; off when not given. */
+  voiceListener?: () => boolean
   /** Shows the running runtime to the voice lab in another tab (development only); returns what stops it. */
   mirror?: (runtime: VoiceRuntimeHandle) => () => void
 }

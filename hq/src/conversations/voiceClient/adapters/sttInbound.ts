@@ -5,13 +5,14 @@
  */
 import type { Clock } from '../clock'
 import type { SpeechToText } from '../ports'
+import type { VoiceSettings } from '../settings'
 import type { Adapter } from '../runtime/types'
 import { createSender, type Sender } from '../stt/sender'
 
 export type SttInboundDeps<T> = {
   clock: Clock
   getToken: () => Promise<T>
-  service: (token: T) => SpeechToText
+  service: (token: T, settings: VoiceSettings) => SpeechToText
   failed?: (message: string) => void
 }
 

@@ -6,9 +6,9 @@
  * usage report.
  */
 import { FAKE_MAX_DELAY_MS, type PlaygroundLead } from '../../../shared/voicePlayground'
-import type { LeadStreamEvent, ModelAdapter, ResolvedAccess } from '../../contract'
+import type { LeadMessage, LeadStreamEvent, ModelAdapter, ResolvedAccess } from '../../contract'
 import { reasoningFor } from '../../lead/voiceLogic'
-import { PLAYGROUND_TOOLS, playgroundContext, type PlaygroundTurn } from './context'
+import { playgroundContext, playgroundTools, type PlaygroundTurn } from './context'
 
 export const FAKE_REPLY =
   'Right, I can look at that. The first thing I would check is where the time goes before the first word. ' +
@@ -19,7 +19,8 @@ const FAKE_TEXT_MAX = 2_000
 export interface LeadRun {
   /** The model that answers, as the page names it; null for the fake reply. */
   model: string | null
-  events(turn: PlaygroundTurn, signal: AbortSignal): AsyncIterable<LeadStreamEvent>
+  /** One model step; `after`: the earlier step and its calls' answers, for a second step (`styleStep.ts`). */
+  events(turn: PlaygroundTurn, signal: AbortSignal, after?: readonly LeadMessage[]): AsyncIterable<LeadStreamEvent>
 }
 
 export interface LeadDeps {
@@ -62,12 +63,12 @@ export function fakeLead(choice: { delayMs?: unknown; text?: unknown }, wait = s
 export function modelLead(model: string, access: Promise<ResolvedAccess>, deps: Pick<LeadDeps, 'model' | 'cacheKey'>): LeadRun {
   return {
     model,
-    async *events(turn, signal) {
+    async *events(turn, signal, after) {
       const context = playgroundContext(turn)
-      const quick = reasoningFor({ heard: turn.listening, spokenMessage: context.spokenMessage === true, step: 0 })
+      const quick = reasoningFor({ heard: turn.listening, spokenMessage: context.spokenMessage === true, step: after ? 1 : 0 })
       yield* deps.model.stream({
-        access: await access, system: context.system, messages: context.messages, cacheAfterMessage: context.cacheAfterMessage,
-        tools: PLAYGROUND_TOOLS, ...quick, cacheKey: deps.cacheKey, signal,
+        access: await access, system: context.system, messages: [...context.messages, ...(after ?? [])], cacheAfterMessage: context.cacheAfterMessage,
+        tools: playgroundTools(turn), ...quick, cacheKey: deps.cacheKey, signal,
       })
     },
   }

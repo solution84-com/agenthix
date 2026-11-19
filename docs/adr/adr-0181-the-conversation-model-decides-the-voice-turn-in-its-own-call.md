@@ -5,7 +5,7 @@ description: In a voice conversation the agent's own conversation model, in the 
 
 # ADR-0181: The Conversation Model Decides the Voice Turn in Its Own Call
 
-**Status:** Accepted
+**Status:** Superseded by adr-0195
 
 ## Context
 

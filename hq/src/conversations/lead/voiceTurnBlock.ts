@@ -7,6 +7,12 @@
  *
  * Each person's Adaptive voice off leaves out the opening sentence; the hold stays (it is how a turn ends, not
  * something the agent adds).
+ *
+ * Under adaptive voice listening (the flag `voiceListener`) the light model judges whether the person has finished and
+ * says the hold, so every turn is told only how to speak: no judging, no opening sentence, no trailed-off note — and
+ * the same with the person's Adaptive voice off, which is plain voice. It is told it may change how it listens
+ * (`set_listening_style`, offered with the flag), and, with Tone on (spec §Tone), to open a spoken reply with a
+ * `[tone: …]` tag, which hq takes out before anything is spoken, shown or stored (`toneTag.ts`).
  */
 
 const SPEAKING = `You are in a voice conversation with the user: they speak to you and hear your replies, so write for the ear.
@@ -36,6 +42,17 @@ const OPENING = ` If your reply needs real work (background work, several steps,
   words, and in the same step make the tool call that does the work. Do not answer, state a result, or say it
   is done in that sentence. If you can answer straight away, just answer.`
 
+/** The listening style is the agent's to change, by its tool (spec §The heavy model → *The listening style as an action*). */
+const LISTENING_STYLE = `If they ask you to change how you listen while they talk, call set_listening_style and say in a few words
+that you will: "stop humming", "no more mm-hms" is hums_off; "fewer of those" is hums_fewer; "let me finish",
+"stop cutting in" is patient; "you can hum again", "back to normal" is normal. Only when they ask.`
+
+/** The reply's tone (spec §Tone): one of the six, as a tag hq takes out. */
+const TONE_TAG = `Start your reply with a tone tag for how your voice should sound, one of: [tone: calm] for ordinary
+things, the default; [tone: warm] when they shared something personal or effortful; [tone: curious] when
+something is unfolding; [tone: thoughtful] when weighing an idea or a choice; [tone: gentle] for something bad or
+worrying; [tone: bright] for good news or something funny. The tag is never spoken or shown; write it once, first.`
+
 /** Their words ended on a long pause while they seemed mid-thought (the audio turn model's reading). */
 const TRAILED_OFF = 'Their words ended on a long pause while they seemed mid-thought, so they may not have finished.'
 
@@ -50,9 +67,14 @@ export interface VoiceTurn {
   trailedOff: boolean
   /** They went on after a pause mid-thought: after a hold, or after an encouragement response. */
   wentOn: boolean
+  /** Adaptive voice listening is on: the light model has judged the turn, so only how to speak is said. */
+  listener?: boolean
+  /** With `listener`, Tone is on: the reply opens with its tone tag. */
+  toneTag?: boolean
 }
 
 export function voiceTurnBlock(turn: VoiceTurn): string {
+  if (turn.listener) return [SPEAKING, LISTENING_STYLE, ...(turn.toneTag ? [TONE_TAG] : [])].join('\n\n')
   if (!turn.spoken) return SPEAKING
   const block = `${SPEAKING}\n\n${JUDGING}\n${turn.adaptiveVoice ? `${FINISHED}${OPENING}` : FINISHED}`
   const lines = [...(turn.wentOn ? [WENT_ON] : []), ...(turn.trailedOff ? [TRAILED_OFF] : [])]

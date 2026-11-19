@@ -9,6 +9,7 @@ import {
   type VoiceAudioEvent, type VoiceEndedEvent, type VoiceErrorEvent, type VoicePhraseEvent, type VoiceSentenceEvent,
   type VoiceSilenceWarningEvent, type VoiceStateEvent, type VoiceTurnHeldEvent, type VoiceTurnSpokenEvent, type VoiceUpdateEvent,
 } from '../../../shared/conversations/protocol'
+import { CONVERSATION_VOICE_PAGE_SOCKET as VP, type VoiceBackchannelSoundEvent, type VoiceHeardPrefixEvent, type VoiceLineEvent, type VoiceListenPayload } from '@agenthix/core'
 import type { Adapter } from '../runtime/types'
 
 export type LooseSocket = {
@@ -30,6 +31,12 @@ export type RoomHandlers = {
   delta: (e: ConversationDeltaEvent) => void
   turn: (e: ConversationTurnEvent) => void
   operation: (e: ConversationOperationEvent) => void
+  /** A light model's line (adaptive voice listening). */
+  line?: (e: VoiceLineEvent) => void
+  /** The lines heard that start a reply's message (adaptive voice listening). */
+  heardPrefix?: (e: VoiceHeardPrefixEvent) => void
+  /** A backchannel sound the page's keeper asked for (hq's own pages only). */
+  sound?: (e: VoiceBackchannelSoundEvent) => void
 }
 
 /** Listens to the room's events until the returned function is called. */
@@ -38,6 +45,9 @@ export function listenToRoom(socket: LooseSocket, h: RoomHandlers): () => void {
     [V.state, h.state], [V.sentence, h.sentence], [V.audio, h.audio], [V.turnSpoken, h.turnSpoken], [V.turnHeld, h.turnHeld],
     [V.phrase, h.phrase], [V.silenceWarning, h.silenceWarning], [V.ended, h.ended], [V.error, h.error],
     [CONVERSATION_SOCKET.delta, h.delta], [CONVERSATION_SOCKET.turn, h.turn], [CONVERSATION_SOCKET.operation, h.operation],
+    ...(h.line ? [[V.line, h.line] as [string, (e: never) => void]] : []),
+    ...(h.heardPrefix ? [[V.heardPrefix, h.heardPrefix] as [string, (e: never) => void]] : []),
+    ...(h.sound ? [[VP.backchannelSound, h.sound] as [string, (e: never) => void]] : []),
   ]
   for (const [event, handler] of handlers) socket.on(event, handler as never)
   return () => { for (const [event, handler] of handlers) socket.off(event, handler as never) }
@@ -57,6 +67,10 @@ export function hqVoice(socket: LooseSocket) {
     invite: (conversationId: string, updateId: string) => socket.emit(V.invite, { conversationId, updateId }),
     continue: (conversationId: string, turnId: string, text: string, trailedOff = false) =>
       socket.emit(V.continue, trailedOff ? { conversationId, turnId, text, trailedOff } : { conversationId, turnId, text }),
+    listen: (payload: VoiceListenPayload) => socket.emit(V.listen, payload),
+    /** `skipped`: the line was dropped, never heard. */
+    linePlayed: (conversationId: string, lineId: string, skipped = false) =>
+      socket.emit(V.linePlayed, skipped ? { conversationId, lineId, skipped: true } : { conversationId, lineId }),
   }
 }
 

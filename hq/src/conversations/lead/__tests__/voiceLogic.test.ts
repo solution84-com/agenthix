@@ -16,7 +16,7 @@ const text = (t: string): LeadStreamEvent => ({ type: 'text', text: t })
 const call = (name: string, input: unknown = {}, id = `c-${name}`): LeadStreamEvent => ({ type: 'tool-call', call: { id, name, input } })
 const hold = (reason = 'ended on "and"') => call(KEEP_LISTENING, { reason })
 
-function reader(opts: { spokenMessage?: boolean; mayHold?: boolean; before?: string; startsWork?: ReadonlySet<string> } = {}) {
+function reader(opts: { spokenMessage?: boolean; mayHold?: boolean; before?: string; startsWork?: ReadonlySet<string>; tones?: string[] } = {}) {
   let replied = opts.before ?? ''
   const streamed: string[] = []
   const holds: LeadToolCall[] = []
@@ -29,6 +29,7 @@ function reader(opts: { spokenMessage?: boolean; mayHold?: boolean; before?: str
     hold: c => holds.push(c),
     finish: e => finished.push(e.usage),
     ...(opts.startsWork ? { startsWork: opts.startsWork } : {}),
+    ...(opts.tones ? { toneTag: (t: string) => { opts.tones!.push(t) } } : {}),
   })
   const read = (events: LeadStreamEvent[]) => { for (const e of events) r.take(e); return r.result() }
   return { read, streamed, holds, finished }
@@ -71,6 +72,39 @@ describe('how much a step reasons @SC-1838', () => {
     expect(reasoningFor({ heard: true, spokenMessage: false, step: 2 })).toEqual({ spoken: true })
     expect(reasoningFor({ heard: true, spokenMessage: true, step: 0 })).toEqual({ spoken: true, firstSpokenStep: true })
     expect(reasoningFor({ heard: true, spokenMessage: true, step: 1 })).toEqual({})
+  })
+})
+
+describe('the reply\'s tone tag, read from the stream (spec §The heavy model → Its tone) @SC-2235', () => {
+  it('is taken out of a step split across pieces: nothing of it is streamed, its tone is heard', () => {
+    const tones: string[] = []
+    const { read, streamed } = reader({ tones })
+    const r = read([text('[tone'), text(': gen'), text('tle] '), text('I am sorry.'), finish])
+    expect(streamed.join('')).toBe('I am sorry.')
+    expect(r.text).toBe('I am sorry.')
+    expect(tones).toEqual(['gentle'])
+  })
+
+  it('a bad tag is taken out and is calm; no tag streams as written', () => {
+    const bad: string[] = []
+    expect(reader({ tones: bad }).read([text('[tone: shouty] Okay.'), finish]).text).toBe('Okay.')
+    expect(bad).toEqual(['calm'])
+    const none: string[] = []
+    const plain = reader({ tones: none })
+    expect(plain.read([text('Okay'), text(', sure.'), finish]).text).toBe('Okay, sure.')
+    expect(none).toEqual([])
+  })
+
+  it('a later step opening with a tag is taken out too, and no separator is streamed for a step of only a tag', () => {
+    const tones: string[] = []
+    const { read, streamed } = reader({ tones, before: 'Let me look.' })
+    read([text('[tone: bright]'), call('list_projects'), finish])
+    expect(streamed).toEqual([])
+    expect(tones).toEqual(['bright'])
+  })
+
+  it('without the tag asked for, a bracket at the start is the reply\'s own', () => {
+    expect(reader().read([text('[tone: warm] Hi.'), finish]).text).toBe('[tone: warm] Hi.')
   })
 })
 

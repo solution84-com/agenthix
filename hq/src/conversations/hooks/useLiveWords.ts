@@ -12,9 +12,18 @@ export type LiveWords = { text: string; since: string }
  */
 export function useLiveWords(words: string | undefined, sent: string): LiveWords | null {
   const live = useRef<(LiveWords & { sent: string }) | null>(null)
+  const landed = useRef<string | null>(null)
   const [, expired] = useState(0)
-  if (words?.trim()) live.current = { text: words, since: live.current?.since ?? new Date().toISOString(), sent }
-  else if (live.current && (words === undefined || live.current.sent !== sent)) live.current = null
+  const said = words?.trim() ?? ''
+  if (live.current && live.current.sent !== sent) {
+    // The message holding the words landed: the bubble is gone now, even if the said words have not cleared yet.
+    landed.current = live.current.text.trim()
+    live.current = null
+  }
+  // Words still being said that the landed message already holds are not new words; longer or different ones are.
+  if (landed.current !== null && (!said || !landed.current.startsWith(said))) landed.current = null
+  if (said && landed.current === null) live.current = { text: words as string, since: live.current?.since ?? new Date().toISOString(), sent }
+  else if (live.current && words === undefined) live.current = null
   const holding = !words?.trim() && live.current !== null
   useEffect(() => {
     if (!holding) return

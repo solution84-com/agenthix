@@ -120,6 +120,18 @@ them. Three skills are listed: the built-in `platform-skill-creator` (its real `
 
 A run takes up to 6 model calls. The result is written to `hq/.model-checks/skills-<time>.md`, as the lead's is.
 
+### The voice sets
+
+Two scripted sets that were the voice playground's Scenarios mode (`voice/`, id `voice`): the light model's eight
+moments (`lightSet/`), each a short sequence of listening calls through hq's own listening call with no audio and
+scored step by step against the spec (`lightSet/score.ts`), and the lead's scenario library (`leadSet/`), 84 spoken
+turns in four groups (trails off, finished, quick, tasks) sent down the lead path Live uses (the voice turn block,
+`keep_listening` and a stand-in `start_work`) and scored by what the group wants (`leadSet/score.ts`). The model is the
+run's parameter (`MODEL_CHECK_MODELS`; the baseline is DeepSeek Flash, `~deepseek/deepseek-flash-latest`). The result
+is scores, not pass or fail: the report in `hq/.model-checks/voice-<time>.md` lists the light set by scenario and the
+library by group with the tokens used, and the run fails only when a call did not reach the model. About 100 model
+calls per model. Run alone: `MODEL_CHECK_ONLY=voice npx vitest run -c vitest.models.config.ts src/conversations/__modelchecks__/voice`.
+
 ### The first request, measured
 
 Each run records the provider's own count of the input of its first model call (the part not cached plus what was

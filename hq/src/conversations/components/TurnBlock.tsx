@@ -28,8 +28,11 @@ function settledThinking(words: WordsMessage[]): ReplyThinking | null {
   return null
 }
 
-/** The running turn: its pill counting, and the words it streams so far — `shown` of them while voice speaks them. */
-export type LiveTurn = { thinking: ThinkingView; stream: { turnId: string; text: string; limit: number | null; target?: number | null } | null }
+/**
+ * The running turn: its pill counting, and the words it streams so far — `shown` of them while voice speaks them. With no
+ * pill, the lines said while the person's turn is still open, before any turn runs.
+ */
+export type LiveTurn = { thinking: ThinkingView | null; stream: { turnId: string; text: string; limit: number | null; target?: number | null } | null }
 
 /** Where an answer the person stopped ends: who stopped it, and after how long when the turn kept it. */
 export function stoppedWords(said: boolean, ms: number | null): string {
@@ -63,7 +66,10 @@ function Words({ message, reply, limit, target, thoughtMs, onTryAgain, offer }: 
   return <>
     {message.body.text.trim() && (
       <div className="max-w-[720px] text-reading">
-        <ReplyBody text={message.body.text} limit={limit} target={target} replyKey={key} view={reply} writtenAt={message.createdAt} />
+        <ReplyBody
+          text={message.body.text} limit={limit} target={target} replyKey={key} view={reply} writtenAt={message.createdAt}
+          settled={reply?.settledFor?.(message.turnId ?? undefined, message.body.text)}
+        />
       </div>
     )}
     {message.interrupted && (

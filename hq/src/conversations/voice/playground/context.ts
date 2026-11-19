@@ -5,7 +5,8 @@
  * hq sends; there are no memory, places or other people.
  *
  * The tools are the lead's voice logic's keep_listening and a stand-in start_work that runs nothing, so a reply that
- * needs real work can be seen opening with its sentence and starting it.
+ * needs real work can be seen opening with its sentence and starting it. With the light model, the lead's
+ * set_listening_style too, which the playground sends as hq does (`turn.ts`).
  */
 import { z } from 'zod'
 import type { ConversationMessageView } from '../../../shared/conversations/protocol'
@@ -13,8 +14,11 @@ import { PLAYGROUND_PERSON_ID, type PlaygroundEntry } from '../../../shared/voic
 import type { LeadToolDefinition } from '../../contract'
 import { contextFrom, placeLabelOf, type LeadContext } from '../../coordinator/context'
 import { keepListeningDefinition } from '../../lead/voiceLogic'
+import { listeningStyleDefinition } from '../../lead/listeningStyle'
 
-export const PLAYGROUND_AGENT = 'Kernel'
+import { PLAYGROUND_AGENT } from './light/names'
+
+export { PLAYGROUND_AGENT }
 
 /** The start_work the playground offers: named as hq's, so it reads as work, and run by nothing. */
 export const STAND_IN_START_WORK: LeadToolDefinition = {
@@ -28,6 +32,14 @@ export const STAND_IN_START_WORK: LeadToolDefinition = {
 
 export const PLAYGROUND_TOOLS: LeadToolDefinition[] = [STAND_IN_START_WORK, keepListeningDefinition()]
 
+/**
+ * With the light model, the heavy model judges nothing and holds nothing: keep_listening is not offered, as in hq;
+ * set_listening_style is, as in hq with the flag on.
+ */
+export function playgroundTools(turn: Pick<PlaygroundTurn, 'lightModel'>): LeadToolDefinition[] {
+  return turn.lightModel ? [STAND_IN_START_WORK, listeningStyleDefinition()] : PLAYGROUND_TOOLS
+}
+
 export interface PlaygroundTurn {
   /** The conversation so far, oldest first: what the lead may read of it. */
   history: readonly PlaygroundEntry[]
@@ -39,6 +51,10 @@ export interface PlaygroundTurn {
   /** They went on after a turn held open, and their words joined the message. */
   wentOn: boolean
   adaptiveVoice: boolean
+  /** The light model listens (the flag `voiceListener`): the voice turn block says only how to speak. */
+  lightModel?: boolean
+  /** Tone is on for the voice session: the reply is asked for its `[tone: …]` tag. */
+  toneOn?: boolean
 }
 
 function view(entry: PlaygroundEntry, seq: number): ConversationMessageView {
@@ -62,7 +78,7 @@ export function playgroundContext(turn: PlaygroundTurn): LeadContext {
   return contextFrom({
     instructions: {
       agentName: PLAYGROUND_AGENT, agentRole: null, placeLabel: placeLabelOf({}),
-      agentInstructions: null, orgInstructions: null, featuresOn: ['voiceBridge'],
+      agentInstructions: null, orgInstructions: null, featuresOn: turn.lightModel ? ['voiceBridge', 'voiceListener'] : ['voiceBridge'],
     },
     segments: [],
     history,
@@ -71,7 +87,7 @@ export function playgroundContext(turn: PlaygroundTurn): LeadContext {
     memory: null,
     places: null,
     listening: turn.listening
-      ? { trailedOff: turn.trailedOff, wentOnAfter: null, wentOnAfterHold: turn.wentOn, adaptiveVoice: turn.adaptiveVoice }
+      ? { trailedOff: turn.trailedOff, wentOnAfter: null, wentOnAfterHold: turn.wentOn, adaptiveVoice: turn.adaptiveVoice, toneOn: turn.toneOn === true }
       : null,
   })
 }

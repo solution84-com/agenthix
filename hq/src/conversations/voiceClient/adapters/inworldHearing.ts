@@ -12,11 +12,14 @@
  *   long monologue is cut between words; with no pause, Inworld's own cut arrives as an ordinary final. Either way
  *   it is one more committed turn, which the utterance code joins into the person's message.
  * - **No vocabulary.** A vocabulary list (`prompts`) made the service invent a word from silence, so none is sent.
+ * - **The voice profile** (`voiceProfile`, voice in a conversation only): the service is asked for the person's emotion
+ *   and vocal style beside the words (`../tone/voiceProfile`), each reading handed on before its words are read.
  */
 import type { SpeechToText, SpeechToTextConnection, SpeechToTextHandlers, ServiceWord } from '../ports'
 import { SPEECH_RATE } from '../resample'
 import type { SpeechTrace } from '../speechTiming'
 import { gatherAudio, MESSAGE_MS, type SttConfig } from './assemblyAi'
+import { readVoiceProfile, VOICE_PROFILE_TOP_N, type VoiceProfile } from '../tone/voiceProfile'
 
 export const INWORLD_STT_URL = 'wss://api.inworld.ai/stt/v1/transcribe:streamBidirectional'
 export const INWORLD_DEFAULT_MODEL = 'inworld/inworld-stt-1'
@@ -31,20 +34,21 @@ const TURN_SETTINGS = {
 }
 
 /** The first frame: what the socket hears and how. Only the model and a language hint are taken from hq's config. */
-export function transcribeConfig(config: SttConfig = {}) {
+export function transcribeConfig(config: SttConfig = {}, voiceProfile = false) {
   const modelId = typeof config.modelId === 'string' && config.modelId ? config.modelId : INWORLD_DEFAULT_MODEL
   const language = typeof config.language === 'string' && config.language ? { language: config.language } : {}
   return {
     transcribeConfig: {
       modelId, audioEncoding: 'LINEAR16', sampleRateHertz: SPEECH_RATE, numberOfChannels: 1, includeWordTimestamps: true,
       ...language, ...TURN_SETTINGS,
+      ...(voiceProfile && { voiceProfileConfig: { enableVoiceProfile: true, topN: VOICE_PROFILE_TOP_N } }),
     },
     audioProtocol: 'BINARY',
   }
 }
 
 export type InworldMessage =
-  | { kind: 'words'; text: string; words: ServiceWord[]; final: boolean }
+  | { kind: 'words'; text: string; words: ServiceWord[]; final: boolean; profile?: VoiceProfile }
   | { kind: 'pause' }
   | { kind: 'error'; message: string }
   | null
@@ -66,7 +70,8 @@ export function readInworldMessage(data: unknown): InworldMessage {
   const words = (Array.isArray(t.wordTimestamps) ? t.wordTimestamps : [])
     .filter(w => typeof w?.word === 'string' && typeof w.startTimeMs === 'number')
     .map(w => ({ text: w.word as string, start: w.startTimeMs as number, end: typeof w.endTimeMs === 'number' ? w.endTimeMs : w.startTimeMs as number }))
-  return { kind: 'words', text: typeof t.transcript === 'string' ? t.transcript.trim() : '', words, final: t.isFinal === true }
+  const profile = readVoiceProfile(t)
+  return { kind: 'words', text: typeof t.transcript === 'string' ? t.transcript.trim() : '', words, final: t.isFinal === true, ...(profile && { profile }) }
 }
 
 export type InworldHearingOptions = {
@@ -75,6 +80,8 @@ export type InworldHearingOptions = {
   trace?: SpeechTrace
   /** As AssemblyAI's: the connection is open, called as it opens, before `connect` resolves. */
   onOpen?: (connection: SpeechToTextConnection) => void
+  /** Ask for the voice profile; off unless voice in a conversation asks (dictation never does). */
+  voiceProfile?: boolean
 }
 
 const msOfBytes = (bytes: number) => bytes / 2 / (SPEECH_RATE / 1000)
@@ -118,7 +125,7 @@ export function inworldHearing(opts: InworldHearingOptions): SpeechToText {
         },
       }
       socket.onopen = () => {
-        socket.send(JSON.stringify(transcribeConfig(opts.config)))
+        socket.send(JSON.stringify(transcribeConfig(opts.config, opts.voiceProfile === true)))
         opts.onOpen?.(connection)
         resolve(connection)
       }
@@ -132,6 +139,8 @@ export function inworldHearing(opts: InworldHearingOptions): SpeechToText {
           if (!ending && turnFrom !== null && sentMs - turnFrom >= TURN_CAP_SOFT_MS) { ending = true; endTurn() }
           return
         }
+        // Before the words: a reading may ride on an empty transcript, which is otherwise not read.
+        if (msg.profile) handlers.onVoiceProfile?.(msg.profile, msg.final)
         if (!msg.final) {
           if (!msg.text) return
           shown = true

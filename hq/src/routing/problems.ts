@@ -12,7 +12,7 @@ const STATE_WORDS: Record<string, string> = {
   not_available: 'is not available yet', disconnected: 'is disconnected', works: 'failed',
 }
 
-const KIND: Record<string, string> = { stt: 'speech to text', tts: 'text to speech' }
+const KIND: Record<string, string> = { stt: 'speech to text', tts: 'text to speech', listener: 'fast model for listening', backchannel: 'fast model for the hum service' }
 
 export function problemFor(
   code: ResolveProblemCode,
@@ -32,6 +32,12 @@ export function problemFor(
         message: `${name} isn't working: ${AI_PROVIDER_VENDOR_INFO[p?.vendor ?? 'anthropic'].label} ${STATE_WORDS[p?.state ?? 'works']}. An organisation admin has been told.`,
       }
     case 'no_allowed_model':
+      if (about.purpose === 'listener') {
+        return { ...base, fixedBy: ['organisation_admin'], message: 'No fast model for listening is reached by the organisation\'s providers, so voice runs without listening sounds. An organisation admin can add a provider with one, or widen a list.' }
+      }
+      if (about.purpose === 'backchannel') {
+        return { ...base, fixedBy: ['organisation_admin'], message: 'No fast model for the hum service is reached by the organisation\'s providers, so the hums while you talk are plain ones. An organisation admin can add a provider with one, or widen a list.' }
+      }
       return { ...base, fixedBy: ['organisation_admin'], message: `No model ${who} may use is reached by the organisation's providers. An organisation admin can widen a list, or add a provider.` }
     case 'model_not_allowed':
       return { ...base, fixedBy: ['person', 'organisation_admin'], message: 'That model is not one the lists here allow. Choose another, or ask an organisation admin to widen a list.' }

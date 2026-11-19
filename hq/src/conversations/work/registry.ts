@@ -14,6 +14,7 @@ import { zoomTools } from '../long/zoom'
 import { placeTools } from '../placesSuggest'
 import { offerLivePreviewTool } from '../../livePreviews/offer'
 import { keepListeningTool } from '../coordinator/keepListening'
+import { listeningStyleTool } from '../voice/listening/styleTool'
 
 export function operationOwner(kind: OperationKindValue): OperationOwner {
   switch (kind) {
@@ -26,7 +27,7 @@ export function operationOwner(kind: OperationKindValue): OperationOwner {
 const livePreviewTool: ConversationTool = { ...offerLivePreviewTool, area: 'apps' }
 
 export function conversationTools(): readonly ConversationTool[] {
-  return [...workerTools, ...taskTools, ...toolCallTools, ...memoryTools, ...knowledgeTools, ...placeTools, livePreviewTool, ledgerTool, ...zoomTools, keepListeningTool]
+  return [...workerTools, ...taskTools, ...toolCallTools, ...memoryTools, ...knowledgeTools, ...placeTools, livePreviewTool, ledgerTool, ...zoomTools, keepListeningTool, listeningStyleTool]
 }
 
 export function conversationTool(name: string): ConversationTool | null {

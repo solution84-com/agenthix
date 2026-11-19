@@ -5,7 +5,7 @@ description: The extras an agent adds to a voice conversation (listening sounds 
 
 # ADR-0182: Voice Has One Setting, Each Person's Adaptive Voice
 
-**Status:** Accepted
+**Status:** Superseded by adr-0196
 
 ## Context
 

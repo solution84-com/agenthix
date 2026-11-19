@@ -1,0 +1,570 @@
+{
+ "note": "Real answers from DeepSeek Flash, phase 1 measurement runs (instructions version 9), with the decision the parser gave at the time. Text only. Their next_check is no longer read (hq decides when to ask again), so the decisions carry none.",
+ "answers": [
+  {
+   "from": "v9-json-yes-a:a-fq06",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "What's the largest planet in the solar system?",
+   "raw": {
+    "text": "{\"action\": \"hand_over\", \"asked\": \"largest planet in the solar system\", \"answer\": \"Jupiter.\", \"hold\": \"Good question, let me check that for you.\", \"next_check\": 2}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "hand_over",
+    "asked": "largest planet in the solar system",
+    "answer": "Jupiter.",
+    "hold": "Good question, let me check that for you."
+   }
+  },
+  {
+   "from": "v9-json-yes-a:a-fq04",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "Who wrote Pride and Prejudice?",
+   "raw": {
+    "text": "{\"action\": \"hand_over\", \"asked\": \"who wrote Pride and Prejudice\", \"answer\": \"Jane Austen wrote Pride and Prejudice.\", \"hold\": \"Let me check that author for you.\", \"next_check\": 2}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "hand_over",
+    "asked": "who wrote Pride and Prejudice",
+    "answer": "Jane Austen wrote Pride and Prejudice.",
+    "hold": "Let me check that author for you."
+   }
+  },
+  {
+   "from": "v9-json-yes-a:a-fq03",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "What's the boiling point of water in Celsius?",
+   "raw": {
+    "text": "{\"action\": \"hand_over\", \"asked\": \"boiling point of water in Celsius\", \"answer\": \"100 °C at standard atmospheric pressure.\", \"hold\": \"Let me check that for you.\", \"next_check\": 2}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "hand_over",
+    "asked": "boiling point of water in Celsius",
+    "answer": "100 °C at standard atmospheric pressure.",
+    "hold": "Let me check that for you."
+   }
+  },
+  {
+   "from": "v9-json-yes-a:a-fq07",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "What does HTTP stand for?",
+   "raw": {
+    "text": "{\"action\": \"hand_over\", \"asked\": \"what HTTP stands for\", \"answer\": \"HyperText Transfer Protocol\", \"hold\": \"Good question, let me think about that one.\", \"next_check\": 2}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "hand_over",
+    "asked": "what HTTP stands for",
+    "answer": "HyperText Transfer Protocol",
+    "hold": "Good question, let me think about that one."
+   }
+  },
+  {
+   "from": "v9-json-yes-a:a-mid02",
+   "mode": "json",
+   "soundsFinished": false,
+   "message": "Is it far from the airport to the city? I've never been.",
+   "raw": {
+    "text": "{\"action\": \"keep_listening\", \"next_check\": 2}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "keep_listening"
+   }
+  },
+  {
+   "from": "v9-json-yes-a:a-mid01",
+   "mode": "json",
+   "soundsFinished": false,
+   "message": "What's the weather going to be like in Melbourne on Saturday? Because I don't know what to pack.",
+   "raw": {
+    "text": "{\"action\": \"keep_listening\", \"next_check\": 2}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "keep_listening"
+   }
+  },
+  {
+   "from": "v9-json-yes-a:a-mid03",
+   "mode": "json",
+   "soundsFinished": false,
+   "message": "Do I need to book the train in advance? I'm asking because last time it was full.",
+   "raw": {
+    "text": "{\"action\": \"keep_listening\", \"next_check\": 2}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "keep_listening"
+   }
+  },
+  {
+   "from": "v9-json-yes-a:a-work02",
+   "mode": "json",
+   "soundsFinished": false,
+   "message": "How long is the flight from Sydney to Melbourne?",
+   "raw": {
+    "text": "{\"action\": \"acknowledge\", \"say\": \"Still looking, one moment.\", \"next_check\": 3}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "acknowledge",
+    "say": "Still looking, one moment."
+   }
+  },
+  {
+   "from": "v9-json-yes-a:a-work01",
+   "mode": "json",
+   "soundsFinished": false,
+   "message": "What's the weather going to be like in Melbourne on Saturday?",
+   "raw": {
+    "text": "{\"action\": \"acknowledge\", \"say\": \"Still looking, one moment.\", \"next_check\": 4}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "acknowledge",
+    "say": "Still looking, one moment."
+   }
+  },
+  {
+   "from": "v9-json-yes-a:a-work03",
+   "mode": "json",
+   "soundsFinished": false,
+   "message": "Is it done yet?",
+   "raw": {
+    "text": "{\"action\": \"acknowledge\", \"say\": \"Still checking, one moment.\", \"next_check\": 3}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "acknowledge",
+    "say": "Still checking, one moment."
+   }
+  },
+  {
+   "from": "v9-json-yes-a:a-end31",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "Do you think I should take the job offer?",
+   "raw": {
+    "text": "{\"action\": \"hand_over\", \"asked\": \"whether to take the job offer\", \"answer\": \"That's your call to make, and I don't have the details yet — the role, the pay, who you'd be working with, and what it changes for you. Tell me those and we can weigh it up together.\", \"hold\": \"That's a big one — give me a moment to think it through.\", \"next_check\": 4}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "keep_listening",
+    "dropped": {
+     "reason": "over the word cap",
+     "tool": "hand_over"
+    }
+   }
+  },
+  {
+   "from": "v9-json-yes-b:b-d08",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "Right, so halloumi and roast vegetables on one tray, chicken thighs on the other, and a big green salad. That's dinner sorted, I think.",
+   "raw": {
+    "text": "{\"action\": \"close_turn\", \"say\": \"Good, that's a plan.\", \"next_check\": 3}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "close_turn",
+    "say": "Good, that's a plan."
+   }
+  },
+  {
+   "from": "v9-json-yes-b:b-d28",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "What if I open a separate pot just for travel and put money in it automatically on payday. Would that work with my bank?",
+   "raw": {
+    "text": "{\"action\": \"hand_over\", \"asked\": \"separate travel pot with automatic payday transfers at their bank\", \"answer\": \"Check which bank Sam uses and whether it supports multiple savings pots or sub-accounts with scheduled automatic transfers on payday, and any limits or fees involved.\", \"hold\": \"Let me check how your bank handles automatic transfers to a travel pot.\", \"next_check\": 3}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "keep_listening",
+    "dropped": {
+     "reason": "over the word cap",
+     "tool": "hand_over"
+    }
+   }
+  },
+  {
+   "from": "v9-json-yes-b:b-d44",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "Okay so I pulled main and didn't run install afterwards. That's probably it. I'll run it now.",
+   "raw": {
+    "text": "{\"action\": \"close_turn\", \"say\": \"Alright, give it a go.\", \"next_check\": 3}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "close_turn",
+    "say": "Alright, give it a go."
+   }
+  },
+  {
+   "from": "v9-json-yes-b:b-m14",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "The summary is good.",
+   "raw": {
+    "text": "{\"action\": \"close_turn\", \"say\": \"Glad it works for you.\", \"next_check\": 4}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "close_turn",
+    "say": "Glad it works for you."
+   }
+  },
+  {
+   "from": "v9-json-yes-b:b-m36",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "There are three things I want to get done today.",
+   "raw": {
+    "text": "{\"action\": \"hum\", \"say\": \"Mm-hm.\", \"next_check\": 3}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "keep_listening",
+    "dropped": {
+     "reason": "unknown tool",
+     "tool": "hum"
+    }
+   }
+  },
+  {
+   "from": "v9-json-yes-b:b-m19",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "Give me a minute to think about it.",
+   "raw": {
+    "text": "{\"action\": \"invite\", \"say\": \"Take your time.\", \"next_check\": 20}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "invite",
+    "say": "Take your time."
+   }
+  },
+  {
+   "from": "v9-json-yes-b:b-m36",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "There are three things I want to get done today.",
+   "raw": {
+    "text": "{\"action\": \"hum\", \"say\": \"Mm-hm.\", \"next_check\": 3}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "keep_listening",
+    "dropped": {
+     "reason": "unknown tool",
+     "tool": "hum"
+    }
+   }
+  },
+  {
+   "from": "v9-json-yes-c:c-hand30",
+   "mode": "json",
+   "soundsFinished": true,
+   "message": "I have a question.",
+   "raw": {
+    "text": "{\"action\": \"invite\", \"say\": \"Go ahead, I'm listening.\", \"next_check\": 3}",
+    "calls": []
+   },
+   "decision": {
+    "tool": "invite",
+    "say": "Go ahead, I'm listening."
+   }
+  },
+  {
+   "from": "v9-tools-yes-a3:a-fq05",
+   "mode": "tools",
+   "soundsFinished": true,
+   "message": "How many ounces are in a pound?",
+   "raw": {
+    "text": "\n\n",
+    "calls": [
+     {
+      "name": "hand_over",
+      "input": "{\"asked\": \"ounces in a pound\", \"answer\": \"16 ounces in a pound.\", \"hold\": \"Let me think that one through for a second.\", \"next_check\": 3}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "hand_over",
+    "asked": "ounces in a pound",
+    "answer": "16 ounces in a pound.",
+    "hold": "Let me think that one through for a second."
+   }
+  },
+  {
+   "from": "v9-tools-yes-a3:a-fq02",
+   "mode": "tools",
+   "soundsFinished": true,
+   "message": "How many days are in a leap year?",
+   "raw": {
+    "text": "",
+    "calls": [
+     {
+      "name": "hand_over",
+      "input": "{\"asked\": \"days in a leap year\", \"answer\": \"366 days.\", \"hold\": \"Let me think about the leap year count.\", \"next_check\": 2}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "hand_over",
+    "asked": "days in a leap year",
+    "answer": "366 days.",
+    "hold": "Let me think about the leap year count."
+   }
+  },
+  {
+   "from": "v9-tools-yes-a3:a-fq01",
+   "mode": "tools",
+   "soundsFinished": true,
+   "message": "What's the capital of France?",
+   "raw": {
+    "text": "\n\n",
+    "calls": [
+     {
+      "name": "hand_over",
+      "input": "{\"asked\": \"capital of France\", \"answer\": \"Paris.\", \"hold\": \"Good question — one moment on France's capital.\", \"next_check\": 3}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "hand_over",
+    "asked": "capital of France",
+    "answer": "Paris.",
+    "hold": "Good question — one moment on France's capital."
+   }
+  },
+  {
+   "from": "v9-tools-yes-a3:a-mid02",
+   "mode": "tools",
+   "soundsFinished": false,
+   "message": "Is it far from the airport to the city? I've never been.",
+   "raw": {
+    "text": "\n\n",
+    "calls": [
+     {
+      "name": "keep_listening",
+      "input": "{\"next_check\": 2}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "keep_listening"
+   }
+  },
+  {
+   "from": "v9-tools-yes-a3:a-mid01",
+   "mode": "tools",
+   "soundsFinished": false,
+   "message": "What's the weather going to be like in Melbourne on Saturday? Because I don't know what to pack.",
+   "raw": {
+    "text": "",
+    "calls": [
+     {
+      "name": "keep_listening",
+      "input": "{\"next_check\": 2}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "keep_listening"
+   }
+  },
+  {
+   "from": "v9-tools-yes-a3:a-mid29",
+   "mode": "tools",
+   "soundsFinished": false,
+   "message": "My code keeps throwing a null pointer error. It's in the login handler.",
+   "raw": {
+    "text": "",
+    "calls": [
+     {
+      "name": "hum",
+      "input": "{\"say\": \"Mm.\", \"next_check\": 3}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "keep_listening",
+    "dropped": {
+     "reason": "unknown tool",
+     "tool": "hum"
+    }
+   }
+  },
+  {
+   "from": "v9-tools-yes-a3:a-work01",
+   "mode": "tools",
+   "soundsFinished": false,
+   "message": "What's the weather going to be like in Melbourne on Saturday?",
+   "raw": {
+    "text": "",
+    "calls": [
+     {
+      "name": "acknowledge",
+      "input": "{\"say\": \"Still checking, one moment.\", \"next_check\": 5}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "acknowledge",
+    "say": "Still checking, one moment."
+   }
+  },
+  {
+   "from": "v9-tools-yes-a3:a-work02",
+   "mode": "tools",
+   "soundsFinished": false,
+   "message": "How long is the flight from Sydney to Melbourne?",
+   "raw": {
+    "text": "",
+    "calls": [
+     {
+      "name": "acknowledge",
+      "input": "{\"say\": \"Just a moment on that flight time.\", \"next_check\": 5}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "keep_listening",
+    "dropped": {
+     "reason": "over the word cap",
+     "tool": "acknowledge"
+    }
+   }
+  },
+  {
+   "from": "v9-tools-yes-a3:a-work04",
+   "mode": "tools",
+   "soundsFinished": false,
+   "message": "Did the deploy work?",
+   "raw": {
+    "text": "",
+    "calls": [
+     {
+      "name": "acknowledge",
+      "input": "{\"say\":\"Still checking on that deploy.\",\"next_check\":10}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "acknowledge",
+    "say": "Still checking on that deploy."
+   }
+  },
+  {
+   "from": "v9-tools-yes-a3:a-mid15",
+   "mode": "tools",
+   "soundsFinished": false,
+   "message": "The hiring number looks low to me. I thought we hired twelve people.",
+   "raw": {
+    "text": "",
+    "calls": [
+     {
+      "name": "hum",
+      "input": "{\"next_check\": 2, \"say\": \"Mm-hm.\"}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "keep_listening",
+    "dropped": {
+     "reason": "unknown tool",
+     "tool": "hum"
+    }
+   }
+  },
+  {
+   "from": "v9-tools-yes-a3:a-end24",
+   "mode": "tools",
+   "soundsFinished": true,
+   "message": "Anything from the bank so far?",
+   "raw": {
+    "text": "",
+    "calls": [
+     {
+      "name": "hand_over",
+      "input": "{\"answer\": \"Still working through the inbox; nothing flagged from the bank yet.\", \"asked\": \"any bank mail found so far\", \"hold\": \"Still going through it — give me a moment on the bank mail.\", \"next_check\": 4}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "keep_listening",
+    "dropped": {
+     "reason": "over the word cap",
+     "tool": "hand_over"
+    }
+   }
+  },
+  {
+   "from": "v9-tools-yes-b:b-d44",
+   "mode": "tools",
+   "soundsFinished": true,
+   "message": "Okay so I pulled main and didn't run install afterwards. That's probably it. I'll run it now.",
+   "raw": {
+    "text": "\n\n",
+    "calls": [
+     {
+      "name": "close_turn",
+      "input": "{\"say\": \"Okay.\", \"next_check\": 4}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "close_turn",
+    "say": "Okay."
+   }
+  },
+  {
+   "from": "v9-tools-yes-b:b-m14",
+   "mode": "tools",
+   "soundsFinished": true,
+   "message": "The summary is good.",
+   "raw": {
+    "text": "",
+    "calls": [
+     {
+      "name": "close_turn",
+      "input": "{\"say\":\"Glad it works for you.\",\"next_check\":3}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "close_turn",
+    "say": "Glad it works for you."
+   }
+  },
+  {
+   "from": "v9-tools-yes-b:b-m24",
+   "mode": "tools",
+   "soundsFinished": true,
+   "message": "Hang on, I need to check something with the team first, so",
+   "raw": {
+    "text": "",
+    "calls": [
+     {
+      "name": "invite",
+      "input": "{\"say\": \"Take your time.\", \"next_check\": 20}"
+     }
+    ]
+   },
+   "decision": {
+    "tool": "invite",
+    "say": "Take your time."
+   }
+  }
+ ]
+}

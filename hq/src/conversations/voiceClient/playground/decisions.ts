@@ -10,6 +10,8 @@ export type DecisionRow = {
   /** When it was decided, on the server's clock: the hold, else the first text, else the reply's start. */
   at: number
   held: boolean
+  /** The reply's tone, from its tag, when Tone asked for one. */
+  tone?: string
 }
 
 const secs = (ms: number) => `+${(ms / 1000).toFixed(2)} s`
@@ -30,7 +32,8 @@ export function decisionRows(entries: readonly PlaygroundEntry[], decisions: rea
     const work = decisions.filter(d => d.turnId === turnId && d.kind === 'work')
     const said = people.map(p => p.text).join(' ')
     const gap = agent.firstTextAt === undefined ? '' : secs(agent.firstTextAt - sentAt)
-    const base = { turnId, said, at: agent.firstTextAt ?? agent.at, held: false }
+    const tone = decisions.find(d => d.turnId === turnId && d.kind === 'tone')?.text
+    const base = { turnId, said, at: agent.firstTextAt ?? agent.at, held: false, ...(tone && { tone }) }
     if (held) rows.push({ ...base, outcome: 'Held, kept listening', detail: held.text, gap: secs(held.at - sentAt), at: held.at, held: true })
     else if (agent.state === 'RUNNING') rows.push({ ...base, outcome: 'Thinking…', detail: '', gap })
     else if (agent.state === 'FAILED') rows.push({ ...base, outcome: 'Failed', detail: agent.error ?? '', gap })

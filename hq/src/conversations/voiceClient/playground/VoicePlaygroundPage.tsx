@@ -4,7 +4,7 @@ import { getModelChoices, getSpeechToken, useQuery } from 'wasp/client/operation
 import { useSocket } from 'wasp/client/webSocket'
 import { AppLayout } from '../../../shared/layouts/AppLayout'
 import { PLAYGROUND_PERSON_ID } from '../../../shared/voicePlayground'
-import type { SttToken } from '../stt'
+import { VOICE_HEARS, type SttToken } from '../stt'
 import { Playground } from './Playground'
 import type { AckSocket } from './playgroundSession'
 
@@ -27,7 +27,8 @@ function DevPlayground() {
   // The models this person may pick in their own space: what the model picker offers there.
   const { data: choices } = useQuery(getModelChoices, { home: 'PERSON' })
   // The organisation's speech to text, as voice anywhere is given it.
-  const getToken = useCallback(async () => (await getSpeechToken()) as unknown as SttToken, [])
+  // It hears through Inworld or AssemblyAI, as voice in a conversation does, so the voice profile can be tried here.
+  const getToken = useCallback(async () => (await getSpeechToken({ hears: [...VOICE_HEARS] })) as unknown as SttToken, [])
   if (!socket || !me) return <p className="px-4 py-6 text-body text-text-muted lg:px-10">Connecting…</p>
   return <Playground socket={socket as unknown as AckSocket} userId={PLAYGROUND_PERSON_ID} getToken={getToken} choices={choices} />
 }

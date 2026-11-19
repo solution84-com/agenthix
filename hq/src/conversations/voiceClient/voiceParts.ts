@@ -30,7 +30,7 @@ export type VoiceOutside = {
   openMicrophone?: (onAudio: (pcm: Int16Array<ArrayBuffer>) => void) => Promise<Microphone>
   media?: MediaDevicesLike | null
   /** The speech service on one of hq's tokens. */
-  speechService?: (token: SttToken) => SpeechToText
+  speechService?: (token: SttToken, settings: VoiceSettings) => SpeechToText
   /** Silence detection's model and the turn model; the shared worker's when not given. */
   models?: { vad: VoiceActivityModel; turn: TurnModel }
   settings?: VoiceSettings

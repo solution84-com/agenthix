@@ -3,7 +3,8 @@ import React from 'react'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 
-const h = vi.hoisted(() => ({ useQuery: vi.fn(), updateUserSettings: vi.fn(), refetch: vi.fn() }))
+const h = vi.hoisted(() => ({ useQuery: vi.fn(), updateUserSettings: vi.fn(), refetch: vi.fn(), listening: true }))
+vi.mock('../../../features/useFeature', () => ({ useFeature: () => h.listening }))
 vi.mock('wasp/client/operations', () => ({
   useQuery: h.useQuery,
   useAction: (fn: unknown) => fn,
@@ -13,12 +14,13 @@ vi.mock('wasp/client/operations', () => ({
 
 import { AdaptiveVoiceSection } from '../AdaptiveVoiceSection'
 
-const shown = (adaptiveVoice: boolean) => h.useQuery.mockReturnValue({ data: { adaptiveVoice }, refetch: h.refetch })
+const shown = (adaptiveVoice: boolean, more: Record<string, boolean> = {}) => h.useQuery.mockReturnValue({ data: { adaptiveVoice, ...more }, refetch: h.refetch })
 const toggle = () => screen.getByRole('switch', { name: 'Adaptive voice' })
 const info = () => screen.getByRole('button', { name: 'About Adaptive voice' })
 
 beforeEach(() => {
   vi.clearAllMocks()
+  h.listening = true
   h.updateUserSettings.mockResolvedValue(undefined)
   h.refetch.mockResolvedValue(undefined)
 })
@@ -75,5 +77,58 @@ describe('the person\'s Adaptive voice @SC-1834', () => {
     expect(box.textContent).toContain('always on: noticing when you have finished')
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})
+
+describe('Hums and Expressive tone, under Adaptive voice @SC-2241', () => {
+  const hums = () => screen.getByRole('switch', { name: 'Hums' })
+  const tone = () => screen.getByRole('switch', { name: 'Expressive tone' })
+
+  it('are not shown while adaptive voice listening is off for the organisation, where they would do nothing', () => {
+    h.listening = false
+    shown(true)
+    render(<AdaptiveVoiceSection />)
+    expect(screen.queryByRole('switch', { name: 'Hums' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'Expressive tone' })).toBeNull()
+    expect(toggle()).toBeTruthy()
+  })
+
+  it('shows each as the person set it, both on until they say otherwise', () => {
+    shown(true)
+    render(<AdaptiveVoiceSection />)
+    expect(hums().getAttribute('aria-checked')).toBe('true')
+    expect(tone().getAttribute('aria-checked')).toBe('true')
+    cleanup()
+    shown(true, { voiceHums: false, voiceExpressiveTone: false })
+    render(<AdaptiveVoiceSection />)
+    expect(hums().getAttribute('aria-checked')).toBe('false')
+    expect(tone().getAttribute('aria-checked')).toBe('false')
+  })
+
+  it('turns each off and on on its own', async () => {
+    shown(true)
+    render(<AdaptiveVoiceSection />)
+    fireEvent.click(hums())
+    await waitFor(() => expect(h.updateUserSettings).toHaveBeenCalledWith({ voiceHums: false }))
+    fireEvent.click(tone())
+    await waitFor(() => expect(h.updateUserSettings).toHaveBeenLastCalledWith({ voiceExpressiveTone: false }))
+  })
+
+  it('are disabled with Adaptive voice off, and keep their values', () => {
+    shown(false, { voiceHums: true, voiceExpressiveTone: false })
+    render(<AdaptiveVoiceSection />)
+    expect((hums() as HTMLButtonElement).disabled).toBe(true)
+    expect((tone() as HTMLButtonElement).disabled).toBe(true)
+    expect(hums().getAttribute('aria-checked')).toBe('true')
+    expect(tone().getAttribute('aria-checked')).toBe('false')
+    fireEvent.click(hums())
+    expect(h.updateUserSettings).not.toHaveBeenCalled()
+  })
+
+  it('are enabled with Adaptive voice on', () => {
+    shown(true)
+    render(<AdaptiveVoiceSection />)
+    expect((hums() as HTMLButtonElement).disabled).toBe(false)
+    expect((tone() as HTMLButtonElement).disabled).toBe(false)
   })
 })

@@ -85,8 +85,14 @@ export function createVoiceSession(deps: VoiceDeps) {
     })
   }
 
-  /** What the runtime decides that the screen and hq hear of. */
+  /**
+   * What the runtime decides that the screen and hq hear of. Under the light model, words that went with a *sounds
+   * finished* call are hq's to take (`via: 'listen'`), and stay shown, with what the person says next, until the turn
+   * is handed over or closed: a turn kept open is still theirs.
+   */
   const listen = (rt: VoiceRuntimeHandle) => {
+    let carried = ''
+    const shown = (text: string) => [carried, text.trim()].filter(Boolean).join(' ')
     rt.subscribe(['stt.person'], (e) => {
       if (e.committed) return
       if (snap.warningEndsAt) set({ warningEndsAt: null })
@@ -95,9 +101,19 @@ export function createVoiceSession(deps: VoiceDeps) {
         hq.activity(snap.conversationId)
       }
     })
-    rt.subscribe(['stt.utterance'], e => set({ partial: e.text }))
+    rt.subscribe(['stt.utterance'], e => set({ partial: shown(e.text) }))
     // A message joined to the last one goes as hq's `continue`, from Orchestration's own adapter.
-    rt.subscribe(['orchestration.send'], e => { if (e.append) set({ partial: '', phase: 'thinking' }); else send(e.text, e.trailedOff) })
+    rt.subscribe(['orchestration.send'], e => {
+      if (e.via === 'listen') { carried = e.text; set({ partial: carried, phase: 'thinking' }) }
+      else if (e.append) set({ partial: '', phase: 'thinking' })
+      else send(e.text, e.trailedOff)
+    })
+    rt.subscribe(['listen.turn'], e => {
+      if (e.state === 'notYet') { if (snap.phase === 'thinking') set({ phase: 'listening' }); return }
+      carried = ''
+      set({ partial: shown(''), phase: e.state === 'closed' && snap.phase === 'thinking' ? 'listening' : snap.phase })
+    })
+    rt.subscribe(['listen.sendPlain'], e => { carried = ''; send(e.text) })
   }
 
   const endFailed = (notice: string, failed?: 'speech-to-text') => {
@@ -110,7 +126,11 @@ export function createVoiceSession(deps: VoiceDeps) {
     const base = deps.settings ?? VOICE_SETTINGS
     const rt = createVoiceParts({
       ...deps,
-      settings: { ...base, adaptiveVoice: deps.adaptiveVoice?.() ?? base.adaptiveVoice },
+      settings: {
+        ...base, adaptiveVoice: deps.adaptiveVoice?.() ?? base.adaptiveVoice, voiceListener: deps.voiceListener?.() ?? base.voiceListener,
+        backchannel: { ...base.backchannel, on: deps.voiceHums?.() ?? base.backchannel.on },
+        tone: { ...base.tone, on: deps.voiceExpressiveTone?.() ?? base.tone.on },
+      },
       clock, getToken, set, speaker: speaker.adapter, sendNew: send,
       socket: deps.socket,
       conversationId: () => snap.conversationId,
@@ -137,6 +157,9 @@ export function createVoiceSession(deps: VoiceDeps) {
     turnSpoken(e) { if (mine(e)) speaker.turnSpoken(e) },
     turnHeld(e) { if (mine(e) && snap.phase !== 'off' && snap.phase !== 'starting') speaker.held(e) },
     phrase(e) { if (mine(e)) speaker.phrase(e) },
+    line(e) { if (mine(e) && runtime) speaker.line(e) },
+    sound(e) { if (mine(e) && runtime) speaker.sound(e) },
+    heardPrefix(e) { if (mine(e)) speaker.heardPrefix(e) },
     silenceWarning(e) { if (mine(e)) set({ warningEndsAt: now() + e.endsInMs }) },
     ended(e) { if (mine(e)) teardown(e.reason) },
     error(e) {
@@ -149,7 +172,9 @@ export function createVoiceSession(deps: VoiceDeps) {
     delta(e) { if (mine(e) && snap.phase !== 'off' && snap.phase !== 'starting') speaker.delta(e) },
     turn(e) {
       turnEnded(e.turnId, e.state)
-      if (mine(e) && e.state !== 'QUEUED' && e.state !== 'RUNNING') speaker.turn(e)
+      if (!mine(e) || e.state === 'QUEUED') return
+      if (e.state !== 'RUNNING') speaker.turn(e)
+      else if (snap.phase !== 'off' && snap.phase !== 'starting') speaker.running(e.turnId)
     },
     operation(e) { if (mine(e) && typeof e.outstanding === 'number') set({ outstanding: e.outstanding }) },
   })

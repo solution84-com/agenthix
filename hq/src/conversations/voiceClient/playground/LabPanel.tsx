@@ -1,5 +1,5 @@
 /**
- * The side column's Lab (plan task 4c.1): the voice lab's state on six small cards, live from the running voice or
+ * The Settings tab's Lab (plan task 4c.1): the voice lab's state on six small cards, live from the running voice or
  * from a saved log loaded here, and its bar: the full lab's rows in a wide panel over the page, Save log, Load log,
  * and Record (the lab's recording panel, in a dialog).
  */
@@ -14,7 +14,7 @@ import { download, readText } from '../lab/VoiceLab'
 import { parseLog, savedOverflows, serializeLog, type LoadedLog, type SavedOverflow } from '../lab/log'
 import { isBuilt, reduceAll, TRACE_POINTS, type LabState } from '../lab/rows'
 import { useLabFeed } from '../lab/useLabFeed'
-import { PaneBar, BarButton, useFolded } from './PaneBar'
+import { PaneBar, BarButton } from './PaneBar'
 
 const ms = (n: number | null) => (n === null ? 'none' : `${Math.round(n)} ms`)
 
@@ -78,7 +78,6 @@ export function LabPanel({ runtime }: { runtime: VoiceRuntimeHandle | null }) {
   const [error, setError] = useState<string | null>(null)
   const [full, setFull] = useState(false)
   const [recording, setRecording] = useState(false)
-  const [folded, toggleFold] = useFolded('lab')
   const input = useRef<HTMLInputElement>(null)
   const loadedState = useMemo(() => (loaded ? reduceAll(loaded.events) : null), [loaded])
 
@@ -91,7 +90,7 @@ export function LabPanel({ runtime }: { runtime: VoiceRuntimeHandle | null }) {
 
   return (
     <>
-      <PaneBar title="Lab" folded={folded} onToggle={toggleFold}>
+      <PaneBar title="Lab">
         {loaded && <BarButton onClick={() => setLoaded(null)}>Back to live</BarButton>}
         <BarButton onClick={() => setFull(true)}>Open full lab</BarButton>
         <BarButton disabled={!runtime || live.events.length === 0} onClick={() => download(serializeLog(live.events, live.overflows, live.settingsVersion))}>Save log</BarButton>
@@ -99,11 +98,11 @@ export function LabPanel({ runtime }: { runtime: VoiceRuntimeHandle | null }) {
         <BarButton onClick={() => setRecording(true)}>● Record</BarButton>
         <input ref={input} type="file" accept="application/json,.json" aria-label="Saved voice log" className="hidden" onChange={e => { void onFile(e.target.files?.[0]); e.target.value = '' }} />
       </PaneBar>
-      {!folded && <div className="border-b border-border-subtle px-3 py-2">
+      <div className="border-b border-border-subtle px-3 py-2">
         {loaded && <p className="mb-1 text-micro text-warning">A saved log, {loaded.events.length} events</p>}
         <ShowAttention kind="alert" text={error} title="The log was not loaded" onClose={() => setError(null)} />
         <LabCards {...showing} />
-      </div>}
+      </div>
       <Modal open={full} onClose={() => setFull(false)} title="Voice lab" closeLabel="Close" side="right" maxWidth="max-w-[1100px]">
         <LabRows {...showing} />
       </Modal>

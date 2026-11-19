@@ -233,3 +233,23 @@ describe('the speaker: what it publishes', () => {
     expect(s.out.filter(e => e.kind === 'reply.spoken').map(e => (e.kind === 'reply.spoken' ? e.sentences : -1))).toEqual([1])
   })
 })
+
+describe('a reply that starts with the lines already heard', () => {
+  it('keeps the lines on its reveal, whether they arrive before the reply is held or after, and on a cut', () => {
+    const s = setup()
+    s.speaker.heardPrefix({ conversationId: C, turnId: 'r1', text: 'Let me look.' })
+    s.sentence('r1')
+    expect(s.snap().reveal?.heardPrefix).toBe('Let me look.')
+    const late = setup()
+    late.sentence('r2')
+    expect(late.snap().reveal?.heardPrefix).toBeUndefined()
+    late.speaker.heardPrefix({ conversationId: C, turnId: 'r2', text: 'Mm-hm.' })
+    expect(late.snap().reveal?.heardPrefix).toBe('Mm-hm.')
+    late.setHead(null)
+    late.setHeard(-1)
+    late.speaker.endCall()
+    const text = 'Mm-hm.\n\nHi.'
+    // Nothing of the reply heard: the lines heard stay, the reply is cut off after them.
+    expect(text.slice(0, cutLimit(heardCut(), 'r2', text)!)).toBe('Mm-hm.')
+  })
+})

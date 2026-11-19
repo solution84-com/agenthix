@@ -2,7 +2,7 @@
 name: ADRs
 description: This codebase's architecture decision records — every ADR, its title, and its state.
 created: 2026-08-09
-updated: 2026-11-17
+updated: 2026-11-19
 author: leang
 ---
 
@@ -10,7 +10,7 @@ author: leang
 
 Decisions that bind **this codebase** — hq, the Execution Site and what they share: agent runtime, workspace, tasks, connectors, and the rest of the product's own mechanism. Decisions that bind more than this codebase are recorded outside this repository.
 
-**Next number: `adr-0195`.** A number is claimed once and never reused, including by one later retired.
+**Next number: `adr-0199`.** A number is claimed once and never reused, including by one later retired.
 
 **Flat, and records never move.** A superseded record stays in the sequence — its state lives in the file, not in where it sits.
 
@@ -317,8 +317,8 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0178](adr-0178-a-spoken-acknowledgement-never-answers-the-request.md) | A Spoken Acknowledgement Never Answers the Request | Accepted |
 | [ADR-0179](adr-0179-a-reading-of-the-words-may-extend-a-turn-but-never-end-one-early.md) | A Reading of the Words May Extend a Turn but Never End One Early | Accepted |
 | [ADR-0180](adr-0180-inworld-is-the-default-way-to-hear-and-assemblyai-stays-supported.md) | Inworld Is the Default Way to Hear, and AssemblyAI Stays Supported | Accepted |
-| [ADR-0181](adr-0181-the-conversation-model-decides-the-voice-turn-in-its-own-call.md) | The Conversation Model Decides the Voice Turn in Its Own Call | Accepted |
-| [ADR-0182](adr-0182-voice-has-one-setting-each-persons-adaptive-voice.md) | Voice Has One Setting, Each Person's Adaptive Voice | Accepted |
+| [ADR-0181](adr-0181-the-conversation-model-decides-the-voice-turn-in-its-own-call.md) | The Conversation Model Decides the Voice Turn in Its Own Call | Superseded by adr-0195 |
+| [ADR-0182](adr-0182-voice-has-one-setting-each-persons-adaptive-voice.md) | Voice Has One Setting, Each Person's Adaptive Voice | Superseded by adr-0196 |
 | [ADR-0183](adr-0183-inworld-is-a-language-model-provider-reached-by-model-id.md) | Inworld Is a Language-Model Provider Reached by Model Id, and a Saved Router Is Never Used | Accepted |
 | [ADR-0184](adr-0184-a-default-model-is-the-newest-of-a-named-family.md) | A Default Model Is the Newest of a Named Family, Picked by One Shared Helper | Accepted |
 | [ADR-0185](adr-0185-a-dialog-only-when-stopping-the-person-is-the-point.md) | A Dialog Only When Stopping the Person Is the Point | Accepted |
@@ -332,3 +332,8 @@ risk that later resolved. What changes a decision is another record.
 | [ADR-0192](adr-0192-dependencies-are-updated-locally-once-a-month-and-every-security-alert-is-decided.md) | Dependencies Are Updated Locally Once a Month, and Every Security Alert Is Decided | Accepted |
 | [ADR-0193](adr-0193-an-agent-is-shown-its-must-have-tools-and-finds-the-rest-by-search.md) | An Agent Is Shown Its Must-Have Tools and Finds the Rest by Search | Accepted |
 | [ADR-0194](adr-0194-every-release-is-prepared-and-cut-on-its-own-release-branch.md) | Every Release Is Prepared and Cut on Its Own Release Branch | Accepted |
+| [ADR-0195](adr-0195-a-light-model-listens-while-the-person-speaks-and-gates-the-conversation-model.md) | A Light Model Listens While the Person Speaks and Gates the Conversation Model | Accepted |
+| [ADR-0195-s-1](adr-0195-a-light-model-listens-while-the-person-speaks-and-gates-the-conversation-model.md#decision) | ↳ The light model's `hum` tool (its Decision) | Superseded by adr-0197 |
+| [ADR-0196](adr-0196-adaptive-voice-switches-the-light-model.md) | Adaptive Voice Switches the Light Model | Accepted |
+| [ADR-0197](adr-0197-adaptive-voice-is-three-services-each-with-one-job.md) | Adaptive Voice Is Three Services, Each With One Job | Accepted |
+| [ADR-0198](adr-0198-each-voice-layer-picks-the-tone-of-its-own-speech.md) | Each Voice Layer Picks the Tone of Its Own Speech | Accepted |

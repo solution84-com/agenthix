@@ -10,10 +10,14 @@
  *   into a word: it is not shown, so it is not sent on its own.
  * - **No voice, no words.** Words heard when silence detection has heard no voice since the last message are not
  *   the person's: the agent's last words heard back after its audio stopped ("much since" written "Synthesis"),
- *   which ending voice would otherwise send. Words over the reply count once they stopped it.
+ *   which ending voice would otherwise send. Words over the reply count once they stopped it. Words over a light
+ *   model's line (adaptive voice listening) count as they are: the line is said over the person, so silence
+ *   detection, which then hears the person against the line's echo, can miss them, and the echo filter has already
+ *   set the line's own words apart.
  */
 import type { FloorState, VoiceEventInput } from '../events'
 import type { Component } from '../runtime/types'
+import { TAIL_MS } from './echo'
 
 /** Words that repeat the last message are cut only this soon after it. */
 export const REPEAT_WINDOW_MS = 30_000
@@ -57,6 +61,8 @@ type State = {
   last: (Heard & { at: number }) | null
   /** Silence detection heard the person, or they stopped the reply, since the last message. */
   voiced: boolean
+  /** Until when a light model's line can still be heard back: it plays, or ended less than `TAIL_MS` ago. */
+  lineUntil: number
 }
 
 /** The utterance so far: the held turn continued by `next`, or replaced by it when it says it again. */
@@ -91,8 +97,8 @@ const showing = (text: string, t: number): VoiceEventInput => ({ kind: 'stt.utte
 export const utterance: Component<State> = {
   name: 'utterance',
   accepts: ['stt.person', 'orchestration.send', 'orchestration.floor', 'stt.flush', 'stt.muted', 'acoustic.silence',
-    'orchestration.playback'],
-  init: () => ({ floor: 'open', held: null, live: null, last: null, voiced: false }),
+    'orchestration.playback', 'phrase.at'],
+  init: () => ({ floor: 'open', held: null, live: null, last: null, voiced: false, lineUntil: -Infinity }),
   step(state, event) {
     switch (event.kind) {
       case 'acoustic.silence':
@@ -101,8 +107,12 @@ export const utterance: Component<State> = {
         return { state: event.action === 'stop' ? { ...state, voiced: true } : state, emit: [] }
       case 'orchestration.floor':
         return { state: { ...state, floor: event.state }, emit: [] }
+      case 'phrase.at':
+        if (!event.lineId) return { state, emit: [] }
+        return { state: { ...state, lineUntil: event.playing ? Infinity : event.t + TAIL_MS }, emit: [] }
       case 'stt.person': {
-        if (!state.voiced) return { state, emit: [showing('', event.t)] }
+        if (!state.voiced && event.t > state.lineUntil) return { state, emit: [showing('', event.t)] }
+        state = { ...state, voiced: true }
         const next = { text: event.text, order: event.order }
         const live = { text: joined(state.held, next), order: event.order }
         // Words of the message already sent, arriving late: kept, they would be joined to the next message.

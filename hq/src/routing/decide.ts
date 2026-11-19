@@ -14,6 +14,8 @@
  *   the same model via another provider first, then the next layer, then the last resort: for a model call, the first
  *   provider's recommended model (ADR-0184) that may run, and only when none has one, the first model that may run.
  *   `fellBack` says what was not used, once.
+ * - **The light model** (`listener`) has its own branch (`listener.ts`): a fast model from a short list, never a
+ *   default above.
  */
 import {
   defaultModelOf, modelPricesMicros, providerStateWorks, providerTypesOf, sttPricePerHourMicros,
@@ -26,6 +28,7 @@ import { allowedByLists, type AppliedList } from './listMatch'
 import { inworldPricesOf } from './inworldModelStore'
 import { makerAndName, modelsReachedBy, reaches, runtimeFor, sameModelKey } from './modelKeys'
 import { problemFor } from './problems'
+import { BACKCHANNEL_MODELS, LISTENER_MODELS, listenerChoice } from './listener'
 import { HEARING_VENDORS, listeningModelOf, VOICE_TTS_MODEL } from '../voice/voiceModels'
 
 export type RouteProvider = {
@@ -205,6 +208,15 @@ export function decide(req: ResolveRequest, snap: Snapshot): ResolveAnswer {
     const why = whyUnusable(fixed.choice, req, snap)
     if (why) return fail(why.code, req, snap, why.provider)
     return { ok: true, resolution: resolution(req, snap, fixed.choice, fixed.from, undefined) }
+  }
+
+  // The light model has its own branch: a fast model from its short list, never the agent's or the conversation's.
+  // The hum service's too, from a list of its own.
+  if (req.purpose === 'listener' || req.purpose === 'backchannel') {
+    const lists = req.purpose === 'backchannel' ? BACKCHANNEL_MODELS : LISTENER_MODELS
+    const choice = listenerChoice(snap.providers, c => !whyUnusable(c, req, snap), lists)
+    if (choice) return { ok: true, resolution: resolution(req, snap, choice, 'organisation', undefined) }
+    return fail(ofType.some(p => providerStateWorks(p.state)) ? 'no_allowed_model' : 'no_provider', req, snap)
   }
 
   let missed: Resolution['fellBack']

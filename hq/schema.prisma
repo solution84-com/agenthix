@@ -94,6 +94,10 @@ model UserSettings {
   // beyond speaking its reply (listening sounds and the agent's opening sentence when a reply will take a while).
   // The person's own; on by default.
   adaptiveVoice              Boolean @default(true)
+  // Under Adaptive voice, for testing each layer: the hums (no listening sounds when off) and Expressive tone (every
+  // layer speaks with no steering and no voice hint when off). The person's own; on by default.
+  voiceHums                  Boolean @default(true)
+  voiceExpressiveTone        Boolean @default(true)
   // The short sounds of a call (voice on and off, mute, a lost connection). The person's own; on by default.
   voiceSounds                Boolean @default(true)
   createdAt      DateTime       @default(now())
@@ -521,6 +525,9 @@ model Conversation {
   keep          Boolean              @default(false)
   /// Who holds voice in it now; null when nobody does.
   voiceHolderId String?
+  /// Adaptive voice listening: under 100 words on where the conversation is now, written after each spoken reply by
+  /// one small call and read only by the light model; replaced each turn. Null until the first is written.
+  voiceRecap    String?
   /// What must survive compaction (long conversations spec): kept by the
   /// coordinator from events, never by a summariser. Shape: protocol.ts LedgerEntry[].
   ledger        Json                 @default("[]")
@@ -3190,6 +3197,8 @@ enum UsagePurpose {
   tts
   voice_sample
   workflow_review
+  listener
+  backchannel
 }
 
 /// core's COST_BASES.

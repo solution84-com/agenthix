@@ -22,6 +22,7 @@ import { describeWorkerWorkspaces, describeWorkspaces } from '../../branches/lea
 import type { ConversationBranch } from '../lead/placesBlock'
 import type { BackgroundSearch } from '../lead/webSearchBlock'
 import { KEEP_LISTENING } from '../coordinator/keepListening'
+import { SET_LISTENING_STYLE } from '../lead/listeningStyle'
 import { memoryTurnBlock } from '../memory/turnBlock'
 import type { RecalledItem } from '../../memory/contract'
 import { AGENT_ID, AGENT_NAME, CHECK_NOW, PERSON_ID, PROJECT, PROJECT_PLACE, TASK, WORKSPACES, YOUR_SPACE_PLACE, inProject, type Home } from './world'
@@ -160,6 +161,9 @@ function scriptedOffer(tool: ConversationTool, home: Home, features: readonly Fe
     // Offered while the voice turn block's flag is on, as keepListening.ts reads it.
     case KEEP_LISTENING:
       return { ...tool, offered: async capability => capability.trigger !== 'REPORT' && features.includes('voiceBridge') }
+    // Offered while the adaptive voice flag is on, as voice/listening/styleTool.ts reads it.
+    case SET_LISTENING_STYLE:
+      return { ...tool, offered: async capability => capability.trigger !== 'REPORT' && features.includes('voiceListener') }
     // Nothing waits for an answer and nothing runs in a new conversation, so neither is offered.
     case ANSWER_APPROVAL:
     case CANCEL_OPERATION:

@@ -12,13 +12,15 @@ import type { LeadToolCall, LeadToolDefinition, OfferedTool } from '../contract'
 import { searchTools, type SearchOptions, type ToolEntry } from '../../tools/search'
 import { ANSWER_APPROVAL, CANCEL_OPERATION, OFFER_LIVE_PREVIEW_TOOL } from './toolNames'
 import { KEEP_LISTENING } from '../lead/voiceLogic'
+import { SET_LISTENING_STYLE } from '../lead/listeningStyle'
 
 /**
- * Offered only while they apply, and then shown: an approval waits, work runs, the person listens, a live preview
+ * Offered only while they apply, and then shown: an approval waits, work runs, the person listens (or may change how
+ * the agent listens), a live preview
  * can be offered, or something was folded (the compaction block names expand and messages).
  */
 const SHOWN_WHILE_THEY_APPLY: ReadonlySet<string> = new Set([
-  ANSWER_APPROVAL, CANCEL_OPERATION, KEEP_LISTENING, OFFER_LIVE_PREVIEW_TOOL, 'expand', 'messages',
+  ANSWER_APPROVAL, CANCEL_OPERATION, KEEP_LISTENING, SET_LISTENING_STYLE, OFFER_LIVE_PREVIEW_TOOL, 'expand', 'messages',
 ])
 
 const SHOWN: ReadonlySet<string> = new Set([...CONVERSATION_MUST_HAVES, ...SHOWN_WHILE_THEY_APPLY])

@@ -4,7 +4,7 @@ import { VOICE_SETTINGS } from '../../settings'
 import { bargeIn } from '../bargeIn'
 import { heard, rig, silence } from './setup'
 
-const { confirmWindowMs, unclearExtraMs } = VOICE_SETTINGS.bargeIn
+const { confirmWindowMs, unclearExtraMs, wordsVoiceMs, wordsWaitMs } = VOICE_SETTINGS.bargeIn
 
 /** Barge-in over a reply being spoken; the floor is set by hand, as the floor component would. */
 function setup(floor: FloorState = 'agent-speaking') {
@@ -108,6 +108,46 @@ describe('barge-in: confirm from the words in the window', () => {
     b.at(1_600, silence(true))
     b.tickTo(1_000 + confirmWindowMs + 50)
     b.at(2_700, heard('Yeah.', 1, true))
+    expect(b.actions()).toEqual(['duck', 'resume'])
+  })
+})
+
+describe('barge-in: a voice long enough for words waits for them @SC-2239', () => {
+  it('stays ducked when the window closes in silence after more than half a second of voice, and stops when the words come', () => {
+    const b = setup()
+    b.at(1_000, silence(false))
+    b.at(1_000 + wordsVoiceMs + 700, silence(true))
+    b.tickTo(1_000 + confirmWindowMs + 300)
+    expect(b.actions()).toEqual(['duck'])
+    b.at(1_000 + confirmWindowMs + 400, heard('Actually keep it short.'))
+    expect(b.actions()).toEqual(['duck', 'stop', 'person:Actually keep it short.'])
+  })
+
+  it('resumes when no words come within the further wait', () => {
+    const b = setup()
+    b.at(1_000, silence(false))
+    b.at(2_200, silence(true))
+    b.tickTo(1_000 + confirmWindowMs + wordsWaitMs - 50)
+    expect(b.actions()).toEqual(['duck'])
+    b.tickTo(1_000 + confirmWindowMs + wordsWaitMs + 50)
+    expect(b.actions()).toEqual(['duck', 'resume'])
+  })
+
+  it('adds up the voice over the window: two short bursts past the setting wait too', () => {
+    const b = setup()
+    b.at(1_000, silence(false))
+    b.at(1_300, silence(true))
+    b.at(1_600, silence(false))
+    b.at(1_900, silence(true))
+    b.tickTo(1_000 + confirmWindowMs + 50)
+    expect(b.actions()).toEqual(['duck'])
+  })
+
+  it('still resumes at once after a short sound: a short "mm"', () => {
+    const b = setup()
+    b.at(1_000, silence(false))
+    b.at(1_000 + wordsVoiceMs - 100, silence(true))
+    b.tickTo(1_000 + confirmWindowMs + 50)
     expect(b.actions()).toEqual(['duck', 'resume'])
   })
 })

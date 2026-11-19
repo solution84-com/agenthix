@@ -79,6 +79,15 @@ export const FEATURE_FLAGS = {
     removeWhen: 'The bridge has been lived with in long conversations and is released.',
     stage: 'experimental',
   },
+  voiceListener: {
+    feature:
+      'Adaptive voice listening: a light model reads the person while they speak and answers with one of six ' +
+      'choices — keep listening, hum, acknowledge, invite, close the turn alone, or hand over to the agent with a ' +
+      'hold line — and a short recap written after each reply keeps it up to date. On, it replaces the bridge and ' +
+      'the timed listening sounds; off, voice is as before.',
+    removeWhen: "The owner's live trial of adaptive voice listening is done and it is released.",
+    stage: 'experimental',
+  },
 } as const satisfies Record<string, FeatureFlagEntry>
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS

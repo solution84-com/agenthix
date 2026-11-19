@@ -18,7 +18,7 @@ import type { Heard } from './standardAcknowledgement'
 export type ListenerClip = { text: string; audio: ArrayBuffer; tier: ListeningTier }
 
 /** `audio`, PCM16, at `gainDb`. */
-function atGain(audio: ArrayBuffer, gainDb: number): ArrayBuffer {
+export function atGain(audio: ArrayBuffer, gainDb: number): ArrayBuffer {
   const factor = 10 ** (gainDb / 20)
   const samples = new Int16Array(audio.slice(0))
   for (let i = 0; i < samples.length; i++) samples[i] = Math.round(samples[i]! * factor)

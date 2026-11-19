@@ -5,6 +5,8 @@
  * opens, long enough for the words, which arrive about a second late. Then the words decide, after the echo filter
  * has set the agent's own apart: a stop word, or enough of the person's own words, stop the reply; acknowledgements
  * alone, or nothing with silence back, resume it; one unclear word keeps it ducked a little longer, then resumes.
+ * Nothing with silence back after more of the person's voice than a short sound (`wordsVoiceMs`, summed over the
+ * window) is words still on their way: the reply stays ducked for them, up to `wordsWaitMs` more, then resumes.
  * It never asks aloud.
  *
  * It also makes the person's words theirs (`stt.person`) from what the echo filter kept: at once when the agent is
@@ -24,6 +26,9 @@ type State = {
   phase: Phase
   /** When the window, or its extension, closes. */
   until: number
+  /** The person's voice in the window, summed, and since when it is on (null while silent). */
+  voiceMs: number
+  voiceSince: number | null
   /** The person's words in the window, the latest transcript of each turn the speech service heard. */
   texts: Readonly<Record<string, string>>
   /** Their words as the person's, held until the stop they caused is delivered. */
@@ -37,7 +42,7 @@ const keyOf = (order: number | null) => (order === null ? 'none' : String(order)
 const person = (e: VoiceEventOf<'stt.heard'>): VoiceEventInput =>
   ({ kind: 'stt.person', text: e.text, committed: e.committed, order: e.order, timed: e.timed, t: e.t })
 
-const IDLE = { phase: 'idle', until: 0, texts: {}, held: [] } as const
+const IDLE = { phase: 'idle', until: 0, voiceMs: 0, voiceSince: null, texts: {}, held: [] } as const
 
 export const bargeIn: Component<State> = {
   name: 'bargeIn',
@@ -68,9 +73,15 @@ export const bargeIn: Component<State> = {
         return event.playing ? { state: { ...state, replyId: event.replyId }, emit: [] } : { state, emit: [] }
       case 'acoustic.silence': {
         const s = { ...state, silent: event.silent }
+        if (deciding) {
+          const voice = event.silent
+            ? { voiceMs: state.voiceMs + (state.voiceSince === null ? 0 : event.t - state.voiceSince), voiceSince: null }
+            : { voiceSince: state.voiceSince ?? event.t }
+          return { state: { ...s, ...voice }, emit: [] }
+        }
         if (event.silent || state.floor !== 'agent-speaking' || state.phase !== 'idle') return { state: s, emit: [] }
         return {
-          state: { ...s, phase: 'window', until: event.t + settings.bargeIn.confirmWindowMs, texts: {}, held: [] },
+          state: { ...s, phase: 'window', until: event.t + settings.bargeIn.confirmWindowMs, voiceMs: 0, voiceSince: event.t, texts: {}, held: [] },
           emit: [playback('duck')],
         }
       }
@@ -91,7 +102,12 @@ export const bargeIn: Component<State> = {
         if (!deciding || event.t < state.until) return { state, emit: [] }
         const verdict = heardSoFar(state)
         if (verdict === 'stop' || verdict === 'own') return stop(state, byOf(verdict))
-        if (state.phase === 'unclear' || verdict === 'ack' || (verdict === 'none' && state.silent)) return resume(state)
+        if (state.phase === 'unclear' || verdict === 'ack') return resume(state)
+        if (verdict === 'none' && state.silent) {
+          // Their voice was more than a short sound: its words are on the way, so the reply waits for them.
+          if (state.voiceMs <= settings.bargeIn.wordsVoiceMs) return resume(state)
+          return { state: { ...state, phase: 'unclear', until: event.t + settings.bargeIn.wordsWaitMs }, emit: [] }
+        }
         return { state: { ...state, phase: 'unclear', until: event.t + settings.bargeIn.unclearExtraMs }, emit: [] }
       }
       case 'person.tap':

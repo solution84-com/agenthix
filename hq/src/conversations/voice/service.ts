@@ -25,6 +25,8 @@ import { allVoiceSessions, closeVoiceSession, openVoiceSession, sessionsOfSocket
 import type { VoiceSession } from './session'
 import { agentVoice, sessionDeps, toRoom, toSockets } from './speech'
 import { phraseClips } from './phrases'
+import { listeningEnded, listeningStarted } from './listening'
+import { listeningIfAny, replyOf } from './listening/state'
 import { personName } from '../../sessions/transcriptAuthors'
 import { demoOn } from '../../demo/demoMode'
 import { DEMO_NO_VOICE } from '../../voice/demoNoVendor'
@@ -75,6 +77,7 @@ export async function startVoice(socketId: string, userId: string, conversationI
   const session = openVoiceSession(id, userId, socketId, { ...sessionDeps(id, voice), handExpired: () => scheduleConversation(id) })
   // Another tab of theirs joining sees a hand already raised.
   session.hand.tell()
+  listeningStarted(session, voice, () => voiceSession(id) === session)
   void phraseClips(voice, ({ text, tier, audio, use }) => {
     const event: VoicePhraseEvent = { conversationId: id, text, tier, audio, use }
     toSockets([socketId], V.phrase, event)
@@ -91,7 +94,10 @@ export async function startVoice(socketId: string, userId: string, conversationI
  */
 export async function endVoice(conversationId: string, userId: string, line: string, reason: string | null): Promise<void> {
   const session = voiceSession(conversationId)
-  if (session && session.holderId === userId) closeVoiceSession(conversationId)
+  if (session && session.holderId === userId) {
+    closeVoiceSession(conversationId)
+    listeningEnded(session)
+  }
   const message = await releaseVoice(conversationId, userId, reason)
   if (!message && !session) return
   if (message) conversationEvents.message(conversationId, message)
@@ -201,8 +207,15 @@ export async function cancelReply(
   if (!row) return
   const message = toMessageView(row)
   if (message.kind !== 'TEXT') return
-  const kept = session.cutOf(turnId, message.body.text)
-  if (kept === undefined || (kept === message.body.text && !withdrawn)) return
+  // The lines the person heard while they spoke start the message, and stay: only the reply after them is cut.
+  const listening = listeningIfAny(session)
+  const prefix = listening?.prefixOf(turnId)
+  const reply = replyOf(message.body.text, prefix)
+  const cut = session.cutOf(turnId, reply)
+  if (cut === undefined || (cut === reply && !withdrawn)) return
+  // Withdrawn, the lines go back to start the message that answers again, not this one; either way, no recap.
+  listening?.replyUnheard(turnId, withdrawn)
+  const kept = withdrawn ? cut : reply === message.body.text || !prefix ? cut : cut.trim() ? `${prefix}\n\n${cut}` : prefix
   conversationEvents.messageUpdated(conversationId, await keepHeardText(row.id, kept, withdrawn))
 }
 

@@ -18,7 +18,8 @@
  * - **An invitation after a held turn**: hq said they had not finished (`reply.held`), and they stay silent
  *   `invitationAfterHoldMs`; never closer than `minGapMs` to the last sound.
  *
- * Nothing plays with the person's Adaptive voice off. The gap is drawn from a seeded generator kept in the state, so
+ * Nothing plays with the person's Adaptive voice off, nor with the flag `voiceListener` on: the light model listens
+ * then. The gap is drawn from a seeded generator kept in the state, so
  * a run is the same each time it is replayed from the same seed.
  */
 import type { FloorState, VoiceEventInput } from '../events'
@@ -96,7 +97,7 @@ export function createListening(random: () => number = Math.random): Component<S
       listened: false, invite: null, seed: Math.floor(random() * 4_294_967_296),
     }),
     step(state, event, settings) {
-      if (!settings.adaptiveVoice) return { state, emit: [] }
+      if (!settings.adaptiveVoice || settings.voiceListener) return { state, emit: [] }
       const s = settings.listening
       const keep = (patch: Partial<State> = {}) => ({ state: { ...state, ...patch }, emit: [] })
       const invite = state.invite

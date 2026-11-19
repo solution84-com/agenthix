@@ -20,7 +20,7 @@ const UPDATE = env.PROTOCOL_SNAPSHOT_UPDATE === '1'
 const RESET = UPDATE && env.PROTOCOL_SNAPSHOT_RESET === '1'
 const program = coreProgram()
 
-describe('every connection matches its committed shape snapshot @SC-1133 @SC-1383', () => {
+describe('every connection matches its committed shape snapshot @SC-1133 @SC-1383 @SC-2223', () => {
   for (const connection of CONNECTIONS) {
     it(connection.name, () => {
       const now = extractConnection(program, CORE_SRC, connection)

@@ -27,4 +27,29 @@ describe('the trace line', () => {
     expect(read(ev({ kind: 'phrase.at', playing: true, text: 'Mm.', t: 1 }))).toBe('0.0s sound playing: Mm.')
     expect(read(ev({ kind: 'phrase.at', playing: true, text: 'Mm.', t: 50 }))).toBeNull()
   })
+
+  it('says a sound plays once, when it starts, though other lines come while it plays (the double hum) @SC-2227', () => {
+    const read = createTraceReader()
+    const lines = [
+      ev({ kind: 'phrase.at', playing: true, text: 'Mm-hm.', lineId: 'L1', t: 23_800 }),
+      ev({ kind: 'acoustic.silence', silent: true, t: 23_900 }),
+      ev({ kind: 'orchestration.floor', state: 'person-pausing', t: 23_900 }),
+      ev({ kind: 'phrase.at', playing: true, text: 'Mm-hm.', lineId: 'L1', t: 24_100 }),
+      ev({ kind: 'phrase.at', playing: false, text: 'Mm-hm.', lineId: 'L1', t: 24_300 }),
+      ev({ kind: 'phrase.at', playing: true, text: 'Mm-hm.', lineId: 'L2', t: 30_000 }),
+    ].map(read).filter(Boolean)
+    expect(lines).toEqual(['0.0s sound playing: Mm-hm.', '0.1s silent', '0.1s floor: person-pausing', '6.2s sound playing: Mm-hm.'])
+  })
+
+  it('names a backchannel hum, and why it came', () => {
+    const read = createTraceReader()
+    expect(read(ev({ kind: 'backchannel.hum', pausedMs: 600, verdict: 'UNCERTAIN', speechMs: 11_000, hum: 'sympathy', tone: 'gentle', t: 0 }))).toBe('0.0s backchannel: a sympathy gentle hum is due (paused 0.6 s, UNCERTAIN, 11.0 s of speech)')
+    expect(read(ev({ kind: 'backchannel.played', text: null, why: 'a line was playing', t: 10 }))).toBe('0.0s backchannel: no hum played: a line was playing')
+  })
+
+  it('names a hum as the light model kept the turn open, and a pause with no hum @SC-2227', () => {
+    const read = createTraceReader()
+    expect(read(ev({ kind: 'backchannel.hum', pausedMs: 1_400, verdict: 'READY', speechMs: 5_000, notYet: true, hum: 'continuer', tone: 'calm', fallback: 'the hum service is off', t: 0 }))).toBe('0.0s backchannel: a continuer calm hum is due (stood in: the hum service is off) (paused 1.4 s, the light model said not yet, 5.0 s of speech)')
+    expect(read(ev({ kind: 'backchannel.miss', why: 'after a question', pausedMs: 800, t: 0 }))).toBe('0.0s backchannel: no hum: after a question')
+  })
 })

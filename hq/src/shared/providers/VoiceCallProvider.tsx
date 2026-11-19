@@ -2,11 +2,11 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyn
 import { playVoiceSound, soundOf } from '../../conversations/voiceClient/voiceSounds'
 import { useLocation } from 'react-router'
 import { useAuth } from 'wasp/client/auth'
-import { getSpeechToken, getUserSettings, reportSpeechSession, sendConversationMessage, useQuery } from 'wasp/client/operations'
+import { getFeatures, getSpeechToken, getUserSettings, reportSpeechSession, sendConversationMessage, useQuery } from 'wasp/client/operations'
 import { useSocket } from 'wasp/client/webSocket'
 import { CONVERSATION_SOCKET } from '../conversations/protocol'
 import { createPlayback } from '../../conversations/voiceClient/playback'
-import { revealedChars } from '../../conversations/voiceClient/reveal'
+import { replyTextOf, revealedReply } from '../../conversations/voiceClient/reveal'
 import type { VoiceRuntimeHandle } from '../../conversations/voiceClient/runtime/types'
 import { mirrorRuntime } from '../../conversations/voiceClient/lab/mirror'
 import { VOICE_HEARS } from '../../conversations/voiceClient/stt'
@@ -53,10 +53,15 @@ const INERT: VoiceCallValue = {
 
 const VoiceContext = createContext<VoiceCallValue>(INERT)
 
+/** How much of a reply's `text` may show: the part heard so far while voice holds it back, null for all of it. */
 export function revealLimitOf(voice: VoiceSnapshot, turnId: string | undefined, text: string): number | null {
-  const reveal = voice.reveal
-  if (!reveal || !turnId || reveal.turnId !== turnId) return null
-  return revealedChars(text, reveal.sentences, reveal.head)
+  return revealedReply(voice, turnId, text)
+}
+
+/** A reply's bubble while voice is on: its text, headed by the lines heard before hq stores them, and how much of it shows. */
+export function revealOf(voice: VoiceSnapshot, turnId: string | undefined, text: string): { text: string; limit: number | null } {
+  const shown = replyTextOf(voice, turnId, text)
+  return { text: shown, limit: revealedReply(voice, turnId, shown) }
 }
 
 const subscribeNone = () => () => undefined
@@ -87,7 +92,16 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
   const { data: settings } = useQuery(getUserSettings, undefined, { enabled: !!userId })
   const adaptiveVoice = useRef(true)
   adaptiveVoice.current = settings?.adaptiveVoice ?? true
+  const voiceHums = useRef(true)
+  voiceHums.current = settings?.voiceHums ?? true
+  const voiceExpressiveTone = useRef(true)
+  voiceExpressiveTone.current = settings?.voiceExpressiveTone ?? true
   const voiceSounds = settings?.voiceSounds ?? true
+  // The flag `voiceListener` (adaptive voice listening), read as voice starts like Adaptive voice. `useFeature`'s query,
+  // asked only once someone is signed in: this provider wraps the signed-out pages too.
+  const { data: features } = useQuery(getFeatures, undefined, { enabled: !!userId })
+  const voiceListener = useRef(false)
+  voiceListener.current = features?.flags?.find(f => f.flag === 'voiceListener')?.on ?? false
 
   useEffect(() => {
     if (!socket || !userId) { setSession(null); return }
@@ -114,6 +128,9 @@ export function VoiceCallProvider({ children }: { children: ReactNode }) {
       reportSpeech: (session) => { void reportSpeechSession(session).catch(() => undefined) },
       sendMessage: (args) => sendConversationMessage(args),
       adaptiveVoice: () => adaptiveVoice.current,
+      voiceHums: () => voiceHums.current,
+      voiceExpressiveTone: () => voiceExpressiveTone.current,
+      voiceListener: () => voiceListener.current,
       mirror: import.meta.env.DEV ? mirrorRuntime : undefined,
     })
     setSession(made)

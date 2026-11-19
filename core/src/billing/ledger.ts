@@ -21,10 +21,13 @@ export type UsageEntryKind = (typeof USAGE_ENTRY_KINDS)[number]
 
 /**
  * What a call was for. A helper is a worker's own helper; `voice_sample` is the voice sample phrase;
- * `workflow_review` the reviewer reading a proposed workflow version.
+ * `workflow_review` the reviewer reading a proposed workflow version; `listener` the light model that listens while a
+ * person speaks in a voice conversation, and the recap written for it after each reply; `backchannel` the hum service,
+ * which picks the kind of small sound of listening while the person speaks.
  */
 export const USAGE_PURPOSES = [
-  'conversation', 'worker', 'helper', 'title', 'summary', 'stt', 'tts', 'voice_sample', 'workflow_review',
+  'conversation', 'worker', 'helper', 'title', 'summary', 'stt', 'tts', 'voice_sample', 'workflow_review', 'listener',
+  'backchannel',
 ] as const
 export type UsagePurpose = (typeof USAGE_PURPOSES)[number]
 
