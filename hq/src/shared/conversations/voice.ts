@@ -6,6 +6,6 @@ export { CONVERSATION_VOICE_SOCKET, VOICE_SILENCE_END_MS, VOICE_SILENCE_WARNING_
 export type {
   ConversationVoiceView, SpeechToken, SpeechTokenConfigValue, VoiceActivityPayload, VoiceAudioEvent,
   VoiceContinuePayload, VoiceEndedEvent, VoiceEndPayload, VoiceErrorEvent, VoiceInterruptPayload, VoiceInvitePayload,
-  VoicePhraseEvent, VoiceSentenceEvent, VoiceServices, VoiceSilenceWarningEvent, VoiceStartPayload, VoiceStateEvent,
+  VoiceHeardPrefixEvent, VoicePhraseEvent, VoiceSentenceEvent, VoiceServices, VoiceSilenceWarningEvent, VoiceStartPayload, VoiceStateEvent,
   VoiceTurnHeldEvent, VoiceTurnSpokenEvent, VoiceUpdateEvent,
 } from '@agenthix/core'

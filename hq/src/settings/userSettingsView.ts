@@ -11,6 +11,8 @@ export function userSettingsView(settings: UserSettings): UserSettingsView {
     timezone: settings.timezone,
     timezoneChosen: settings.timezoneChosen,
     adaptiveVoice: settings.adaptiveVoice,
+    voiceHums: settings.voiceHums,
+    voiceExpressiveTone: settings.voiceExpressiveTone,
     voiceSounds: settings.voiceSounds,
     createdAt: settings.createdAt,
     updatedAt: settings.updatedAt,

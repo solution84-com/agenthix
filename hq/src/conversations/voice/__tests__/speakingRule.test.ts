@@ -27,6 +27,7 @@ vi.mock('../../store/messages', () => ({
 vi.mock('../../conversationQueries', () => ({ accessState: vi.fn() }))
 vi.mock('../../../voice/speechScope', () => ({ scopeOfConversation: vi.fn() }))
 vi.mock('../phrases', () => ({ phraseClips: vi.fn() }))
+vi.mock('../listening', () => ({ listeningStarted: vi.fn(), listeningEnded: vi.fn(), listening: { listen: vi.fn(), played: vi.fn() } }))
 vi.mock('../availability', () => ({ loadVoiceFacts: vi.fn(), inUse: vi.fn(), voiceRefusal: vi.fn(), voiceStartedAt: vi.fn() }))
 vi.mock('../../../sessions/transcriptAuthors', () => ({ personName: vi.fn() }))
 

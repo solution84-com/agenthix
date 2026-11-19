@@ -7,7 +7,8 @@
  *
  * A failed turn keeps what it wrote and says why, in words a person can act on. A stopped one keeps what was
  * streamed, marked interrupted. A turn that lost the lock — recovery gave it up for dead — writes nothing.
- * A spoken message the model judged unfinished is held (keepListening.ts): the turn ends with nothing said.
+ * A spoken message the model judged unfinished is held (keepListening.ts): the turn ends with nothing said. A reply's
+ * `[tone: …]` tag, asked for with Tone on, is taken out as it streams (lead/toneTag.ts).
  * The lock itself is the caller's (scheduler.ts): this runs a turn already claimed.
  */
 import {
@@ -332,6 +333,8 @@ export async function runTurn(deps: TurnDeps, turn: RunningTurn): Promise<TurnOu
       const reading = readLeadStep({
         spokenMessage: context.spokenMessage === true, mayHold: () => canHold(found), replied: () => text, stream,
         hold: () => speech?.hold(),
+        // The reply's tone is its first tag's, read before any of its words; a later step's tag is only taken out.
+        ...(context.toneTag && { toneTag: tone => { if (!text.trim()) speech?.tone?.(tone) } }),
         finish(event) {
           usage = add(usage, event.usage)
           contextTokens = event.usage.inputTokens + event.usage.cacheReadTokens + event.usage.cacheWriteTokens

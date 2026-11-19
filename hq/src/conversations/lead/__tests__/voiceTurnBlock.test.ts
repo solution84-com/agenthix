@@ -125,3 +125,66 @@ describe("a turn's context while the flag is off", () => {
     expect(c.spokenMessage).toBeUndefined()
   })
 })
+
+describe('under adaptive voice listening (voiceListener) @SC-2220', () => {
+  function listened(featuresOn: FeatureFlag[], adaptiveVoice: boolean) {
+    return contextFrom({
+      instructions: { agentName: 'Kernel', agentRole: null, placeLabel: 'their own space', agentInstructions: null, orgInstructions: null, featuresOn },
+      segments: [], awaiting: new Set(), turn: { trigger: 'MESSAGE', inputIds: ['m1'] }, memory: null, places: null,
+      history: [m(1, 'so I was thinking we could', { spoken: true })],
+      listening: { trailedOff: true, wentOnAfter: null, wentOnAfterHold: true, adaptiveVoice },
+    })
+  }
+
+  it.each([
+    ['alone, Adaptive voice on', ['voiceListener'], true],
+    ['with the bridge on too', ['voiceBridge', 'voiceListener'], true],
+    ['with Adaptive voice off', ['voiceListener'], false],
+  ] as const)('a spoken message is told only how to speak: %s', (_name, flags, adaptiveVoice) => {
+    const c = listened([...flags], adaptiveVoice)
+    const text = turnText(c)
+    expect(text).toContain('write for the ear')
+    expect(text).not.toMatch(JUDGING)
+    expect(text).not.toMatch(HOLD)
+    expect(text).not.toMatch(OPENING)
+    expect(text).not.toMatch(/mid-thought/)
+    expect(text).not.toMatch(OLD_RULES)
+    // No hold: the turn cannot be held open, and keep_listening is not read.
+    expect(c.spokenMessage).toBeUndefined()
+  })
+
+  it('leaves the bridge as it was when the flag is off', () => {
+    const c = listened(['voiceBridge'], true)
+    expect(turnText(c)).toMatch(JUDGING)
+    expect(c.spokenMessage).toBe(true)
+  })
+
+  it('the block itself says how to speak and how to change the listening style, nothing of judging @SC-2232', () => {
+    const block = voiceTurnBlock({ spoken: true, adaptiveVoice: true, trailedOff: true, wentOn: true, listener: true })
+    expect(block.startsWith(voiceTurnBlock({ spoken: false, adaptiveVoice: true, trailedOff: false, wentOn: false }))).toBe(true)
+    expect(block).toMatch(/set_listening_style/)
+    expect(block).not.toMatch(/\[tone:/)
+    expect(block).not.toMatch(JUDGING)
+  })
+
+  it('with Tone on, a spoken reply is asked to open with its tone tag, naming the six tones @SC-2235', () => {
+    const block = voiceTurnBlock({ spoken: true, adaptiveVoice: true, trailedOff: false, wentOn: false, listener: true, toneTag: true })
+    for (const t of ['calm', 'warm', 'curious', 'thoughtful', 'gentle', 'bright']) expect(block).toContain(`[tone: ${t}]`)
+    const on = contextFrom({
+      instructions: { agentName: 'Kernel', agentRole: null, placeLabel: 'their own space', agentInstructions: null, orgInstructions: null, featuresOn: ['voiceListener'] },
+      segments: [], awaiting: new Set(), turn: { trigger: 'MESSAGE', inputIds: ['m1'] }, memory: null, places: null,
+      history: [m(1, 'my dog died', { spoken: true })],
+      listening: { trailedOff: false, wentOnAfter: null, adaptiveVoice: true, toneOn: true },
+    })
+    expect(on.toneTag).toBe(true)
+    expect(turnText(on)).toContain('[tone: gentle]')
+    // Tone off, or Adaptive voice off (plain voice): no tag asked, none taken out.
+    expect(listened(['voiceListener'], true).toneTag).toBeUndefined()
+    const plain = contextFrom({
+      instructions: { agentName: 'Kernel', agentRole: null, placeLabel: 'their own space', agentInstructions: null, orgInstructions: null, featuresOn: ['voiceListener'] },
+      segments: [], awaiting: new Set(), turn: { trigger: 'MESSAGE', inputIds: ['m1'] }, memory: null, places: null,
+      history: [m(1, 'hi', { spoken: true })], listening: { trailedOff: false, wentOnAfter: null, adaptiveVoice: false, toneOn: true },
+    })
+    expect(plain.toneTag).toBeUndefined()
+  })
+})

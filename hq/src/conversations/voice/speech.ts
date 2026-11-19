@@ -50,6 +50,7 @@ export function sessionDeps(conversationId: string, voice: AgentVoice): VoiceSes
     synthesize: (text, signal) => reported(voice.providerId, inworldTtsAdapter.synthesizeStream(text, voice, signal),
       voice.costed ? () => recordTts(voice.costed!, text.length, { conversationId }) : undefined),
     asEncouragement: text => spokenAs(text, voice),
+    steered: (text, direction) => spokenAs(text, voice, direction),
     toHolder: (event, payload) => {
       const session = voiceSession(conversationId)
       if (session) toSockets(session.socketIds, event, payload)

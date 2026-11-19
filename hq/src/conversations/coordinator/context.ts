@@ -25,6 +25,7 @@ import { ORG_FILE } from '../../packages/orgPackageService'
 import { readMessages } from '../store/messages'
 import { cardTurnBlock, leadBaseInstructions, leadKnowledgeRules, leadLongRules, listeningTurnBlock, type ContinuationStep } from '../lead/instructions'
 import { voiceTurnBlock } from '../lead/voiceTurnBlock'
+import { voiceBlockOf } from './voiceBlock'
 import { ZOOM_RULES } from '../long/zoom/rules'
 import { memoryForTurn } from '../memory/turnMemory'
 import { withMemoryBlock } from '../memory/turnBlock'
@@ -52,6 +53,8 @@ export interface LeadContext {
    * with keep_listening (keepListening.ts), and its first step reasons as little as it can.
    */
   spokenMessage?: boolean
+  /** The voice turn block asked the reply for a `[tone: …]` tag (Tone on): the turn takes it out (lead/toneTag.ts). */
+  toneTag?: boolean
 }
 
 export interface Instructions {
@@ -266,7 +269,7 @@ function appendBlock(messages: LeadMessage[], block: string): LeadMessage[] {
 }
 
 /** While the voice turn block is on (`voiceBridge`): what it reads of the person who holds voice. */
-export interface VoiceBlockOptions { adaptiveVoice: boolean; wentOnAfterHold: boolean }
+export interface VoiceBlockOptions { adaptiveVoice: boolean; wentOnAfterHold: boolean; listener?: boolean; toneTag?: boolean }
 
 /** Whether a turn answers a spoken message: the only turn whose model may hold it open (keep_listening). */
 export function answersSpokenMessage(history: readonly ConversationMessageView[], turn: Pick<ClaimedTurn, 'trigger' | 'inputIds'>): boolean {
@@ -291,7 +294,8 @@ export function withTurnBlock(
   const voice = !listening ? null : voiceBlock
     ? voiceTurnBlock({
       spoken: spoken && turn.trigger === 'MESSAGE', adaptiveVoice: voiceBlock.adaptiveVoice, trailedOff: spoken && trailedOff,
-      wentOn: spoken && (voiceBlock.wentOnAfterHold || wentOnAfter !== null),
+      wentOn: spoken && (voiceBlock.wentOnAfterHold || wentOnAfter !== null), listener: voiceBlock.listener === true,
+      toneTag: voiceBlock.toneTag === true,
     })
     : listeningTurnBlock(spoken, spoken && trailedOff, spoken ? wentOnAfter : null)
   if (turn.trigger === 'MESSAGE') return voice ? appendBlock(messages, voice) : messages
@@ -356,7 +360,7 @@ export interface ContextParts {
    * The person listening to this turn (voice), or none. `wentOnAfterHold`: they went on after a turn held open;
    * `adaptiveVoice`: their own setting (on unless they turned it off), read while the voice turn block is on.
    */
-  listening: { trailedOff: boolean; wentOnAfter: string | null; wentOnAfterHold?: boolean; adaptiveVoice?: boolean } | null
+  listening: { trailedOff: boolean; wentOnAfter: string | null; wentOnAfterHold?: boolean; adaptiveVoice?: boolean; toneOn?: boolean } | null
   /** Who said what, when several people share the conversation. */
   speakers?: Speakers
 }
@@ -365,9 +369,7 @@ export function contextFrom(parts: ContextParts): LeadContext {
   const { instructions, segments, history, awaiting, turn, memory, places, webSearch, listening, speakers } = parts
   const system = systemWithBlock(instructions, segments)
   const messages = leadMessages(windowOf(history, segments), turn.inputIds, awaiting, instructions.agentName, speakers)
-  const voiceBlock = instructions.featuresOn?.includes('voiceBridge')
-    ? { adaptiveVoice: listening?.adaptiveVoice ?? true, wentOnAfterHold: listening?.wentOnAfterHold ?? false }
-    : null
+  const voiceBlock = voiceBlockOf(instructions.featuresOn, listening)
   const withTurn = withTurnBlock(
     messages.messages, history, turn, listening !== null, listening?.trailedOff ?? false, listening?.wentOnAfter ?? null, voiceBlock,
   )
@@ -378,7 +380,8 @@ export function contextFrom(parts: ContextParts): LeadContext {
     system,
     messages: withMemoryBlock(withSearch, memory),
     cacheAfterMessage: messages.cacheAfter,
-    ...(voiceBlock && listening && answersSpokenMessage(history, turn) ? { spokenMessage: true } : {}),
+    ...(voiceBlock && !voiceBlock.listener && listening && answersSpokenMessage(history, turn) ? { spokenMessage: true } : {}),
+    ...(listening && voiceBlock?.toneTag && { toneTag: true }),
   }
 }
 
@@ -408,8 +411,11 @@ export async function assembleContext(
     turn.trigger === 'REPORT' ? null : backgroundSearchFor(conversation, agentId, turn.actingUserId),
   ])
   const session = listeningSession(conversation.id, turn)
-  const listening = session && instructions.featuresOn?.includes('voiceBridge')
-    ? { trailedOff: session.trailedOff, wentOnAfter: session.wentOnAfter, wentOnAfterHold: session.wentOnAfterHold, adaptiveVoice: await adaptiveVoiceOf(session.holderId) }
+  const listening = session && instructions.featuresOn?.some(f => f === 'voiceBridge' || f === 'voiceListener')
+    ? {
+      trailedOff: session.trailedOff, wentOnAfter: session.wentOnAfter, wentOnAfterHold: session.wentOnAfterHold,
+      adaptiveVoice: await adaptiveVoiceOf(session.holderId), toneOn: session.tone.on,
+    }
     : session
   return contextFrom({ instructions, segments, history, awaiting, turn, memory, places, webSearch, listening, speakers: await speakersOf(history) })
 }

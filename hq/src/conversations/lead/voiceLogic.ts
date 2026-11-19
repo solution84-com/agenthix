@@ -6,7 +6,9 @@
  * (conversations/voice/playground/) both run it, so what is tried in the playground is what ships.
  */
 import { z } from 'zod'
+import type { VoiceHumTone } from '@agenthix/core'
 import type { LeadStreamEvent, LeadToolCall, LeadToolDefinition, ToolCallOutcome } from '../contract'
+import { toneTagReader } from './toneTag'
 
 export { voiceTurnBlock, type VoiceTurn } from './voiceTurnBlock'
 
@@ -74,6 +76,11 @@ export interface StepReaderDeps {
   finish(event: Extract<LeadStreamEvent, { type: 'finish' }>): void
   /** The tools whose calls start work; none when absent. */
   startsWork?: ReadonlySet<string>
+  /**
+   * The voice turn block asked for a `[tone: …]` tag (`toneTag.ts`): it is taken out of the start of the step's text
+   * before anything streams, and its tone heard here.
+   */
+  toneTag?(tone: VoiceHumTone): void
 }
 
 export interface StepReading {
@@ -92,25 +99,35 @@ export function readLeadStep(deps: StepReaderDeps) {
   let text = ''
   const calls: LeadToolCall[] = []
   let held: LeadToolCall | null = null
+  const tag = deps.toneTag ? toneTagReader(deps.toneTag) : null
+  const write = (piece: string) => {
+    if (!piece) return
+    const before = deps.replied()
+    if (text === '' && before !== '' && !before.endsWith('\n')) deps.stream('\n\n')
+    text += piece
+    deps.stream(piece)
+  }
+  // What the tag reader held goes on once the step's text has ended: at its first call, or its finish.
+  const flush = () => { if (tag && !held) write(tag.flush()) }
   return {
     take(event: LeadStreamEvent): void {
       if (event.type === 'text') {
         if (!event.text || held) return
-        const before = deps.replied()
-        if (text === '' && before !== '' && !before.endsWith('\n')) deps.stream('\n\n')
-        text += event.text
-        deps.stream(event.text)
+        write(tag ? tag.take(event.text) : event.text)
       } else if (event.type === 'tool-call') {
+        flush()
         if (!held && event.call.name === KEEP_LISTENING && deps.spokenMessage && deps.mayHold()) {
           held = event.call
           deps.hold(event.call)
         }
         calls.push(event.call)
       } else {
+        flush()
         deps.finish(event)
       }
     },
     result(): StepReading {
+      flush()
       const startsWork = deps.startsWork
       return { text, calls: [...calls], held, work: startsWork ? calls.filter(c => startsWork.has(c.name)) : [] }
     },

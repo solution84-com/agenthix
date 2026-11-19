@@ -11,6 +11,7 @@ import {
   VOICE_SILENCE_WARNING_MS,
   type VoiceAudioEvent,
   type VoiceErrorEvent,
+  type VoiceHeardPrefixEvent,
   type VoiceSentenceEvent,
   type VoiceSilenceWarningEvent,
   type VoiceTurnSpokenEvent,
@@ -22,6 +23,8 @@ import { forSpeech } from './pronunciation'
 import { heardText, speechUnits, type SpeechUnit } from './speechUnits'
 import { RaisedHand, type HandTimer } from './hand'
 import { audioMs, PlaybackTimeline, SENTENCES_AHEAD } from './outbound'
+import { inDirection, REPLY_STEERING, spokenTone, steeringOf, TONE_OFF, type VoiceToneState } from './toneSteering'
+import type { VoiceHumTone } from '@agenthix/core'
 
 export const SPEECH_FAILED = "Couldn't speak this reply"
 
@@ -30,6 +33,8 @@ export interface VoiceSessionDeps {
   synthesize(text: string, signal: AbortSignal): AsyncIterable<{ audio: Buffer; wordTiming?: WordTiming }>
   /** An encouragement response's sentence as the speech service is asked to say it: in the stored phrases' relaxed tone. */
   asEncouragement?(text: string): string
+  /** A reply's sentence with its tone's steering (`toneSteering.ts`), on a model that takes one; as written otherwise. */
+  steered?(text: string, direction: string): string
   /** To the holder's sockets only. */
   toHolder(event: string, payload: unknown): void
   /** Text to speech failed during a turn: the reply finishes as text, and the record says why, once. */
@@ -66,6 +71,10 @@ export interface TurnSpeech {
    * holder is told no reply will come (`turnHeld`, in place of `turnSpoken`).
    */
   hold(): void
+  /** The lines the person heard start the turn's message (the light model): its holder is told, so they show whole. */
+  heardPrefix?(text: string): void
+  /** The reply's `[tone: …]` tag was read, before its first words: they are spoken in it (calm with Tone off). */
+  tone?(tone: VoiceHumTone | null): void
 }
 
 interface TurnState {
@@ -88,6 +97,8 @@ interface TurnState {
   /** The reply only asks the person to go on (Orchestration §5). */
   encouragement?: boolean
   held?: boolean
+  /** The reply's tone's steering, from its tag (`toneSteering.ts`); null for calm. */
+  steering: string | null
 }
 
 interface Queued { turnId: string; index: number }
@@ -123,6 +134,8 @@ export class VoiceSession {
   wentOnAfter: string | null = null
   /** The holder's last words went on after a turn held open: the turn that answers is told. */
   wentOnAfterHold = false
+  /** Tone as the holder's page last said (`voiceTone`): off until it says, so everything is spoken calm. */
+  tone: VoiceToneState = TONE_OFF
   /** A withdrawn turn, by id, and the message the person's words then joined: later words naming it join that message. */
   private readonly joinedTo = new Map<string, string>()
   private readonly turns = new Map<string, TurnState>()
@@ -151,7 +164,10 @@ export class VoiceSession {
   speechFor(turnId: string): TurnSpeech {
     let wrote!: (messageId: string | null) => void
     const written = new Promise<string | null>(resolve => { wrote = resolve })
-    const state: TurnState = { units: [], sent: 0, finished: false, dropped: this.closed, announced: false, timed: [], written, wrote }
+    const state: TurnState = {
+      units: [], sent: 0, finished: false, dropped: this.closed, announced: false, timed: [], written, wrote,
+      steering: null,
+    }
     this.turns.set(turnId, state)
     this.busy++
     return {
@@ -175,6 +191,12 @@ export class VoiceSession {
       },
       written: messageId => state.wrote(messageId),
       hold: () => this.hold(turnId, state),
+      tone: tone => { state.steering = steeringOf(REPLY_STEERING, spokenTone(this.tone, tone)) },
+      heardPrefix: text => {
+        if (state.dropped) return
+        const event: VoiceHeardPrefixEvent = { conversationId: this.conversationId, turnId, text }
+        this.deps.toHolder(V.heardPrefix, event)
+      },
     }
   }
 
@@ -363,19 +385,28 @@ export class VoiceSession {
     return (this.deps.wait ?? timer)(ms, signal)
   }
 
+  /** What the speech service is sent: an encouragement in its own direction, else the reply tone's, never both. */
+  private said(state: TurnState, text: string): string {
+    if (state.encouragement && this.deps.asEncouragement) return this.deps.asEncouragement(text)
+    return state.steering && this.deps.steered ? this.deps.steered(text, state.steering) : text
+  }
+
   /** One sentence: synthesized whole, so its words' timings go before its audio. */
   private async speak(item: Queued, state: TurnState, unit: SpeechUnit, signal: AbortSignal): Promise<void> {
     const audio: Buffer[] = []
     const timing: WordTiming = { words: [], wordStartSecs: [], wordEndSecs: [] }
-    const said = forSpeech(state.encouragement && this.deps.asEncouragement ? this.deps.asEncouragement(unit.text) : unit.text)
+    let direction = false
+    const said = forSpeech(this.said(state, unit.text))
     for await (const chunk of this.deps.synthesize(said, signal)) {
       if (signal.aborted) return
       audio.push(chunk.audio)
       const t = chunk.wordTiming
       // The speech service mixes words with tokens of space and punctuation: only words are revealed by.
       t?.words.forEach((word, i) => {
-        // A direction ("[relaxed, …]") is timed as a word, though it is not said.
-        if (!/\w/.test(word) || word.startsWith('[')) return
+        // A direction ("[relaxed, …]") is timed as a word, or as several, though it is not said.
+        const d = inDirection(word, direction)
+        direction = d.inside
+        if (d.skip || !/\w/.test(word)) return
         timing.words.push(word)
         timing.wordStartSecs.push(t.wordStartSecs[i]!)
         timing.wordEndSecs.push(t.wordEndSecs[i]!)

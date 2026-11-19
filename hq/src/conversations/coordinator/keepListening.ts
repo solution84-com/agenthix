@@ -7,9 +7,13 @@
  * hq intercepts it in the turn (turn.ts); it never goes through the tool adapter. On a spoken message whose reply has
  * started no work, the turn ends there: no message, no second model call, the reason logged, and the holder told
  * (`turnHeld`). On any other turn a call is ignored as a failed call, and the turn goes on as it would.
+ *
+ * Under adaptive voice listening (`voiceListener`) the light model judges whether the person has finished, so the tool
+ * is never offered.
  */
 import type { ConversationTool, ToolAdapter } from '../contract'
 import { voiceBridgeFeatureOn } from '../../voice/bridgeFlag'
+import { isOrgFeatureOn } from '../../features/switches'
 import { KEEP_LISTENING, KEEP_LISTENING_DESCRIPTION, NOT_HELD, keepListeningInput } from '../lead/voiceLogic'
 
 export { KEEP_LISTENING, KEEP_LISTENING_DESCRIPTION, NOT_HELD, canHold, holdReason } from '../lead/voiceLogic'
@@ -26,7 +30,9 @@ export function createKeepListeningTool(deps: { featureOn(): Promise<boolean> })
   }
 }
 
-export const keepListeningTool = createKeepListeningTool({ featureOn: voiceBridgeFeatureOn })
+export const keepListeningTool = createKeepListeningTool({
+  featureOn: async () => (await voiceBridgeFeatureOn()) && !(await isOrgFeatureOn('voiceListener')),
+})
 
 /** The tool adapter with a keep_listening call answered as not held, without running it. */
 export function ignoringKeepListening(tools: ToolAdapter): ToolAdapter {

@@ -27,7 +27,7 @@ import { outstandingOperations } from '../work/settle'
 import { setTaskStart } from '../work/tasks/taskOperations'
 import { boundaryName, continuationCheck } from './continuationChecks'
 import { notifyAfterCardTurn } from './notify'
-import { turnVoice } from '../voice/registry'
+import { listeningTurnVoice } from '../voice/listening/turnHooks'
 import { dropLostPlaces } from '../places'
 import { compactAtStart, ledger } from '../long'
 import { personTimezone } from '../../server/controlplane/personTimezone'
@@ -124,7 +124,7 @@ export const turnDeps: TurnDeps = {
   clock: async personId => clockNote(new Date(), personId ? await personTimezone(personId) : null),
   timezone: personTimezone,
   stepNames: { project: projectName },
-  voice: turnVoice,
+  voice: listeningTurnVoice,
   compactAtStart,
   ledger,
   pictures: picturesFor,

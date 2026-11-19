@@ -33,6 +33,14 @@ function setup(speech = fakeSpeech()) {
   return { session, sent, deps, speech, settle, tick: (ms: number) => { clock += ms } }
 }
 
+describe('the lines heard that start a turn\'s message', () => {
+  it('goes to the holder, and not for a turn already dropped', () => {
+    const { session, sent } = setup()
+    session.speechFor('t1').heardPrefix?.('Let me look.')
+    expect(sent).toEqual([{ event: V.heardPrefix, payload: { conversationId: 'conv-1', turnId: 't1', text: 'Let me look.' } }])
+  })
+})
+
 describe('a turn spoken to the holder @SC-995', () => {
   it('sends each sentence with its words, timings and offsets before its audio, then that the turn is spoken', async () => {
     const { session, sent, settle } = setup()

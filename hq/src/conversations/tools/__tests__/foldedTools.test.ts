@@ -25,6 +25,8 @@ vi.mock('../../long/zoom', () => ({ zoomTools: [] }))
 vi.mock('../../coordinator/keepListening', async importOriginal => ({
   ...(await importOriginal<typeof import('../../coordinator/keepListening')>()), keepListeningTool: { name: 'keep_listening', offered: async () => false },
 }))
+// set_listening_style reads adaptive voice listening's flag, and is tested beside its own code.
+vi.mock('../../voice/listening/styleTool', () => ({ listeningStyleTool: { name: 'set_listening_style', offered: async () => false } }))
 
 const admitted: string[] = []
 const rows: ToolOperationRows = {
