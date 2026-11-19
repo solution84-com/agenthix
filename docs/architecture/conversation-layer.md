@@ -198,7 +198,9 @@ A step's last sentence is spoken when the step ends, not after its tools and the
 calls that only read run side by side while one that writes, asks for approval or starts work runs alone, in the order
 asked (`voice/session.ts`, `coordinator/stepTools.ts`). Two development-only pages exist: the voice lab
 (`/dev/voice-lab`, for debugging a real conversation) and the voice playground (`/dev/voice-playground`, standalone).
-See [voice](../concepts/conversations/voice.md).
+See [voice](../concepts/conversations/voice.md). With the flag `voiceListener` on, a light model listens while the person
+speaks and decides whether the agent is needed at all: [voice-listening.md](voice-listening.md). Everything below is voice
+with the flag off, which is also plain voice with the person's Adaptive voice off.
 
 A voice client calls two operations named for no vendor: `getVoiceServices` says which speech services the defaults
 resolve to now, for any member (a provider's vendor, nothing secret), and `getSpeechToken` gives a short-lived token for
@@ -240,7 +242,9 @@ The events say what hq and the client tell each other; they do not say when to s
    (`orchestration/bargeIn.ts`): a stop word or enough of their own words stop it, an acknowledgement ("mm-hm") lets it
    go on. On a stop, it sends `interrupt` with `heardThrough`, the index of the last sentence heard to its end (-1 for
    none), so hq keeps only what the person heard.
-6. **Fill the wait, and show it is listening.** The `phrase` events, sent as voice starts, are short stored clips in the
+6. **Fill the wait, and show it is listening.** (With `voiceListener` on, the timed family and the standard
+   acknowledgement below never play: the light model's lines and the stored fallback phrases fill the wait,
+   [voice-listening.md](voice-listening.md).) The `phrase` events, sent as voice starts, are short stored clips in the
    agent's voice, none of them written into the conversation. Two things use them, both off with the person's Adaptive
    voice off:
    - *One standard acknowledgement.* If a message was sent and, by a ceiling of about 4 s, no reply has started, no
@@ -253,7 +257,7 @@ The events say what hq and the client tell each other; they do not say when to s
      the person goes on; an invitation is cut. An invitation
      plays after a stop word with the person silent, or after a held turn with the person silent. None of the last 6
      clips repeats, and nothing plays over the person.
-   **Holding a turn.** For a spoken message the lead decides in its own call whether the person has finished: a
+   **Holding a turn** (flag `voiceListener` off). For a spoken message the lead decides in its own call whether the person has finished: a
    `keep_listening` call (its reason logged, no text) holds the turn. hq then sends `conversationVoice:turnHeld` to the
    holder, with no message and no second model call, and the person's next words join the held
    message. Otherwise the lead replies, opening with one short sentence only when the reply needs real work (an

@@ -51,6 +51,13 @@ person's typed message is answered in text for all to read, never spoken.
 
 ## A spoken turn
 
+This section is voice as it is with the experimental flag `voiceListener` off. With it on, and the person's Adaptive voice
+on, voice is built as three services: **Reasoning** (the lead, writing the answer), **Responsive** (a light model that
+decides who speaks when, and says something short within a second) and **Backchannel** (the small listening sounds while
+the person talks), with an optional **Tone** layer in which each of them picks the tone it speaks in. The two switches
+under Adaptive voice in Settings, *Hums* and *Expressive tone*, turn Backchannel and Tone off on their own. The design is
+[voice-listening.md](../../architecture/voice-listening.md).
+
 - **Speech to text runs in the browser**, straight to the organisation's speech service, on a short-lived, single-use token hq
   mints; speaking still goes through hq. Dictation and voice on the web hear this way; the mobile app still hears only
   through AssemblyAI. What is heard streams into the person's own message and is sent when they pause, on the service's own end of

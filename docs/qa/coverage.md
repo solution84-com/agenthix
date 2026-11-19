@@ -1,7 +1,7 @@
 ---
 name: User-journey coverage map
 description: For each kind of person who uses Agenthix, the journeys that matter to them, what "works" means, which scenarios cover each, and whether a test backs them. Written from users' expectations, not from the code.
-updated: 2026-11-17
+updated: 2026-11-18
 ---
 
 # User-journey coverage map
@@ -111,8 +111,8 @@ These are not yet counted in the summary below; the full audit before the first 
 | **OPR-27** Talk about a task with my team | Important | The project reads and speaks in the task's conversation, which follows the task's agent and goes with the task. | SC-976, SC-977, SC-978 | 3 of 3 | Covered by a scenario and a test |
 | **OPR-28** Keep a long conversation going | Important | The older part is folded into summaries I can open, and decisions and open work survive. *(Changed 2026-10-18: SC-985 is retired.)* | SC-979 to SC-984 | 6 of 6 | Covered by a scenario and a test |
 | **OPR-29** Have agents use the team's knowledge | Important | The agent finds the place's knowledge files through its site and says when the site cannot be reached. | SC-1017 | 1 of 1 | Covered by a scenario and a test |
-| **OPR-30** Talk by voice, and dictate | Important | Voice runs inside the conversation, hands-free, with interruption, shown parts, approval by read-back and a bar across pages; the agent waits when I have not finished, opens a slow reply with one sentence or one stored phrase, makes listening sounds unless Adaptive voice is off, and answers one spoken message with one reply; Inworld or AssemblyAI hears, on one key; dictation fills the box. | SC-994 to SC-1001, SC-1003, SC-1830 to SC-1837, SC-1841 | 18 of 18 | Covered by a scenario and a test. |
-| **OPR-54** Choose whether the agent adds to a voice conversation | Important | Adaptive voice is my own switch, on by default; off, no listening sounds, no opening sentence and no stored phrase. | SC-1834 | 1 of 1 | Covered by a scenario and a test |
+| **OPR-30** Talk by voice, and dictate | Important | Voice runs inside the conversation, hands-free, with interruption, shown parts, approval by read-back and a bar across pages; the agent waits when I have not finished, opens a slow reply with one sentence or one stored phrase, makes listening sounds unless Adaptive voice is off, and answers one spoken message with one reply; Inworld or AssemblyAI hears, on one key; dictation fills the box. | SC-994 to SC-1001, SC-1003, SC-1830 to SC-1837, SC-1841, SC-2242 | 19 of 19 | Covered by a scenario and a test. |
+| **OPR-54** Choose whether the agent adds to a voice conversation | Important | Adaptive voice is my own switch, on by default; off, no listening sounds, no opening sentence and no stored phrase; under it, Hums and Expressive tone are my own switches too. | SC-1834, SC-2241 | 2 of 2 | Covered by a scenario and a test |
 | **OPR-31** Trust voice on a laptop's speakers | Critical | The agent's own voice is not heard as mine, my words are not dropped and not late. | SC-1002 | 1 of 1 | The promise is not yet met, and this blocks the first release. The tests replay recorded speech and do not stand for it. |
 | **OPR-32** Read, archive, delete and find | Important | The thread reads as prose with the work kept quiet; idle conversations archive, deleting names what goes, and a run is found from its conversation. | SC-973, SC-974, SC-975, SC-1004 to SC-1010, SC-1012 | 14 of 14 | Covered by a scenario and a test |
 
@@ -239,6 +239,22 @@ The journey map had not followed the scenarios written from 13 to 16 Nov (SC-211
 | **ADM-35** A tool that is off for an agent is never found or run, however it is asked | Critical | A search finds only tools the caller may use; a `use_tool` call is decided under the name of the tool it names, in hq and on the site; a run's search is answered only to a run; a call that cannot run runs nothing and says to search. | SC-2173, SC-2174, SC-2176, SC-2181 | 4 of 4 | Covered by a scenario and a test |
 
 SC-2160 to SC-2170 (the dependency checks and updates, the development start, the migration check, the snapshot baseline, the Fleet Console's version) serve the maintainers and no journey, as SC-1857 to SC-1864 do. SC-2164 (every install is `npm ci`) has no citing test; SC-2166 and SC-2167 are now tagged on the tests that assert them. SC-2162 and SC-2163 are retired.
+
+### Journeys added at the close of *adaptive voice listening* (2026-11-18, brought up to date 2026-11-19)
+
+> **Behind the `voiceListener` flag, at experimental, so not in the release:** OPR-62 to OPR-66. The QA model has no mark for a promise outside the release, so this note stands in for one.
+
+These are not yet counted in the summary below; the full audit before the first release counts them. Citations are on a whole group of tests (a `describe`), so the audit re-reads them. The build changed on 19 Nov, after the playtests: each layer picks its own tone, the sounds come from a library made on demand, and the listening style is the reply's to set; these rows are written from the code as it then stood.
+
+| Journey | Weight | What "works" means | Scenarios | Tests cite | Status |
+|---|---|---|---|---|---|
+| **OPR-62** Have the agent listen while I talk and answer only when I need it | Important | A light model reads me as I finish: it keeps my turn open while I think, answers a social line itself, hands real requests to the agent with a short hold, checks in on a long quiet and ends the wait after a minute; with no light model, or Adaptive voice off, voice is plain. | SC-2198 to SC-2207, SC-2211, SC-2213, SC-2214, SC-2217 to SC-2221 | 18 of 18 | Covered by a scenario and a test |
+| **OPR-63** Hear the agent's own words whole, never over me and never late | Important | A line plays to its end and my words over it are still heard; a line about a pause I have spoken after is dropped and never stored as heard; what I heard is kept with the reply. | SC-2208 to SC-2210, SC-2212, SC-2215, SC-2216, SC-2229 | 7 of 7 | Covered by a scenario and a test |
+| **OPR-64** Hear small sounds of listening that fit what I say and how I sound | Important | A small sound in my pauses, spaced, never after a question or over the agent, of the kind and tone my words call for, a word from a library made in the agent's voice, a reaction at my breath and never two in a row, a laugh back when I laugh, and each part of the agent (sounds, short lines, reply) speaking in a tone of its own that fits; with Hums or Expressive tone off, none of it. | SC-2226, SC-2228, SC-2233 to SC-2238, SC-2241 | 9 of 9 | Covered by a scenario and a test |
+| **OPR-65** Not be cut in on, at my own pace | Important | The agent waits longer after I went on past a finish, learns how long my breaths are, within limits, for this conversation only, and, when I talk over its reply, waits for my words and counts a finish I made meanwhile. | SC-2230, SC-2231, SC-2239, SC-2240 | 4 of 4 | Covered by a scenario and a test |
+| **OPR-66** Ask the agent to listen differently | Important | "Stop humming", "fewer of those", "let me finish" and "back to normal" are said back to me by the agent's own reply and hold for the rest of the conversation, in the page only. | SC-2232 | 1 of 1 | Covered by a scenario and a test |
+
+SC-2222 to SC-2225 and SC-2227 (the light model's settings object, the client protocol's events, and the voice playground's light model, scripted set, Log and Tuning, a development page) serve no journey, as SC-1838 to SC-1840 do. SC-2235 to SC-2242 were added on 19 Nov and are counted above: SC-2241 under OPR-54 and SC-2242, Inworld told English, under OPR-30.
 
 ## Viewer
 

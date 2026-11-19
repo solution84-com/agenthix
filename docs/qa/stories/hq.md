@@ -1,9 +1,9 @@
 ---
 name: User Stories — hq
 description: Business-level requirements for Agenthix's hq web app and the Execution Site machine owner (projects, tasks, boards, agents, sessions, skills, products, org, people and roles, model access, integrations, machines). Written for business readers.
-updated: 2026-11-17
+updated: 2026-11-18
 verified: 2026-06-19
-next-us: US-500
+next-us: US-501
 ---
 
 # User Stories — `hq/`
@@ -4422,6 +4422,8 @@ As a member, I want to turn off the extras an agent adds when I talk to it, so t
 - AC-446a: Adaptive voice is a switch in my Settings, on by default; it is mine alone and changes nothing for anyone else.
 - AC-446b: turned off, the agent makes no listening sounds, opens no reply with a sentence and plays no stored standard phrase; turned on, it does all three.
 - AC-446c: whatever the setting, the agent still notices when I have finished or not finished, tells my voice from its own and stops at a stop word.
+- AC-446d: under Adaptive voice, Hums and Expressive tone are my own switches, on by default and shown disabled while Adaptive voice is off with their values kept; Hums off makes no listening sounds and changes nothing else.
+- AC-446e: Expressive tone off makes every part of the agent speak plain and stops my voice being read for how I sound; the rest of Adaptive voice stays as it is.
 
 ## One key, and a simpler AI step (added 2026-11-10)
 
@@ -4860,3 +4862,29 @@ As an organisation admin or a member, I want an agent to keep its most-used tool
 - AC-497f: the checks that send an agent a real request pass on the low-cost baseline model, grading what it did and not how it reached the tool.
 - AC-497g: a background run does the same: its most-used tools in full, the rest found and used, with approvals and records under the tool's own name.
 - AC-497h: a background run's first message is only what was asked — the person's words, the brief or the routine's instructions — with nothing of the platform's beside it to contradict them.
+
+## Adaptive voice listening (added 2026-11-18)
+
+### US-500 — Be listened to while I speak, and answered only when it needs the agent
+
+As a member who talks to an agent aloud, I want it to react while I speak the way a good listener does, and to bring in the agent's full thinking only when what I said needs it, so that a conversation by voice feels attended to and a simple "thanks" does not wait for a slow answer.
+
+This is behind the experimental flag `voiceListener`; the Adaptive voice switch (US-446) is the person's own switch for it.
+
+**Acceptance criteria:**
+- AC-500a: while I speak, a small reaction ("Mm-hm.", "Right.") now and then fits what I just said, is the agent's own wording each time, and never answers a question, gives a fact or an opinion, or promises anything.
+- AC-500b: nothing the agent says while I speak is cut off: each reaction plays to its end even if I carry on, and my own words over it are still heard and written down.
+- AC-500c: when I have finished and need only a social reply ("Thanks.", "Stop talking."), the agent answers in a few words and the heavy model is not called; anything that needs something known, decided or done goes to the agent.
+- AC-500d: when what I said needs thinking, the agent says at once, in a few words, what it is looking into ("Good question, let me check the weather in Melbourne"), instead of silence, and a long wait gets a further short line now and then.
+- AC-500e: when I pause to think, or say "give me a minute", the agent keeps my turn open and checks again, for at most a minute of silence, and never ends my turn on meaning before the sound says I have finished.
+- AC-500f: when the light model gives no usable answer in time, the agent still answers my message, after one stored hold phrase in the agent's voice.
+- AC-500g: with Adaptive voice off, or when no light model can be reached, voice is plain: the turn ends on the sound, nothing is said until the reply, and the agent answers every message.
+- AC-500h: what I heard while I spoke is kept with the agent's reply, so the next turn knows it, and a short summary of where the conversation is, written after each reply, keeps the listener up to date.
+- AC-500i: a developer can try the light model, change every number it runs on, read every call in a Log and run a scripted set of moments scored against the design, in the voice playground.
+- AC-500j: *(Not yet covered by a test.)* the hold names what I asked, in its own words, every time: this is judged by the measurements made while building it and by listening, and no automated test fails if a model's hold is vague.
+- AC-500k: each part of the agent speaks in a tone that fits what I said and how I sound, the small sounds, its short lines and its reply each choosing their own, a little for the reply, and ordinary talk is spoken plain; with Expressive tone off everything is spoken plain and my voice is not read for how I sound.
+- AC-500l: a reply I talk over waits for my words instead of coming back over them, and when I finished while talking over it, my turn is sent shortly after the reply stops.
+- AC-500m: when I ask the agent to listen differently ("stop humming", "fewer of those", "let me finish", "back to normal"), it says it will, and that holds for the rest of the conversation.
+- AC-500n: my short words are written in English, not in another language.
+
+---

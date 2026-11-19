@@ -36,6 +36,15 @@ listening sounds ("mm-hm") while you talk, and, when a reply will take a while, 
 until its reply starts. Either way, the agent notices when you have finished and tells your voice from its own. The
 **(i)** beside it explains the same. A change applies from the next time you start voice.
 
+Two switches sit under Adaptive voice, for trying each part on its own. They appear when your organisation has the
+experimental adaptive voice listening turned on, and are greyed out while Adaptive voice is off (they keep their
+setting):
+
+- **Hums**, on to begin with, are the listening sounds ("mm-hm") while you talk. Turn it off and there are none; the
+  rest of Adaptive voice stays.
+- **Expressive tone**, on to begin with, lets the agent change its tone to suit what you are saying: gentler for bad news, brighter for good. Turn it off and the agent
+  speaks plainly, with no change of tone.
+
 **Voice sounds**, on to begin with, are the short sounds a call makes: when voice is ready and when it ends, when you
 mute or unmute, and when the connection drops. Turn them off and a call makes no sounds of its own; you still hear the
 agent.
