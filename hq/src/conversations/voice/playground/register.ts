@@ -1,9 +1,9 @@
 /**
  * The voice playground on hq's socket server (server/socket.ts), with its real parts: hq's model adapter, writing no
- * ledger row, on a model the person may use, for Live and the scenario runner; and the organisation's text to speech.
+ * ledger row, on a model the person may use, for Live; and the organisation's text to speech.
  */
 import { createModelAdapter } from '../../model'
-import { playgroundModelAccess, playgroundSpeech } from './access'
+import { playgroundHumAccess, playgroundListenerAccess, playgroundModelAccess, playgroundSpeech } from './access'
 import { registerVoicePlayground, type PlaygroundSocket } from './handlers'
 import { leadFor } from './leads'
 
@@ -16,8 +16,13 @@ export function registerVoicePlaygroundEvents(socket: PlaygroundSocket, log: Log
     const cacheKey = `voice-playground:${s.id}`
     return {
       lead: args => leadFor(args.lead, userId, { model, access: playgroundModelAccess, cacheKey }),
-      scenarios: { model, access: playgroundModelAccess, cacheKey },
       speech: () => playgroundSpeech(userId),
+      light: {
+        model,
+        access: value => playgroundListenerAccess(userId, value),
+        heavyAccess: value => playgroundModelAccess(userId, value),
+      },
+      hums: { model, access: value => playgroundHumAccess(userId, value) },
       log: line => log.info(line),
     }
   })

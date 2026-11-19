@@ -2,8 +2,8 @@
  * hq's own voice session for the playground: the real voice client, on the app's socket with every voice and
  * conversation event under the playground's names (`playgroundSocket`), so the app's own voice never hears it and hq's
  * voice service never answers it; a speech token as voice anywhere gets one; and a message send to the playground's
- * server side, with the lead and the Adaptive voice switch the page chose; and the listening family's numbers as the
- * page's sliders have them.
+ * server side, with the lead and the Adaptive voice switch the page chose; the listening family's numbers as the
+ * page's sliders have them; and the light model's timing (adaptive voice listening), the flag `voiceListener` on.
  */
 import { createPlayback } from '../playback'
 import { createVoiceSession, type LooseSocket, type VoiceSession } from '../voiceSession'
@@ -52,8 +52,17 @@ export function makePlaygroundSession(deps: PlaygroundSessionDeps): VoiceSession
     getToken: () => deps.getToken(),
     sendMessage: args => sendToPlayground(deps.socket, deps.settings, args),
     adaptiveVoice: () => deps.settings.get().adaptiveVoice,
-    // The sliders' object itself, so a number moved while voice is on takes effect at once.
-    settings: { ...VOICE_SETTINGS, listening: deps.settings.listening() },
+    // The flag `voiceListener` is on, as in the product with it graduated: Adaptive voice alone says whether the light model listens.
+    voiceListener: () => true,
+    // The sliders' objects themselves, so a number moved while voice is on takes effect at once.
+    settings: {
+      ...VOICE_SETTINGS, listening: deps.settings.listening(), listener: deps.settings.listenerTiming(), backchannel: deps.settings.backchannel(),
+      pacing: deps.settings.pacing(),
+      tone: deps.settings.tone(),
+      bargeIn: deps.settings.bargeIn(),
+      // The backchannel's own switch alone says whether it hums, so it can be heard with the light model off.
+      backchannelAlone: true,
+    },
     ...deps.outside,
   })
 }

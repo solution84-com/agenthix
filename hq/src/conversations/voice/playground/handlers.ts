@@ -1,17 +1,17 @@
 /**
- * The voice playground's socket events (plan tasks 4b.2 and 4c.4): one playground conversation and one scenario
- * runner per socket, made when its page first asks and ended when the socket goes. Refused outside a development
- * build and for a socket of nobody signed in: a message or a scenario request is answered with the refusal, voice
- * with an error, and nothing else is acted on.
+ * The voice playground's socket events (plan task 4b.2): one playground conversation per socket, made when its page
+ * first asks and ended when the socket goes. Refused outside a development build and for a socket of nobody signed in:
+ * a message is answered with the refusal, voice with an error, and nothing else is acted on.
  */
 import { isDevelopmentBuild, type FlagEnvironment } from '@agenthix/core'
+import { CONVERSATION_VOICE_PAGE_SOCKET as VP } from '@agenthix/core'
 import { CONVERSATION_VOICE_SOCKET as V, type VoiceErrorEvent } from '../../../shared/conversations/voice'
 import {
   PLAYGROUND_CONVERSATION_ID, PLAYGROUND_REFUSED, VOICE_PLAYGROUND_SOCKET as P, playgroundEvent,
-  type PlaygroundSendAck, type PlaygroundSendArgs, type ScenarioRunArgs, type ScenarioSentArgs,
+  type PlaygroundSendAck, type PlaygroundSendArgs,
 } from '../../../shared/voicePlayground'
 import { PlaygroundConversation, type PlaygroundDeps } from './conversation'
-import { ScenarioRunner, type ScenarioRunnerDeps } from './scenarios/runner'
+import { LIGHT_SOCKET as L } from '../../../shared/voicePlaygroundLight'
 
 export interface PlaygroundSocket {
   id: string
@@ -22,19 +22,14 @@ export interface PlaygroundSocket {
 
 interface Log { info(message: string): void; error(message: string, err: unknown): void }
 
-/** What a conversation and the scenario runner are made with, for this socket's person. */
-export type MakeDeps = (userId: string, socket: PlaygroundSocket) => Omit<PlaygroundDeps, 'out'> & {
-  scenarios?: Omit<ScenarioRunnerDeps, 'out'>
-}
-
-type Ack<T> = (ack: T | { ok: false; error: string }) => void
+/** What a conversation is made with, for this socket's person. */
+export type MakeDeps = (userId: string, socket: PlaygroundSocket) => Omit<PlaygroundDeps, 'out'>
 
 /** hq's voice events the page sends, under the playground's prefix. */
-const FROM_PAGE = [V.start, V.end, V.interrupt, V.activity, V.continue] as const
+const FROM_PAGE = [V.start, V.end, V.interrupt, V.activity, V.continue, V.listen, V.linePlayed, VP.backchannel, VP.backchannelSpeak, VP.voiceTone] as const
 
 export function registerVoicePlayground(socket: PlaygroundSocket, log: Log, make: MakeDeps, env: FlagEnvironment = process.env): void {
   let conversation: PlaygroundConversation | null = null
-  let runner: ScenarioRunner | null = null
   let made: ReturnType<MakeDeps> | null = null
   const allowed = () => isDevelopmentBuild(env) && !!socket.data?.user?.id
   const out = (event: string, payload: unknown) => { socket.emit(event, payload) }
@@ -43,27 +38,6 @@ export function registerVoicePlayground(socket: PlaygroundSocket, log: Log, make
   function ours(): PlaygroundConversation {
     conversation ??= new PlaygroundConversation({ ...deps(), out })
     return conversation
-  }
-
-  function scenarios(): ScenarioRunner {
-    const d = deps().scenarios
-    if (!d) throw new Error('The scenario runner is not set up here.')
-    runner ??= new ScenarioRunner(socket.data!.user!.id, { ...d, out })
-    return runner
-  }
-
-  /** An acknowledged request: refused outside development, and any failure answered in words. */
-  function answered<T>(event: string, act: (payload: unknown) => T): void {
-    socket.on(event, (payload: unknown, answer?: unknown) => {
-      const reply: Ack<T> = typeof answer === 'function' ? answer as Ack<T> : () => undefined
-      if (!allowed()) { reply({ ok: false, error: PLAYGROUND_REFUSED }); return }
-      try {
-        reply(act(payload))
-      } catch (err) {
-        log.error(`${event} failed for ${socket.id}`, err)
-        reply({ ok: false, error: err instanceof Error ? err.message : 'The playground could not do that.' })
-      }
-    })
   }
 
   function guarded(event: string, act: () => void): void {
@@ -104,15 +78,11 @@ export function registerVoicePlayground(socket: PlaygroundSocket, log: Log, make
 
   socket.on(P.reset, () => { if (allowed()) guarded(P.reset, () => ours().reset()) })
 
-  answered(P.scenarios, () => ({ ok: true as const, library: scenarios().library() }))
-  answered(P.scenarioRun, payload => scenarios().run(payload as ScenarioRunArgs))
-  answered(P.scenarioSent, payload => scenarios().sentRequest(payload as ScenarioSentArgs))
-  socket.on(P.scenarioClear, () => { if (allowed()) guarded(P.scenarioClear, () => runner?.clear()) })
+  // The light model (light/): its settings from the page.
+  socket.on(L.config, (payload: unknown) => { if (allowed()) guarded(L.config, () => ours().light.configure(payload)) })
 
   socket.on('disconnect', () => {
     conversation?.close()
     conversation = null
-    runner?.clear()
-    runner = null
   })
 }

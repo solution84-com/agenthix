@@ -11,7 +11,8 @@ import type { PlaygroundEntry } from '../../../shared/voicePlayground'
 import type { VoiceSession, VoiceSnapshot } from '../voiceSession'
 import type { DecisionRow } from './decisions'
 import { revealLimitOf } from '../../../shared/providers/VoiceCallProvider'
-import { Transcript } from './Transcript'
+import { headShown, replyTextOf } from '../reveal'
+import { FollowedTranscript } from './FollowedTranscript'
 import { sentKey, useLiveWords } from '../../hooks/useLiveWords'
 
 export type LivePaneProps = {
@@ -31,9 +32,9 @@ export function LivePane({ session, snapshot, entries, decisions, startVoice, se
   const said = useLiveWords(on ? (snapshot.muted ? '' : snapshot.partial) : undefined, sentKey([...entries].reverse().find(e => e.role === 'person')))
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="min-h-48 flex-1 overflow-y-auto">
-        <Transcript entries={entries} decisions={decisions} reveal={(turnId, text) => revealLimitOf(snapshot, turnId, text)} live={said} />
-      </div>
+      <FollowedTranscript entries={entries} decisions={decisions} snapshot={snapshot} reveal={(turnId, text) => revealLimitOf(snapshot, turnId, text)} textOf={(turnId, text) => replyTextOf(snapshot, turnId, text)}
+        settledOf={(turnId, text) => headShown(snapshot, turnId, text)} live={said}
+      />
       <p className="min-h-5 text-small text-text-muted" data-testid="voice-phase" aria-live="polite">
         {on && (snapshot.muted ? 'Muted' : 'Listening')}
       </p>
@@ -49,16 +50,16 @@ export function LivePane({ session, snapshot, entries, decisions, startVoice, se
       >
         <Tooltip label={micLabel} side="top">
           <button
-            type="button" aria-label={micLabel} aria-pressed={on} onClick={() => (on ? session.end() : startVoice())}
+            type="button" aria-label={micLabel} aria-pressed={on} data-testid="voice-mic" onClick={() => (on ? session.end() : startVoice())}
             className={`flex size-9 shrink-0 items-center justify-center rounded-full max-sm:size-11 ${on ? 'bg-danger text-on-accent' : BUTTON_PRIMARY}`}
           >
             <Mic size={16} aria-hidden />
           </button>
         </Tooltip>
-        <Input className="min-w-0 flex-1" aria-label="Message" placeholder="Talk with the microphone, or type here" value={text} onChange={e => setText(e.target.value)} />
+        <Input className="min-w-0 flex-1" data-testid="message-box" aria-label="Message" placeholder="Talk with the microphone, or type here" value={text} onChange={e => setText(e.target.value)} />
         {on && <Button type="button" variant="secondary" size="sm" onClick={() => session.toggleMute()}>{snapshot.muted ? 'Unmute' : 'Mute'}</Button>}
         {snapshot.phase === 'speaking' && <Button type="button" variant="secondary" size="sm" onClick={() => session.stopSpeaking()}>Stop speaking</Button>}
-        <Button type="submit" size="sm">Send</Button>
+        <Button type="submit" size="sm" data-testid="message-send">Send</Button>
       </form>
     </div>
   )

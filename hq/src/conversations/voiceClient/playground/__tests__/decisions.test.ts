@@ -23,6 +23,13 @@ describe("the Log's decision rows @SC-1840", () => {
     expect(rows[1]).toMatchObject({ detail: 'Four.', gap: '+0.90 s', at: 5_900, held: false })
   })
 
+  it('carries the reply\'s tone, from its tag, for the HEAVY row (spec §Tone) @SC-2234', () => {
+    const d: PlaygroundDecision[] = [{ turnId: 't8', kind: 'tone', text: 'gentle', at: 1_000 }]
+    const rows = decisionRows([person('p8', 'My dog died', 't8', 0), agent('a8', 't8', { text: 'I am so sorry.', firstTextAt: 900 })], d)
+    expect(rows[0]).toMatchObject({ outcome: 'Plain reply', tone: 'gentle' })
+    expect(decisionRows([person('p9', 'Hi', 't9', 0), agent('a9', 't9', { text: 'Hi.' })], [])[0]).not.toHaveProperty('tone')
+  })
+
   it('says when work started with no opening sentence', () => {
     const d: PlaygroundDecision[] = [{ turnId: 't5', kind: 'work', text: 'Stale tasks', at: 1_000 }]
     const rows = decisionRows([person('p5', 'Find the stale tasks', 't5', 0), agent('a5', 't5', {})], d)
